@@ -1,0 +1,114 @@
+% option draft um zu lange Zeilen anzuzeigen
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+% linux libertine for normal text
+\usepackage{libertine}
+\usepackage{libertinust1math}
+% inconsolate as teletype font
+\usepackage{inconsolata}
+\usepackage[T1]{fontenc}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subcaption}
+\usepackage{pmboxdraw}
+\usepackage{lipsum}
+\usepackage[export]{adjustbox}
+\usepackage{csquotes}
+\usepackage{tabularx}
+\usepackage[sort]{natbib}
+\usepackage[toc,nonumberlist]{glossaries}
+\usepackage{makecell}
+\usepackage[absolute,overlay]{textpos}
+\usepackage{microtype}
+
+% setup of siunitx
+\usepackage[binary-units=true]{siunitx}
+\DeclareSIUnit{\bits}{bits}
+\DeclareSIUnit{\cycle}{cycle}
+\DeclareSIUnit{\cycles}{cycles}
+\sisetup{
+  list-final-separator = {, and },
+  per-mode=symbol
+}
+
+% tikz
+\usepackage{tikz}
+\usepackage{tikz-uml}
+\usetikzlibrary{arrows,automata,positioning}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.multipart}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{calc}
+\usetikzlibrary{intersections}
+\usetikzlibrary{patterns}
+
+% tikz setup
+\usepackage{environ}
+\makeatletter
+\newsavebox{\measure@tikzpicture}
+\NewEnviron{scaletikzpicturetowidth}[1]{%
+  \def\tikz@width{#1}%
+  \def\tikzscale{1}\begin{lrbox}{\measure@tikzpicture}%
+  \BODY
+  \end{lrbox}%
+  \pgfmathparse{#1/\wd\measure@tikzpicture}%
+  \edef\tikzscale{\pgfmathresult}%
+  \BODY
+}
+
+\makeatother
+\tikzstyle{thick arrow}=[-{Latex[length=2mm]}]
+
+% hyperlinks
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\hypersetup{
+  pdfauthor   = {Nils Asmussen},
+  pdftitle    = {DTU Specification},
+  pdfborder   = {0 0 0 [0 0]},
+  colorlinks  = false
+}
+
+% listings
+\usepackage{listings}
+\lstset{basicstyle=\small\ttfamily,breaklines=true}
+\lstdefinestyle{myc++}{
+  language=C++,
+  morekeywords={size_t,ssize_t}
+}
+
+% ignore page group warnings
+\pdfsuppresswarningpagegroup=1
+
+% redefine some names
+\addto\extrasenglish{%
+  \renewcommand{\chapterautorefname}{Chapter}%
+  \renewcommand{\sectionautorefname}{Section}%
+  \renewcommand{\subsectionautorefname}{Section}%
+  \renewcommand{\subsubsectionautorefname}{Section}%
+}
+
+% for smart references
+\newcommand{\rref}[2][]{\autoref{#2}}
+
+% names
+\newcommand{\myos}{$\text{M}^\mathbf{3}$}
+\newcommand{\myfs}{$\text{M}^\mathbf{3}$FS}
+
+% TODOs
+\newcommand{\todo}[1]{\fbox{\bfseries\sffamily\scriptsize\color{red}TODO: #1}}
+
+\title{DTU Specification}
+\author{Nils Asmussen}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\end{document}

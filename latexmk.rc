@@ -1,0 +1,9 @@
+$sleep_time = 1;
+$pdflatex = "ppdflatex";
+
+add_cus_dep('svg', 'pdf', 0, 'svg2pdf');
+sub svg2pdf {
+    system("inkscape --file=\"$_[0].svg\" --export-area-drawing --without-gui --export-pdf=\"$_[0].tmp\"");
+    system("pdfcrop \"$_[0].tmp\" \"$_[0].pdf\"");
+    system("rm \"$_[0].tmp\"");
+}
