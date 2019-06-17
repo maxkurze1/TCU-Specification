@@ -189,6 +189,56 @@ connected to the local memory. The DTU is also connected to the local memory to,
 messages. These components are not necessarily arranged in this way. For example, the DTU might
 interpose itself between the CU and local memory.
 
+\section{MMIO region}
+
+The MMIO region of the DTU is defined as follows:
+
+\vspace{2ex}
+\noindent
+\begin{tabular}{ p{3cm} | c | c | l }
+  \textbf{Address} & \textbf{Register} & \textbf{Group} & \textbf{Description} \\
+  \hline
+  \texttt{0xF000\_0000} & \texttt{EXT\_CMD} & DtuRegs & Triggers external commands \\
+  \hline
+  \texttt{0xF000\_0008} & \texttt{EVENTS} & DtuRegs & Contains outstanding events \\
+  \hline
+  \texttt{0xF000\_0010} & \texttt{COMMAND} & CmdRegs & Triggers internal commands \\
+  \hline
+  \texttt{0xF000\_0018} & \texttt{ABORT} & CmdRegs & Aborts internal commands \\
+  \hline
+  \texttt{0xF000\_0020} & \texttt{DATA} & CmdRegs & Specifies the data for commands \\
+  \hline
+  \texttt{0xF000\_0028} & \texttt{ARG$_1$} & CmdRegs & Additional argument for commands \\
+  \hline
+  \texttt{0xF000\_0030} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
+  \texttt{0xF000\_0038} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
+  \texttt{0xF000\_0040} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
+  \hline
+  \texttt{0xF000\_0048} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
+  \texttt{0xF000\_0050} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
+  \texttt{0xF000\_0058} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
+  \hline
+  \multicolumn{4}{c}{\dots} \\
+  \hline
+  \texttt{0xF000\_0100} & \texttt{EP$_{n0}$} & EpRegs & First register of EP$_{n}$ \\
+  \texttt{0xF000\_0108} & \texttt{EP$_{n1}$} & EpRegs & Second register of EP$_{n}$ \\
+  \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
+  \hline
+  \texttt{0xF000\_0118} & \texttt{HD$_{00}$} & Header & First register of HD$_0$ \\
+  \texttt{0xF000\_0120} & \texttt{HD$_{01}$} & Header & Second register of HD$_0$ \\
+  \texttt{0xF000\_0128} & \texttt{HD$_{02}$} & Header & Third register of HD$_0$ \\
+  \hline
+  \texttt{0xF000\_0130} & \texttt{HD$_{10}$} & Header & First register of HD$_1$ \\
+  \texttt{0xF000\_0138} & \texttt{HD$_{11}$} & Header & Second register of HD$_1$ \\
+  \texttt{0xF000\_0140} & \texttt{HD$_{12}$} & Header & Third register of HD$_1$ \\
+  \hline
+  \multicolumn{4}{c}{\dots} \\
+  \hline
+  \texttt{0xF000\_0200} & \texttt{HD$_{n0}$} & Header & First register of HD$_{n}$ \\
+  \texttt{0xF000\_0208} & \texttt{HD$_{n1}$} & Header & Second register of HD$_{n}$ \\
+  \texttt{0xF000\_0210} & \texttt{HD$_{n2}$} & Header & Third register of HD$_{n}$ \\
+\end{tabular}
+
 \section{Endpoints}
 
 The DTU has a number of \emph{endpoints}~(EPs) to establish communication channels, which can be
