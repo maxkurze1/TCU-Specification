@@ -192,7 +192,8 @@ interpose itself between the CU and local memory.
 
 \section{MMIO region}
 
-The MMIO region of the DTU is defined as follows:
+The memory interface from CU to DTU is expected to be 64-bit wide. The MMIO region of the DTU is
+defined as follows:
 
 \vspace{2ex}
 \noindent
@@ -246,7 +247,9 @@ The DTU has a number of \emph{endpoints}~(EPs) to establish communication channe
 configured to three different EP types: \emph{send EPs} and \emph{receive EPs} are used for message
 passing, whereas \emph{memory EPs} are used for RDMA-like memory access. Each EP is represented by a
 DTU register and can be configured (at runtime) to one of these EP types. Each EP consists of 192
-bits, starting with 3 bits for the endpoint type (T) and 189 bits, whose meaning depends on the EP type. T is either INVALID (0), SEND (1), RECEIVE (2), or MEMORY (3). The endpoints are defined as follows:
+bits, starting with 3 bits for the endpoint type (T) and 189 bits, whose meaning depends on the EP
+type. T is either INVALID (0), SEND (1), RECEIVE (2), or MEMORY (3). The endpoints are defined as
+follows:
 
 \subsection{Memory EP}
 
@@ -270,7 +273,7 @@ bits, starting with 3 bits for the endpoint type (T) and 189 bits, whose meaning
 \end{scaletikzpicturetowidth}
 
 \begin{description}
-  \item[pe:] the destination PE ID
+  \item[pe:] the destination PE ID \todo{bit positions/lengths}
   \item[rw:] the permission bits (read = 1, write = 2)
   \item[base\_addr:] the base address of the region at the destination
   \item[size:] the size of the region at the destination
@@ -484,7 +487,8 @@ given by the application. The header is defined as:
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets COMMAND.arg_0$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
-    $send\_msg(header\ |\ payload, ep.PE, ep.EP)$\;
+    $send\_msg(header\ |\ payload, ep.pe, ep.ep)$\;
+    $wait\_for\_ack()$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{SEND} command.}
@@ -494,10 +498,10 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.T != RECEIVE}{exit(drop message)}
+    \uIf{ep.T != RECEIVE}{exit(send\_ack() and drop message)}
     \BlankLine
     $idx \gets$ find unoccupied slot starting at ep.wpos\;
-    \uIf{idx not found}{exit(drop message)}
+    \uIf{idx not found}{exit(send\_ack() and drop message)}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
@@ -513,6 +517,7 @@ given by the application. The header is defined as:
       sep.cur\_crd += sep.max\_msg\_size\;
       $write\_ep(header.rep, sep)$\;
     }
+    $send\_ack()$\;
     \caption{If `header | payload' is received via EP `rep'.}
 \end{algorithm}
 
@@ -538,6 +543,7 @@ given by the application. The header is defined as:
     $\quad\quad\quad\quad\quad rep \gets hd.sep$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
     $send\_msg(header\ |\ payload, hd.spe, hd.rep)$\;
+    $wait\_for\_ack()$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{REPLY} command.}
@@ -556,7 +562,7 @@ given by the application. The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    $OFFSET \gets ep.buffer + i * ep.msg\_size$\;
+    $OFFSET \gets ep.buffer + idx * ep.msg\_size$\;
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{FETCH} command.}
 \end{algorithm}
