@@ -559,7 +559,7 @@ given by the application. The header is defined as:
     $hd.flags \gets 0$\;
     $write\_header(ep.header + idx, hd)$\;
     \BlankLine
-    $header \gets$ \{ flags $\gets$ GRANT\_CREDITS\;
+    $header \gets$ \{ flags $\gets$ REPLY | GRANT\_CREDITS\;
     $\quad\quad\quad\quad\quad label \gets hd.reply\_label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad reply\_label \gets 0$\;
