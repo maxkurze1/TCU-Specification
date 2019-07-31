@@ -342,8 +342,8 @@ follows:
   \item[buffer:] the address of the receive buffer in local memory
   \item[rpos:] the read position (for message fetches) within the receive buffer
   \item[wpos:] the write position (for message receptions) within the receive buffer
-  \item[slot\_size:] the size of one slot in bytes
-  \item[slots:] the number of slots in the receive buffer
+  \item[slot\_size:] the size of one slot as a power of 2
+  \item[slots:] the number of slots in the receive buffer as a power of 2
   \item[header:] the offset of the headers for this receive buffer in the header table
   \item[msgs:] the number of unread messages
 \end{description}
@@ -505,7 +505,7 @@ given by the application. The header is defined as:
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
-    $dest \gets ep.buffer + idx * ep.msg\_size$\;
+    $dest \gets ep.buffer + (idx << ep.msg\_size)$\;
     $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
     ep.msgs += 1\;
     $ep.unread.set\_bit(idx)$\;
@@ -527,7 +527,7 @@ given by the application. The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != RECEIVE}{exit(COMMAND.err $\gets$ INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer)\ /\ ep.msg\_size$\;
+    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $hd \gets read\_header(ep.header + idx)$\;
     \uIf{hd.flags \& REPLY\_ENABLED == 0}{exit(COMMAND.err $\gets$ INV\_ARGS)}
     \BlankLine
@@ -562,7 +562,7 @@ given by the application. The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    $OFFSET \gets ep.buffer + idx * ep.msg\_size$\;
+    $OFFSET \gets ep.buffer + (idx << ep.msg\_size)$\;
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{FETCH} command.}
 \end{algorithm}
@@ -573,7 +573,7 @@ given by the application. The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != RECEIVE}{exit(COMMAND.err $\gets$ INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer)\ /\ ep.msg\_size$\;
+    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $ep.occupied.clear\_bit(idx)$\;
     \uIf{ep.unread.bit\_set(idx)}{
       $ep.unread.clear\_bit(idx)$\;
