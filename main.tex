@@ -273,10 +273,10 @@ follows:
 \end{scaletikzpicturetowidth}
 
 \begin{description}
-  \item[pe:] the destination PE ID \todo{bit positions/lengths}
-  \item[rw:] the permission bits (read = 1, write = 2)
-  \item[base\_addr:] the base address of the region at the destination
-  \item[size:] the size of the region at the destination
+  \item[pe{[11:4]}:] the destination PE ID
+  \item[rw{[3:0]}:] the permission bits (read = 1, write = 2)
+  \item[base\_addr{[63:0]}:] the base address of the region at the destination
+  \item[size{[60:0]}:] the size of the region at the destination
 \end{description}
 
 \subsection{Send EP}
@@ -304,11 +304,12 @@ follows:
 \end{scaletikzpicturetowidth}
 
 \begin{description}
-  \item[label:] the label the DTU puts into the header of each sent message
-  \item[pe, ep:] the IDs of the destination PE, and receive EP
-  \item[max\_crd:] the initially received (=max) credits
-  \item[cur\_crd:] the currently owned credits
-  \item[max\_msg\_size:] the maximum message size supported by the receiver
+  \item[label{[63:0]}:] the label the DTU puts into the header of each sent message
+  \item[pe{[47:40]}:] the ID of the destination PE
+  \item[ep{[39:32]}:] the ID of the receive EP
+  \item[max\_crd{[31:16]}:] the initially received (=max) credits
+  \item[cur\_crd{[15:0]}:] the currently owned credits
+  \item[max\_msg\_size{[15:0]}:] the maximum message size supported by the receiver
 \end{description}
 
 \subsection{Receive EP}
@@ -337,15 +338,15 @@ follows:
 \end{scaletikzpicturetowidth}
 
 \begin{description}
-  \item[unread:] a bitmask with the unread (not yet fetched) messages in the buffer
-  \item[occupied:] a bitmask with the occupied slots in the buffer
-  \item[buffer:] the address of the receive buffer in local memory
-  \item[rpos:] the read position (for message fetches) within the receive buffer
-  \item[wpos:] the write position (for message receptions) within the receive buffer
-  \item[slot\_size:] the size of one slot as a power of 2
-  \item[slots:] the number of slots in the receive buffer as a power of 2
-  \item[header:] the offset of the headers for this receive buffer in the header table
-  \item[msgs:] the number of unread messages
+  \item[unread{[63:32]}:] a bitmask with the unread (not yet fetched) messages in the buffer
+  \item[occupied{[31:0]}:] a bitmask with the occupied slots in the buffer
+  \item[buffer{[63:0]}:] the address of the receive buffer in local memory
+  \item[rpos{[59:54]}:] the read position (for message fetches) within the receive buffer
+  \item[wpos{[53:48]}:] the write position (for message receptions) within the receive buffer
+  \item[slot\_size{[47:32]}:] the size of one slot as a power of 2
+  \item[slots{[31:26]}:] the number of slots in the receive buffer as a power of 2
+  \item[header{[25:6]}:] the offset of the headers for this receive buffer in the header table
+  \item[msgs{[5:0]}:] the number of unread messages
 \end{description}
 
 \section{Commands}
@@ -392,6 +393,15 @@ finished. The following command registers are used:
   \end{scaletikzpicturetowidth}
 \end{tabular}
 \vspace{2ex}
+
+\begin{description}
+  \item[arg0{[63:16]}:] the first argument for the command
+  \item[err{[15:13]}:] the error code (0 = no error)
+  \item[ep{[11:4]}:] the endpoint to use for the command
+  \item[op{[3:0]}:] the command (opcode)
+  \item[size{[63:48]}:] the size of the data in local memory
+  \item[address{[47:0]}:] the address of the data in local memory
+\end{description}
 
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
 \texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
@@ -465,6 +475,21 @@ given by the application. The header is defined as:
   \end{scaletikzpicturetowidth}
 \end{tabular}
 \vspace{2ex}
+
+\begin{description}
+  \item[label{[63:0]}:] the label of the sender
+  \item[reply\_label{[63:0]}:] the label the receiver should use for the reply
+  \item[length{[47:32]}:] the payload size in bytes
+  \item[rep{[31:24]}:] the receive endpoint ID for the reply at the sender side
+  \item[sep{[23:16]}:] the sender endpoint ID
+  \item[spe{[15:8]}:] the sender PE ID
+  \item[flags{[7:0]}:] contains the following flags:
+  \begin{itemize}
+    \item \texttt{REPLY} (1): the message is a reply
+    \item \texttt{GRANT\_CREDITS} (2): the receiver of the message should receive credits
+    \item \texttt{REPLY\_ENABLED} (4): the receiver of the message may reply to the message
+  \end{itemize}
+\end{description}
 
 \noindent The commands and the message reception behave as follows:
 
