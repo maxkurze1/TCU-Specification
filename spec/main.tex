@@ -406,6 +406,42 @@ finished. The following command registers are used:
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
 \texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
 
+\subsection{Pseudo Code Building Blocks}
+
+The following sections use pseudo code to describe the behavior of the DTU commands, based on
+several building blocks:
+
+\begin{itemize}
+  \item \texttt{read\_ep(id) -> EP}:\\
+  read the DTU-internal EP register with the given id
+  \item \texttt{write\_ep(id, EP)}:\\
+  write \texttt{EP} to the DTU-internal EP register with given id
+  \item \texttt{read\_header(id) -> HD}:\\
+  read the DTU-internal header register with the given id
+  \item \texttt{write\_header(id, HD)}:\\
+  write \texttt{HD} to the DTU-internal header register with given id
+  \item \texttt{read\_mem(addr, size) -> data}:\\
+  read \texttt{size} bytes from given address in local memory into \texttt{data}
+  \item \texttt{write\_mem(data, addr, size)}:\\
+  write \texttt{data} of \texttt{size} bytes to given address in local memory
+  \item \texttt{read\_remote(pe, size, offset) -> data}:\\
+  read \texttt{size} bytes from the given PE at given offset into \texttt{data}
+  \item \texttt{write\_remote(data, pe, offset)}:\\
+  write \texttt{data} to \texttt{offset} in the given PE
+  \item \texttt{send\_msg(msg, pe, ep)}:\\
+  send \texttt{msg} to endpoint \texttt{ep} at given PE
+  \item \texttt{send\_ack()}:\\
+  send ACK to the sending DTU
+  \item \texttt{wait\_for\_ack()}:\\
+  wait for the ACK the receiving DTU sends upon successfully storing the message into the receive
+  buffer or an error occurred
+  \item \texttt{find\_slot(mask, pos, slots) -> idx}:\\
+  searches for an unset bit in the given mask from bit 0 to bit $(1 << slots) - 1$, starting at
+  \texttt{pos}. The function returns the position of the unset bit or $-1$ if all bits are set.
+  \item \texttt{exit(error)}:\\
+  stop the execution of the command, set \texttt{COMMAND.op} to 0 and \texttt{COMMAND.err} to given error
+\end{itemize}
+
 \subsection{Memory Access}
 
 Memory access is performed with a memory EP based on the commands \texttt{READ} and \texttt{WRITE}. The commands behave as follows:
@@ -414,11 +450,11 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != MEMORY}{exit(COMMAND.err $\gets$ INV\_EP)}
-    \uIf{ep.rw \& READ == 0}{exit(COMMAND.err $\gets$ NO\_PERM)}
-    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(COMMAND.err $\gets$ INV\_ARGS)}
+    \uIf{ep.T != MEMORY}{exit(INV\_EP)}
+    \uIf{ep.rw \& READ == 0}{exit(NO\_PERM)}
+    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
-    $data \gets read\_remote(ep.PE, ep.base\_addr + COMMAND.arg_0)$\;
+    $data \gets read\_remote(ep.PE, DATA.size, ep.base\_addr + COMMAND.arg_0)$\;
     $write\_mem(data, DATA.address, DATA.size)$\;
     \BlankLine
     $COMMAND \gets 0$\;
@@ -429,9 +465,9 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != MEMORY}{exit(COMMAND.err $\gets$ INV\_EP)}
-    \uIf{ep.rw \& WRITE == 0}{exit(COMMAND.err $\gets$ NO\_PERM)}
-    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(COMMAND.err $\gets$ INV\_ARGS)}
+    \uIf{ep.T != MEMORY}{exit(INV\_EP)}
+    \uIf{ep.rw \& WRITE == 0}{exit(NO\_PERM)}
+    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
     $data \gets read\_mem(DATA.address, DATA.size)$\;
     $write\_remote(data, ep.PE, ep.base\_addr + COMMAND.arg_0)$\;
@@ -497,9 +533,9 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != SEND}{exit(COMMAND.err $\gets$ INV\_EP)}
+    \uIf{ep.T != SEND}{exit(INV\_EP)}
     \uIf{ep.cur\_crd != UNLIMITED}{
-      \uIf{ep.cur\_crd < ep.max\_msg\_size}{exit(COMMAND.err $\gets$ NO\_CREDITS)}
+      \uIf{ep.cur\_crd < ep.max\_msg\_size}{exit(NO\_CREDITS)}
       ep.cur\_crd -= ep.max\_msg\_size\;
       $write\_ep(COMMAND.ep, ep)$\;
     }
@@ -525,8 +561,8 @@ given by the application. The header is defined as:
     $ep \gets$ read\_ep(rep)\;
     \uIf{ep.T != RECEIVE}{exit(send\_ack() and drop message)}
     \BlankLine
-    $idx \gets$ find unoccupied slot starting at ep.wpos\;
-    \uIf{idx not found}{exit(send\_ack() and drop message)}
+    $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots)\;
+    \uIf{idx == -1}{exit(send\_ack() and drop message)}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
@@ -550,11 +586,11 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != RECEIVE}{exit(COMMAND.err $\gets$ INV\_EP)}
+    \uIf{ep.T != RECEIVE}{exit(INV\_EP)}
     \BlankLine
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $hd \gets read\_header(ep.header + idx)$\;
-    \uIf{hd.flags \& REPLY\_ENABLED == 0}{exit(COMMAND.err $\gets$ INV\_ARGS)}
+    \uIf{hd.flags \& REPLY\_ENABLED == 0}{exit(INV\_ARGS)}
     \BlankLine
     $hd.flags \gets 0$\;
     $write\_header(ep.header + idx, hd)$\;
@@ -578,10 +614,13 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != RECEIVE}{exit(COMMAND.err $\gets$ INV\_EP)}
-    \uIf{ep.msgs == 0}{exit(OFFSET $\gets$ 0 and COMMAND $\gets$ 0)}
+    \uIf{ep.T != RECEIVE}{exit(INV\_EP)}
+    \uIf{ep.msgs == 0}{
+      OFFSET $\gets$ 0\;
+      exit(0)\;
+    }
     \BlankLine
-    $idx \gets$ find unread message starting at ep.rpos\;
+    $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots)\;
     $ep.unread.clear\_bit(idx)$\;
     ep.msgs -= 1\;
     $ep.rpos \gets idx + 1$\;
@@ -596,7 +635,7 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != RECEIVE}{exit(COMMAND.err $\gets$ INV\_EP)}
+    \uIf{ep.T != RECEIVE}{exit(INV\_EP)}
     \BlankLine
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $ep.occupied.clear\_bit(idx)$\;
