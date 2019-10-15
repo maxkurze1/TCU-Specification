@@ -435,9 +435,9 @@ several building blocks:
   \item \texttt{wait\_for\_ack()}:\\
   wait for the ACK the receiving DTU sends upon successfully storing the message into the receive
   buffer or an error occurred
-  \item \texttt{find\_slot(mask, pos, slots) -> idx}:\\
-  searches for an unset bit in the given mask from bit 0 to bit $(1 << slots) - 1$, starting at
-  \texttt{pos}. The function returns the position of the unset bit or $-1$ if all bits are set.
+  \item \texttt{find\_slot(mask, pos, slots, val) -> idx}:\\
+  searches for a bit with value \texttt{val} in the given mask from bit 0 to bit $(1 << slots) - 1$,
+  starting at \texttt{pos}. The function returns the position of the bit or $-1$ if none was found.
   \item \texttt{exit(error)}:\\
   stop the execution of the command, set \texttt{COMMAND.op} to 0 and \texttt{COMMAND.err} to given error
 \end{itemize}
@@ -561,7 +561,7 @@ given by the application. The header is defined as:
     $ep \gets$ read\_ep(rep)\;
     \uIf{ep.T != RECEIVE}{exit(send\_ack() and drop message)}
     \BlankLine
-    $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots)\;
+    $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
     \uIf{idx == -1}{exit(send\_ack() and drop message)}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
@@ -620,7 +620,7 @@ given by the application. The header is defined as:
       exit(0)\;
     }
     \BlankLine
-    $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots)\;
+    $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots, 1)\;
     $ep.unread.clear\_bit(idx)$\;
     ep.msgs -= 1\;
     $ep.rpos \gets idx + 1$\;
