@@ -366,9 +366,9 @@ finished. The following command registers are used:
       undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
     ]
     \path[reg] (0,0) rectangle (48,3) node[midway] {arg$_0$};
-    \path[reg] (48,0) rectangle (51,3) node[midway] {err};
-    \path[undef] (51,0) rectangle (52,3) node[midway] {};
-    \path[reg] (52,0) rectangle (60,3) node[midway] {ep};
+    \path[reg] (48,0) rectangle (52,3) node[midway] {err};
+    \path[undef] (52,0) rectangle (53,3) node[midway] {};
+    \path[reg] (53,0) rectangle (60,3) node[midway] {ep};
     \path[reg] (60,0) rectangle (64,3) node[midway] {op};
 
     \node[anchor=north west,xshift=-3pt] at (0,0)  {63};
@@ -396,8 +396,8 @@ finished. The following command registers are used:
 
 \begin{description}
   \item[arg0{[63:16]}:] the first argument for the command
-  \item[err{[15:13]}:] the error code (0 = no error)
-  \item[ep{[11:4]}:] the endpoint to use for the command
+  \item[err{[15:12]}:] the error code (0 = no error)
+  \item[ep{[10:4]}:] the endpoint to use for the command
   \item[op{[3:0]}:] the command (opcode)
   \item[size{[63:48]}:] the size of the data in local memory
   \item[address{[47:0]}:] the address of the data in local memory
