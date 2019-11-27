@@ -298,13 +298,12 @@ follows:
     reg/.style={fill=gray!20,draw=black},
     undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
   ]
-  \path[undef] (0,0) rectangle (7,3) node[midway] {};
-  \path[reg] (7,0) rectangle (13,3) node[midway] {rpos};
-  \path[reg] (13,0) rectangle (19,3) node[midway] {wpos};
-  \path[reg] (19,0) rectangle (25,3) node[midway] {slot\_size};
-  \path[reg] (25,0) rectangle (31,3) node[midway] {slots};
-  \path[reg] (31,0) rectangle (39,3) node[midway] {rpl\_eps};
-  \path[reg] (39,0) rectangle (45,3) node[midway] {msgs};
+  \path[undef] (0,0) rectangle (13,3) node[midway] {};
+  \path[reg] (13,0) rectangle (19,3) node[midway] {rpos};
+  \path[reg] (19,0) rectangle (25,3) node[midway] {wpos};
+  \path[reg] (25,0) rectangle (31,3) node[midway] {slot\_size};
+  \path[reg] (31,0) rectangle (37,3) node[midway] {slots};
+  \path[reg] (37,0) rectangle (45,3) node[midway] {rpl\_eps};
   \path[undef] (45,0) rectangle (61,3) node[midway] {};
   \path[reg] (61,0) rectangle (64,3) node[midway] {T};
 
@@ -326,7 +325,6 @@ follows:
   \item[slot\_size{[44:39]}:] the size of one slot as a power of 2
   \item[slots{[38:33]}:] the number of slots in the receive buffer as a power of 2
   \item[rpl\_eps{[32:25]}:] the offset of the reply EPs
-  \item[msgs{[24:19]}:] the number of unread messages
 \end{description}
 
 \section{Commands}
@@ -547,7 +545,6 @@ given by the application. The header is defined as:
     \BlankLine
     $dest \gets ep.buffer + (idx << ep.msg\_size)$\;
     $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
-    ep.msgs += 1\;
     $ep.unread.set\_bit(idx)$\;
     $write\_ep(rep, ep)$\;
     \BlankLine
@@ -608,14 +605,13 @@ given by the application. The header is defined as:
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != RECEIVE}{exit(INV\_EP)}
-    \uIf{ep.msgs == 0}{
+    \uIf{ep.unread == 0}{
       OFFSET $\gets$ 0\;
       exit(0)\;
     }
     \BlankLine
     $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots, 1)\;
     $ep.unread.clear\_bit(idx)$\;
-    ep.msgs -= 1\;
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
@@ -632,10 +628,7 @@ given by the application. The header is defined as:
     \BlankLine
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $ep.occupied.clear\_bit(idx)$\;
-    \uIf{ep.unread.bit\_set(idx)}{
-      $ep.unread.clear\_bit(idx)$\;
-      ep.msgs -= 1\;
-    }
+    $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
     \uIf{ep.rpl\_eps != 0xFF}{
