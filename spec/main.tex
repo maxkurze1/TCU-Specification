@@ -146,13 +146,13 @@
     \node[dtureg,below=0cm of cmdreg2]        (cmdreg3) {\texttt{ARG$_1$}};
 
     \node[
-      regtbl,below left=1cm and .4cm of dtu.north east,minimum height=2.5cm
+      regtbl,below left=1cm and .4cm of dtu.north east,minimum height=2.6cm
     ] {};
     \node[
-      regtbl,below left=.9cm and .3cm of dtu.north east,minimum height=2.5cm
+      regtbl,below left=.9cm and .3cm of dtu.north east,minimum height=2.6cm
     ] {};
     \node[
-      regtbl,below left=.8cm and .2cm of dtu.north east,minimum height=2.5cm
+      regtbl,below left=.8cm and .2cm of dtu.north east,minimum height=2.6cm
     ] (epregs) {};
     \node[below=.1cm of epregs.north] {Ep};
     \node[dtureg,below=.7cm of epregs.north] (epreg0) {\texttt{EP$_0$}};
@@ -427,9 +427,9 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& READ == 0}{exit(NO\_PERM)}
-    \uIf{ep.base\_addr + OFFSET > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.base\_addr + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
-    $data \gets read\_remote(ep.PE, DATA.size, ep.base\_addr + OFFSET)$\;
+    $data \gets read\_remote(ep.PE, DATA.size, ep.base\_addr + ARG_1)$\;
     $write\_mem(data, DATA.address, DATA.size)$\;
     \BlankLine
     $COMMAND \gets 0$\;
@@ -442,10 +442,10 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& WRITE == 0}{exit(NO\_PERM)}
-    \uIf{ep.base\_addr + OFFSET > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.base\_addr + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
     $data \gets read\_mem(DATA.address, DATA.size)$\;
-    $write\_remote(data, ep.PE, ep.base\_addr + OFFSET)$\;
+    $write\_remote(data, ep.PE, ep.base\_addr + ARG_1)$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{WRITE} command.}
@@ -572,7 +572,7 @@ given by the application. The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.T != RECEIVE or ep.rpl\_eps == 0xFF}{exit(INV\_EP)}
+    \uIf{ep.T != RECEIVE or ep.rpl\_eps == 0xFFFF}{exit(INV\_EP)}
     \BlankLine
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
@@ -604,7 +604,7 @@ given by the application. The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != RECEIVE}{exit(INV\_EP)}
     \uIf{ep.unread == 0}{
-      OFFSET $\gets$ 0\;
+      $ARG_1 \gets 0$\;
       exit(0)\;
     }
     \BlankLine
@@ -613,7 +613,7 @@ given by the application. The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    $OFFSET \gets ep.buffer + (idx << ep.msg\_size)$\;
+    $ARG_1 \gets ep.buffer + (idx << ep.msg\_size)$\;
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{FETCH} command.}
 \end{algorithm}
@@ -629,7 +629,7 @@ given by the application. The header is defined as:
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    \uIf{ep.rpl\_eps != 0xFF}{
+    \uIf{ep.rpl\_eps != 0xFFFF}{
       $sep \gets \{~T \gets INVALID~\}$\;
       $write\_ep(ep.rpl\_eps + idx, sep)$\;
     }

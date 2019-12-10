@@ -120,6 +120,8 @@ public:
 
     static const vpeid_t INVALID_VPE        = 0xFFFF;
 
+    static const reg_t NO_REPLIES           = 0xFFFF;
+
     enum class DtuRegs {
         FEATURES            = 0,
         ROOT_PT             = 1,
