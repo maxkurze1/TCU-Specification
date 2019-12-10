@@ -39,7 +39,7 @@ typedef unsigned long epid_t;
 typedef unsigned long peid_t;
 typedef unsigned vpeid_t;
 typedef unsigned long word_t;
-typedef word_t label_t;
+typedef uint32_t label_t;
 typedef uint16_t crd_t;
 typedef uint64_t reg_t;
 typedef uint64_t goff_t;
@@ -172,21 +172,19 @@ public:
     struct alignas(8) Header {
         enum {
             FL_REPLY            = 1 << 0,
-            FL_GRANT_CREDITS    = 1 << 1,
-            FL_REPLY_ENABLED    = 1 << 2,
-            FL_PAGEFAULT        = 1 << 3,
+            FL_PAGEFAULT        = 1 << 1,
         };
 
-        uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
+        uint8_t flags : 2,
+                replySize : 6;
         uint8_t senderPe;
-        uint8_t senderEp;
-        uint8_t replyEp;   // for a normal message this is the reply epId
-                           // for a reply this is the enpoint that receives credits
+        uint16_t senderEp;
+        uint16_t replyEp;   // for a normal message this is the reply epId
+                            // for a reply this is the enpoint that receives credits
         uint16_t length;
-        uint16_t replySize;
 
-        uint64_t replylabel;
-        uint64_t label;
+        uint32_t replylabel;
+        uint32_t label;
     } PACKED;
 
     struct Message : Header {
@@ -212,8 +210,8 @@ public:
         write_reg(ep, 0, static_cast<reg_t>(EpType::RECEIVE) |
                         (static_cast<reg_t>(INVALID_VPE) << 3) |
                         (static_cast<reg_t>(reply_eps) << 19) |
-                        (static_cast<reg_t>(bufSize) << 27) |
-                        (static_cast<reg_t>(msgSize) << 33));
+                        (static_cast<reg_t>(bufSize) << 35) |
+                        (static_cast<reg_t>(msgSize) << 41));
         write_reg(ep, 1, buf);
         write_reg(ep, 2, 0);
     }
@@ -225,8 +223,8 @@ public:
                         (static_cast<reg_t>(credits) << 19) |
                         (static_cast<reg_t>(credits) << 25) |
                         (static_cast<reg_t>(msgorder) << 31));
-        write_reg(ep, 1, (static_cast<reg_t>(pe & 0xFF) << 8) |
-                         (static_cast<reg_t>(dstep & 0xFF) << 0));
+        write_reg(ep, 1, (static_cast<reg_t>(pe) << 16) |
+                         (static_cast<reg_t>(dstep) << 0));
         write_reg(ep, 2, lbl);
     }
 
@@ -240,7 +238,7 @@ public:
     }
 
     static Error send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep) {
-        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 48));
+        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 32));
         if(replylbl)
             write_reg(CmdRegs::REPLY_LABEL, replylbl);
         compiler_barrier();
@@ -250,44 +248,29 @@ public:
     }
 
     static Error reply(epid_t ep, const void *reply, size_t size, const Message *msg) {
-        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(reply) | (static_cast<reg_t>(size) << 48));
+        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(reply) | (static_cast<reg_t>(size) << 32));
         compiler_barrier();
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::REPLY, 0, reinterpret_cast<reg_t>(msg)));
 
         return get_error();
     }
 
-    static Error transfer(reg_t cmd, uintptr_t data, size_t size, goff_t off) {
-        size_t left = size;
-        while(left > 0) {
-            size_t amount = left < MAX_PKT_SIZE ? left : MAX_PKT_SIZE;
-            write_reg(CmdRegs::DATA, data | (static_cast<reg_t>(amount) << 48));
-            compiler_barrier();
-            write_reg(CmdRegs::COMMAND, cmd | (static_cast<reg_t>(off) << 17));
-
-            left -= amount;
-            data += amount;
-            off += amount;
-
-            Error res = get_error();
-            if(res != Error::NONE)
-                return res;
-        }
-        return Error::NONE;
-    }
-
     static Error read(epid_t ep, void *data, size_t size, goff_t off, unsigned flags) {
-        uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
-        reg_t cmd = build_command(ep, CmdOpCode::READ, flags, 0);
-        Error res = transfer(cmd, dataaddr, size, off);
+        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(data) | (static_cast<reg_t>(size) << 32));
+        write_reg(CmdRegs::OFFSET, off);
+        compiler_barrier();
+        write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::READ, flags));
+        Error res = get_error();
         memory_barrier();
         return res;
     }
 
     static Error write(epid_t ep, const void *data, size_t size, goff_t off, unsigned flags) {
-        uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
-        reg_t cmd = build_command(ep, CmdOpCode::WRITE, flags, 0);
-        return transfer(cmd, dataaddr, size, off);
+        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(data) | (static_cast<reg_t>(size) << 32));
+        write_reg(CmdRegs::OFFSET, off);
+        compiler_barrier();
+        write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::WRITE, flags));
+        return get_error();
     }
 
     static const Message *fetch_msg(epid_t ep) {
@@ -309,7 +292,7 @@ public:
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
             if(static_cast<CmdOpCode>(cmd & 0xF) == CmdOpCode::IDLE)
-                return static_cast<Error>((cmd >> 13) & 0xF);
+                return static_cast<Error>((cmd >> 21) & 0xF);
         }
         UNREACHED;
     }
@@ -343,7 +326,7 @@ public:
     static reg_t build_command(epid_t ep, CmdOpCode c, unsigned flags = 0, reg_t arg = 0) {
         return static_cast<reg_t>(c) |
                 (static_cast<reg_t>(ep) << 4) |
-                (static_cast<reg_t>(flags) << 12 |
-                arg << 17);
+                (static_cast<reg_t>(flags) << 20 |
+                arg << 25);
     }
 };

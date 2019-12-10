@@ -260,18 +260,18 @@ follows:
     reg/.style={fill=gray!20,draw=black},
     undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
   ]
-  \path[undef] (0,0) rectangle (18,3) node[midway] {};
-  \path[reg] (18,0) rectangle (19,3) node[midway] {r};
-  \path[reg] (19,0) rectangle (27,3) node[midway] {crd\_ep};
+  \path[undef] (0,0) rectangle (10,3) node[midway] {};
+  \path[reg] (10,0) rectangle (11,3) node[midway] {r};
+  \path[reg] (11,0) rectangle (27,3) node[midway] {crd\_ep};
   \path[reg] (27,0) rectangle (33,3) node[midway] {msg\_sz};
   \path[reg] (33,0) rectangle (39,3) node[midway] {max\_crd};
   \path[reg] (39,0) rectangle (45,3) node[midway] {cur\_crd};
   \path[undef] (45,0) rectangle (61,3) node[midway] {};
   \path[reg] (61,0) rectangle (64,3) node[midway] {T};
 
-  \path[undef] (0,3) rectangle (48,6) node[midway] {};
-  \path[reg] (48,3) rectangle (56,6) node[midway] {pe};
-  \path[reg] (56,3) rectangle (64,6) node[midway] {ep};
+  \path[undef] (0,3) rectangle (40,6) node[midway] {};
+  \path[reg] (40,3) rectangle (48,6) node[midway] {pe};
+  \path[reg] (48,3) rectangle (64,6) node[midway] {ep};
   \path[reg] (0,6) rectangle (64,9) node[midway] {label};
 
   \node[anchor=north west,xshift=-3pt] at (0,0)  {63};
@@ -281,10 +281,10 @@ follows:
 
 \begin{description}
   \item[label{[63:0]}:] the label the DTU puts into the header of each sent message
-  \item[pe{[15:8]}:] the ID of the destination PE
-  \item[ep{[7:0]}:] the ID of the receive EP
-  \item[r{[45:45]}:] whether this is a reply EP
-  \item[crd\_ep{[44:37]}:] for reply EPs: the send EP at sender-side to receive credits
+  \item[pe{[23:16]}:] the ID of the destination PE
+  \item[ep{[15:0]}:] the ID of the receive EP
+  \item[r{[53:53]}:] whether this is a reply EP
+  \item[crd\_ep{[52:37]}:] for reply EPs: the send EP at sender-side to receive credits
   \item[max\_crd{[36:31]}:] the initially received (=max) credits (in messages)
   \item[cur\_crd{[30:25]}:] the currently owned credits (in messages)
   \item[max\_msg\_size{[24:19]}:] the maximum message size supported by the receiver
@@ -298,12 +298,12 @@ follows:
     reg/.style={fill=gray!20,draw=black},
     undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
   ]
-  \path[undef] (0,0) rectangle (13,3) node[midway] {};
-  \path[reg] (13,0) rectangle (19,3) node[midway] {rpos};
-  \path[reg] (19,0) rectangle (25,3) node[midway] {wpos};
-  \path[reg] (25,0) rectangle (31,3) node[midway] {slot\_size};
-  \path[reg] (31,0) rectangle (37,3) node[midway] {slots};
-  \path[reg] (37,0) rectangle (45,3) node[midway] {rpl\_eps};
+  \path[undef] (0,0) rectangle (5,3) node[midway] {};
+  \path[reg] (5,0) rectangle (11,3) node[midway] {rpos};
+  \path[reg] (11,0) rectangle (17,3) node[midway] {wpos};
+  \path[reg] (17,0) rectangle (23,3) node[midway] {slot\_size};
+  \path[reg] (23,0) rectangle (29,3) node[midway] {slots};
+  \path[reg] (29,0) rectangle (45,3) node[midway] {rpl\_eps};
   \path[undef] (45,0) rectangle (61,3) node[midway] {};
   \path[reg] (61,0) rectangle (64,3) node[midway] {T};
 
@@ -320,11 +320,11 @@ follows:
   \item[unread{[63:32]}:] a bitmask with the unread (not yet fetched) messages in the buffer
   \item[occupied{[31:0]}:] a bitmask with the occupied slots in the buffer
   \item[buffer{[63:0]}:] the address of the receive buffer in local memory
-  \item[rpos{[56:51]}:] the read position (for message fetches) within the receive buffer
-  \item[wpos{[50:45]}:] the write position (for message receptions) within the receive buffer
-  \item[slot\_size{[44:39]}:] the size of one slot as a power of 2
-  \item[slots{[38:33]}:] the number of slots in the receive buffer as a power of 2
-  \item[rpl\_eps{[32:25]}:] the offset of the reply EPs
+  \item[rpos{[58:53]}:] the read position (for message fetches) within the receive buffer
+  \item[wpos{[52:47]}:] the write position (for message receptions) within the receive buffer
+  \item[slot\_size{[46:41]}:] the size of one slot as a power of 2
+  \item[slots{[40:35]}:] the number of slots in the receive buffer as a power of 2
+  \item[rpl\_eps{[34:19]}:] the offset of the reply EPs
 \end{description}
 
 \section{Commands}
@@ -343,10 +343,11 @@ finished. The following command registers are used:
       reg/.style={fill=gray!20,draw=black},
       undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
     ]
-    \path[reg] (0,0) rectangle (48,3) node[midway] {arg$_0$};
-    \path[reg] (48,0) rectangle (52,3) node[midway] {err};
-    \path[undef] (52,0) rectangle (53,3) node[midway] {};
-    \path[reg] (53,0) rectangle (60,3) node[midway] {ep};
+    \path[undef] (0,0) rectangle (7,3) node[midway] {};
+    \path[reg] (7,0) rectangle (39,3) node[midway] {arg$_0$};
+    \path[reg] (39,0) rectangle (43,3) node[midway] {err};
+    \path[undef] (43,0) rectangle (44,3) node[midway] {};
+    \path[reg] (44,0) rectangle (60,3) node[midway] {ep};
     \path[reg] (60,0) rectangle (64,3) node[midway] {op};
 
     \node[anchor=north west,xshift=-3pt] at (0,0)  {63};
@@ -362,8 +363,8 @@ finished. The following command registers are used:
       reg/.style={fill=gray!20,draw=black},
       undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
     ]
-    \path[reg] (0,0) rectangle (16,3) node[midway] {size};
-    \path[reg] (16,0) rectangle (64,3) node[midway] {address};
+    \path[reg] (0,0) rectangle (32,3) node[midway] {size};
+    \path[reg] (32,0) rectangle (64,3) node[midway] {address};
 
     \node[anchor=north west,xshift=-3pt] at (0,0)  {63};
     \node[anchor=north east,xshift=3pt]  at (64,0) {0};
@@ -373,12 +374,12 @@ finished. The following command registers are used:
 \vspace{2ex}
 
 \begin{description}
-  \item[arg0{[63:16]}:] the first argument for the command
-  \item[err{[15:12]}:] the error code (0 = no error)
-  \item[ep{[10:4]}:] the endpoint to use for the command
+  \item[arg0{[56:25]}:] the first argument for the command
+  \item[err{[24:21]}:] the error code (0 = no error)
+  \item[ep{[19:4]}:] the endpoint to use for the command
   \item[op{[3:0]}:] the command (opcode)
-  \item[size{[63:48]}:] the size of the data in local memory
-  \item[address{[47:0]}:] the address of the data in local memory
+  \item[size{[63:32]}:] the size of the data in local memory
+  \item[address{[31:0]}:] the address of the data in local memory
 \end{description}
 
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
@@ -426,9 +427,9 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& READ == 0}{exit(NO\_PERM)}
-    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.base\_addr + OFFSET > ep.size}{exit(INV\_ARGS)}
     \BlankLine
-    $data \gets read\_remote(ep.PE, DATA.size, ep.base\_addr + COMMAND.arg_0)$\;
+    $data \gets read\_remote(ep.PE, DATA.size, ep.base\_addr + OFFSET)$\;
     $write\_mem(data, DATA.address, DATA.size)$\;
     \BlankLine
     $COMMAND \gets 0$\;
@@ -441,10 +442,10 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.T != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& WRITE == 0}{exit(NO\_PERM)}
-    \uIf{ep.base\_addr + COMMAND.arg$_0$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.base\_addr + OFFSET > ep.size}{exit(INV\_ARGS)}
     \BlankLine
     $data \gets read\_mem(DATA.address, DATA.size)$\;
-    $write\_remote(data, ep.PE, ep.base\_addr + COMMAND.arg_0)$\;
+    $write\_remote(data, ep.PE, ep.base\_addr + OFFSET)$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{WRITE} command.}
@@ -466,18 +467,18 @@ given by the application. The header is defined as:
   Header: &
   \begin{scaletikzpicturetowidth}{0.8\linewidth}
     \begin{tikzpicture}[
-      baseline=8ex,scale=\tikzscale,
+      baseline=5ex,scale=\tikzscale,
       reg/.style={fill=gray!20,draw=black},
       undef/.style={fill=gray!20,draw=black,pattern=north east lines, pattern color=black}
     ]
-    \path[reg] (0,0) rectangle (16,3) node[midway] {reply\_size};
-    \path[reg] (16,0) rectangle (32,3) node[midway] {length};
-    \path[reg] (32,0) rectangle (40,3) node[midway] {rep};
-    \path[reg] (40,0) rectangle (48,3) node[midway] {sep};
+    \path[reg] (0,0) rectangle (16,3) node[midway] {length};
+    \path[reg] (16,0) rectangle (32,3) node[midway] {rep};
+    \path[reg] (32,0) rectangle (48,3) node[midway] {sep};
     \path[reg] (48,0) rectangle (56,3) node[midway] {spe};
-    \path[reg] (56,0) rectangle (64,3) node[midway] {flags};
-    \path[reg] (0,3) rectangle (64,6) node[midway] {reply\_label};
-    \path[reg] (0,6) rectangle (64,9) node[midway] {label};
+    \path[reg] (56,0) rectangle (62,3) node[midway] {rsize};
+    \path[reg] (62,0) rectangle (64,3) node[midway] {fl};
+    \path[reg] (32,3) rectangle (64,6) node[midway] {reply\_label};
+    \path[reg] (0,3) rectangle (32,6) node[midway] {label};
 
     \node[anchor=north west,xshift=-3pt] at (0,0)  {63};
     \node[anchor=north east,xshift=3pt]  at (64,0) {0};
@@ -487,18 +488,16 @@ given by the application. The header is defined as:
 \vspace{2ex}
 
 \begin{description}
-  \item[label{[63:0]}:] the label of the sender
-  \item[reply\_label{[63:0]}:] the label the receiver should use for the reply
-  \item[reply\_size{[63:48]}:] the size of the reply message as a power of 2
-  \item[length{[47:32]}:] the payload size in bytes
-  \item[rep{[31:24]}:] the receive endpoint ID for the reply at the sender side
-  \item[sep{[23:16]}:] the sender endpoint ID
+  \item[label{[63:32]}:] the label of the sender
+  \item[reply\_label{[31:0]}:] the label the receiver should use for the reply
+  \item[length{[63:48]}:] the payload size in bytes
+  \item[rep{[47:32]}:] the receive endpoint ID for the reply at the sender side
+  \item[sep{[31:16]}:] the sender endpoint ID
   \item[spe{[15:8]}:] the sender PE ID
-  \item[flags{[7:0]}:] contains the following flags:
+  \item[rsize{[7:2]}:] the size of the reply message as a power of 2
+  \item[fl{[1:0]}:] contains the following flags:
   \begin{itemize}
     \item \texttt{REPLY} (1): the message is a reply
-    \item \texttt{GRANT\_CREDITS} (2): the receiver of the message should receive credits
-    \item \texttt{REPLY\_ENABLED} (4): the receiver of the message may reply to the message
   \end{itemize}
 \end{description}
 
@@ -516,10 +515,10 @@ given by the application. The header is defined as:
     }
     \BlankLine
     $rep \gets read\_ep(COMMAND.arg_0$)\;
-    $header \gets$ \{ flags $\gets$ REPLY\_ENABLED\;
+    $header \gets$ \{ fl $\gets$ 0\;
     $\quad\quad\quad\quad\quad label \gets ep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
-    $\quad\quad\quad\quad\quad reply\_size \gets rep.slot\_size$\;
+    $\quad\quad\quad\quad\quad rsize \gets rep.slot\_size$\;
     $\quad\quad\quad\quad\quad reply\_label \gets ARG_1$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
@@ -548,20 +547,19 @@ given by the application. The header is defined as:
     $ep.unread.set\_bit(idx)$\;
     $write\_ep(rep, ep)$\;
     \BlankLine
-    \uIf{(header.flags \& REPLY) == 0}{
+    \uIf{(header.fl \& REPLY) == 0}{
       $sep \gets$ \{ T \gets SEND$\;
       $\quad\quad\quad\ \  r \gets 1$ \}\;
       $\quad\quad\quad\ \  pe $\gets$ header.spe\;
       $\quad\quad\quad\ \  ep \gets header.rep$\;
       $\quad\quad\quad\ \  label \gets header.reply\_label$\;
-      $\quad\quad\quad\ \  max\_msg\_size \gets header.reply\_size$\;
+      $\quad\quad\quad\ \  max\_msg\_size \gets header.rsize$\;
       $\quad\quad\quad\ \  max\_crd \gets 1$\;
       $\quad\quad\quad\ \  cur\_crd \gets 1$\;
       $\quad\quad\quad\ \  crd\_ep \gets header.sep$\;
       $write\_ep(ep.rpl\_eps + idx, sep)$\;
     }
-    \BlankLine
-    \uIf{header.flags \& GRANT\_CREDITS}{
+    \uElse{
       $sep \gets read\_ep(header.rep)$\;
       sep.cur\_crd += 1\;
       $write\_ep(header.rep, sep)$\;
@@ -584,10 +582,10 @@ given by the application. The header is defined as:
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
-    $header \gets$ \{ flags $\gets$ REPLY | GRANT\_CREDITS\;
+    $header \gets$ \{ fl $\gets$ REPLY\;
     $\quad\quad\quad\quad\quad label \gets sep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
-    $\quad\quad\quad\quad\quad reply\_size \gets 0$\;
+    $\quad\quad\quad\quad\quad rsize \gets 0$\;
     $\quad\quad\quad\quad\quad reply\_label \gets 0$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
