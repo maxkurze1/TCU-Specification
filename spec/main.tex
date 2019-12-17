@@ -406,7 +406,8 @@ supports the command \texttt{SEND}, whereas the receive EP supports \texttt{REPL
 and \texttt{ACK\_MSG}.
 
 Each message consists of a header and a payload. The header is built by the DTU and the payload is
-given by the application. The header is defined as:
+given by the application. The DTU stores both header and payload into the receive buffer in memory.
+The header is defined as:
 
 \begin{register}{H}{Message Header}{}
   \regfieldb{label}{32}{32}%
