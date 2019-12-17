@@ -358,8 +358,9 @@ several building blocks:
   wait for the ACK the receiving DTU sends upon successfully storing the message into the receive
   buffer or an error occurred
   \item \texttt{find\_slot(mask, pos, slots, val) -> idx}:\\
-  searches for a bit with value \texttt{val} in the given mask from bit 0 to bit $(1 << slots) - 1$,
-  starting at \texttt{pos}. The function returns the position of the bit or $-1$ if none was found.
+  searches for a bit with value \texttt{val} in the given mask between bit 0 and bit $(1 << slots) -
+  1$, starting at \texttt{pos} and rotating around. The function returns the position of the bit or
+  $-1$ if none was found.
   \item \texttt{exit(error)}:\\
   stop the execution of the command, set \texttt{COMMAND.op} to 0 and \texttt{COMMAND.err} to given error
 \end{itemize}
