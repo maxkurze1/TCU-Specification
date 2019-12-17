@@ -536,6 +536,10 @@ The header is defined as:
     $send\_msg(header\ |\ payload, sep.pe, sep.ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
+    $ep.occupied.clear\_bit(idx)$\;
+    $ep.unread.clear\_bit(idx)$\;
+    $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{REPLY} command.}
 \end{algorithm}
