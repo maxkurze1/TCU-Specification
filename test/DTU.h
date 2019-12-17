@@ -16,93 +16,15 @@
 
 #pragma once
 
-#ifndef PACKED
-#   define PACKED      __attribute__((packed))
-#endif
-#ifndef UNREACHED
-#   define UNREACHED   __builtin_unreachable()
-#endif
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-
-#if defined(__arm__)
-typedef unsigned int size_t;
-typedef unsigned int uintptr_t;
-#else
-typedef unsigned long size_t;
-typedef unsigned long uintptr_t;
-#endif
-typedef unsigned long epid_t;
-typedef unsigned long peid_t;
-typedef unsigned vpeid_t;
-typedef unsigned long word_t;
-typedef uint32_t label_t;
-typedef uint16_t crd_t;
-typedef uint64_t reg_t;
-typedef uint64_t goff_t;
-
-inline void compiler_barrier() {
-    asm volatile ("" : : : "memory");
-}
-
-#if defined(__arm__)
-inline void memory_barrier() {
-    asm volatile ("dmb" : : : "memory");
-}
-
-inline uint64_t read8b(uintptr_t addr) {
-    uint64_t res;
-    asm volatile (
-        "ldrd %0, [%1]"
-        : "=r"(res)
-        : "r"(addr)
-    );
-    return res;
-}
-
-inline void write8b(uintptr_t addr, uint64_t val) {
-    asm volatile (
-        "strd %0, [%1]"
-        : : "r"(val), "r"(addr)
-    );
-}
-#else
-inline void memory_barrier() {
-    asm volatile ("mfence" : : : "memory");
-}
-
-inline uint64_t read8b(uintptr_t addr) {
-    uint64_t res;
-    asm volatile (
-        "mov (%1), %0"
-        : "=r"(res)
-        : "r"(addr)
-    );
-    return res;
-}
-
-inline void write8b(uintptr_t addr, uint64_t val) {
-    asm volatile (
-        "mov %0, (%1)"
-        :
-        : "r"(val), "r"(addr)
-    );
-}
-#endif
+#include "common.h"
 
 enum Error {
     NONE,
     MISS_CREDITS,
     NO_RING_SPACE,
-    VPE_GONE,
     PAGEFAULT,
-    NO_MAPPING,
     INV_EP,
     ABORT,
-    REPLY_DISABLED,
     INV_MSG,
     INV_ARGS,
     NO_PERM,
@@ -111,12 +33,9 @@ enum Error {
 class DTU {
 public:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 6;
-    static const size_t CMD_REGS            = 5;
+    static const size_t DTU_REGS            = 4;
+    static const size_t CMD_REGS            = 4;
     static const size_t EP_REGS             = 3;
-
-    // actual max is 64k - 1; use less for better alignment
-    static const size_t MAX_PKT_SIZE        = 60 * 1024;
 
     static const vpeid_t INVALID_VPE        = 0xFFFF;
 
@@ -124,19 +43,16 @@ public:
 
     enum class DtuRegs {
         FEATURES            = 0,
-        ROOT_PT             = 1,
-        PF_EP               = 2,
-        CUR_TIME            = 3,
-        CLEAR_IRQ           = 4,
-        CLOCK               = 5,
+        CUR_TIME            = 1,
+        CLEAR_IRQ           = 2,
+        CLOCK               = 3,
     };
 
     enum class CmdRegs {
         COMMAND             = DTU_REGS + 0,
         ABORT               = DTU_REGS + 1,
         DATA                = DTU_REGS + 2,
-        OFFSET              = DTU_REGS + 3,
-        REPLY_LABEL         = DTU_REGS + 4,
+        ARG1                = DTU_REGS + 3,
     };
 
     enum MemFlags : reg_t {
@@ -174,7 +90,6 @@ public:
     struct alignas(8) Header {
         enum {
             FL_REPLY            = 1 << 0,
-            FL_PAGEFAULT        = 1 << 1,
         };
 
         uint8_t flags : 2,
@@ -242,7 +157,7 @@ public:
     static Error send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep) {
         write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 32));
         if(replylbl)
-            write_reg(CmdRegs::REPLY_LABEL, replylbl);
+            write_reg(CmdRegs::ARG1, replylbl);
         compiler_barrier();
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::SEND, 0, reply_ep));
 
@@ -259,7 +174,7 @@ public:
 
     static Error read(epid_t ep, void *data, size_t size, goff_t off, unsigned flags) {
         write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(data) | (static_cast<reg_t>(size) << 32));
-        write_reg(CmdRegs::OFFSET, off);
+        write_reg(CmdRegs::ARG1, off);
         compiler_barrier();
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::READ, flags));
         Error res = get_error();
@@ -269,7 +184,7 @@ public:
 
     static Error write(epid_t ep, const void *data, size_t size, goff_t off, unsigned flags) {
         write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(data) | (static_cast<reg_t>(size) << 32));
-        write_reg(CmdRegs::OFFSET, off);
+        write_reg(CmdRegs::ARG1, off);
         compiler_barrier();
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::WRITE, flags));
         return get_error();
@@ -278,7 +193,7 @@ public:
     static const Message *fetch_msg(epid_t ep) {
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::FETCH_MSG));
         memory_barrier();
-        return reinterpret_cast<const Message*>(read_reg(CmdRegs::OFFSET));
+        return reinterpret_cast<const Message*>(read_reg(CmdRegs::ARG1));
     }
 
     static void mark_read(epid_t ep, const Message *msg) {

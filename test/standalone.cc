@@ -14,32 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <stdlib.h>
-
+#include "common.h"
 #include "DTU.h"
 
-extern "C" int puts(const char *str);
-
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
-
-#define ASSERT(a) ASSERT_EQ(a, true)
-#define ASSERT_EQ(a, b) do {            \
-        if((a) != (b)) {                \
-            puts("\e[1massert in ");    \
-            puts(__FILE__);             \
-            puts(":");                  \
-            puts(TOSTRING(__LINE__));   \
-            puts(" failed\e[0m\n");     \
-            exit(1);                    \
-        }                               \
-    } while(0)
-
 static void test_mem() {
-    DTU::config_mem(0, 1, 0x1000, sizeof(uint64_t), DTU::RW);
-    DTU::config_mem(1, 1, 0x1000, sizeof(uint64_t), DTU::R);
-    DTU::config_mem(2, 1, 0x1000, sizeof(uint64_t), DTU::W);
-    DTU::config_mem(3, 1, 0x2000, sizeof(uint64_t) * 2, DTU::RW);
+    DTU::config_mem(0, MEM_MODID, 0x1000, sizeof(uint64_t), DTU::RW);
+    DTU::config_mem(1, MEM_MODID, 0x1000, sizeof(uint64_t), DTU::R);
+    DTU::config_mem(2, MEM_MODID, 0x1000, sizeof(uint64_t), DTU::W);
+    DTU::config_mem(3, MEM_MODID, 0x2000, sizeof(uint64_t) * 2, DTU::RW);
 
     uint64_t data = 1234;
 
@@ -78,7 +60,7 @@ static void test_msg() {
 
     // send + recv + reply
     {
-        DTU::config_send(0, 0x1234, 0, 1, 6 /* 64 */, 1);
+        DTU::config_send(0, 0x1234, OWN_MODID, 1, 6 /* 64 */, 1);
 
         ASSERT_EQ(DTU::send(0, &msg, sizeof(msg), 0x1111, 2), Error::NONE);
 
@@ -91,7 +73,7 @@ static void test_msg() {
         ASSERT_EQ(rmsg->length, sizeof(msg));
         ASSERT_EQ(rmsg->senderEp, 0);
         ASSERT_EQ(rmsg->replyEp, 2);
-        ASSERT_EQ(rmsg->senderPe, 0);
+        ASSERT_EQ(rmsg->senderPe, OWN_MODID);
         ASSERT_EQ(rmsg->flags, 0);
         const uint64_t *msg_ctrl = reinterpret_cast<const uint64_t*>(rmsg->data);
         ASSERT_EQ(*msg_ctrl, msg);
@@ -110,7 +92,7 @@ static void test_msg() {
         ASSERT_EQ(rmsg->length, sizeof(msg));
         ASSERT_EQ(rmsg->senderEp, 1);
         ASSERT_EQ(rmsg->replyEp, 0);
-        ASSERT_EQ(rmsg->senderPe, 0);
+        ASSERT_EQ(rmsg->senderPe, OWN_MODID);
         ASSERT_EQ(rmsg->flags, DTU::Header::FL_REPLY);
         msg_ctrl = reinterpret_cast<const uint64_t*>(rmsg->data);
         ASSERT_EQ(*msg_ctrl, reply);
@@ -120,7 +102,7 @@ static void test_msg() {
 
     // send + send + recv + recv
     {
-        DTU::config_send(0, 0x1234, 0, 1, 6 /* 64 */, 2);
+        DTU::config_send(0, 0x1234, OWN_MODID, 1, 6 /* 64 */, 2);
 
         ASSERT_EQ(DTU::send(0, &msg, sizeof(msg), 0x1111, 2), Error::NONE);
         ASSERT_EQ(DTU::send(0, &msg, sizeof(msg), 0x2222, 2), Error::NONE);
@@ -137,7 +119,7 @@ static void test_msg() {
             ASSERT_EQ(rmsg->length, sizeof(msg));
             ASSERT_EQ(rmsg->senderEp, 0);
             ASSERT_EQ(rmsg->replyEp, 2);
-            ASSERT_EQ(rmsg->senderPe, 0);
+            ASSERT_EQ(rmsg->senderPe, OWN_MODID);
             ASSERT_EQ(rmsg->flags, 0);
             const uint64_t *msg_ctrl = reinterpret_cast<const uint64_t*>(rmsg->data);
             ASSERT_EQ(*msg_ctrl, msg);
@@ -153,10 +135,10 @@ static void test_msg() {
                 ;
             // validate contents
             ASSERT_EQ(rmsg->label, i == 0 ? 0x1111 : 0x2222);
-            ASSERT_EQ(rmsg->length, sizeof(msg));
+            ASSERT_EQ(rmsg->length, sizeof(reply));
             ASSERT_EQ(rmsg->senderEp, 1);
             ASSERT_EQ(rmsg->replyEp, 0);
-            ASSERT_EQ(rmsg->senderPe, 0);
+            ASSERT_EQ(rmsg->senderPe, OWN_MODID);
             ASSERT_EQ(rmsg->flags, DTU::Header::FL_REPLY);
             const uint64_t *msg_ctrl = reinterpret_cast<const uint64_t*>(rmsg->data);
             ASSERT_EQ(*msg_ctrl, reply);
@@ -167,7 +149,11 @@ static void test_msg() {
 }
 
 int main() {
+    init();
+
     test_mem();
     test_msg();
+
+    deinit();
     return 0;
 }
