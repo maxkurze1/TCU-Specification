@@ -411,7 +411,7 @@ The header is defined as:
 
 \begin{register}{H}{Message Header}{}
   \regfieldb{label}{32}{32}%
-  \regfieldb{reply\_label}{32}{0}\regnewline%
+  \regfieldb{rlabel}{32}{0}\regnewline%
   \regfieldb{length}{16}{48}%
   \regfieldb{rep}{16}{32}%
   \regfieldb{sep}{16}{16}%
@@ -420,7 +420,7 @@ The header is defined as:
   \regfieldb{flags}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[label] the label of the sender
-    \item[reply\_label] the label the receiver should use for the reply
+    \item[rlabel] the label the receiver should use for the reply
     \item[length] the payload size in bytes
     \item[rep] the receive endpoint ID for the reply at the sender side
     \item[sep] the sender endpoint ID
@@ -461,7 +461,7 @@ The header is defined as:
     $\quad\quad\quad\quad\quad label \gets ep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets rsize$\;
-    $\quad\quad\quad\quad\quad reply\_label \gets ARG_1$\;
+    $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets rep$ \}\;
@@ -494,7 +494,7 @@ The header is defined as:
       $\quad\quad\quad\ \ \  reply \gets 1$ \}\;
       $\quad\quad\quad\ \ \  pe \gets header.spe$\;
       $\quad\quad\quad\ \ \  ep \gets header.rep$\;
-      $\quad\quad\quad\ \ \  label \gets header.reply\_label$\;
+      $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
       $\quad\quad\quad\ \ \  max\_msg\_size \gets header.rsize$\;
       $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
       $\quad\quad\quad\ \ \  cur\_crd \gets 1$\;
@@ -528,7 +528,7 @@ The header is defined as:
     $\quad\quad\quad\quad\quad label \gets sep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets 0$\;
-    $\quad\quad\quad\quad\quad reply\_label \gets 0$\;
+    $\quad\quad\quad\quad\quad rlabel \gets 0$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
