@@ -490,7 +490,7 @@ The header is defined as:
     $ep.unread.set\_bit(idx)$\;
     $write\_ep(rep, ep)$\;
     \BlankLine
-    \uIf{(header.flags \& REPLY) == 0 && header.rep != 0xFFFF}{
+    \uIf{(header.flags \& REPLY) == 0 and header.rep != 0xFFFF}{
       $sep \gets \{\ type \gets SEND$\;
       $\quad\quad\quad\ \ \  reply \gets 1$ \}\;
       $\quad\quad\quad\ \ \  pe \gets header.spe$\;
