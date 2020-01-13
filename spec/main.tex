@@ -190,21 +190,21 @@ defined as follows:
 \noindent
 \begin{tabular}{ p{3cm} | c | c | l }
   \textbf{Address} & \textbf{Register} & \textbf{Group} & \textbf{Description} \\
-  \texttt{0xF000\_0030} & \texttt{COMMAND} & CmdRegs & Triggers internal commands \\
+  \texttt{0xF000\_0020} & \texttt{COMMAND} & CmdRegs & Triggers internal commands \\
   \hline
-  \texttt{0xF000\_0038} & \texttt{ABORT} & CmdRegs & Aborts internal commands \\
+  \texttt{0xF000\_0028} & \texttt{ABORT} & CmdRegs & Aborts internal commands \\
   \hline
-  \texttt{0xF000\_0040} & \texttt{DATA} & CmdRegs & Specifies the data for commands \\
+  \texttt{0xF000\_0030} & \texttt{DATA} & CmdRegs & Specifies the data for commands \\
   \hline
-  \texttt{0xF000\_0048} & \texttt{ARG$_1$} & CmdRegs & Additional argument for commands \\
+  \texttt{0xF000\_0038} & \texttt{ARG$_1$} & CmdRegs & Additional argument for commands \\
   \hline
-  \texttt{0xF000\_0050} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
-  \texttt{0xF000\_0058} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
-  \texttt{0xF000\_0060} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
+  \texttt{0xF000\_0040} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
+  \texttt{0xF000\_0048} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
+  \texttt{0xF000\_0050} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
   \hline
-  \texttt{0xF000\_0068} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
-  \texttt{0xF000\_0070} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
-  \texttt{0xF000\_0078} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
+  \texttt{0xF000\_0058} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
+  \texttt{0xF000\_0060} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
+  \texttt{0xF000\_0068} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
   \hline
   \multicolumn{4}{c}{\dots} \\
   \hline
@@ -375,7 +375,7 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& READ == 0}{exit(NO\_PERM)}
-    \uIf{ep.addr + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
     $data \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
     $write\_mem(data, DATA.address, DATA.size)$\;
@@ -390,7 +390,7 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY}{exit(INV\_EP)}
     \uIf{ep.rw \& WRITE == 0}{exit(NO\_PERM)}
-    \uIf{ep.addr + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
     \BlankLine
     $data \gets read\_mem(DATA.address, DATA.size)$\;
     $write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
@@ -443,7 +443,7 @@ The header is defined as:
     \uIf{ep.type != SEND}{exit(INV\_EP)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{exit(INV\_ARGS)}
     \uIf{ep.cur\_crd != UNLIMITED}{
-      \uIf{ep.cur\_crd == 0}{exit(NO\_CREDITS)}
+      \uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
       ep.cur\_crd -= 1\;
       $write\_ep(COMMAND.ep, ep)$\;
     }
@@ -485,21 +485,21 @@ The header is defined as:
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
-    $dest \gets ep.buffer + (idx << ep.msg\_size)$\;
+    $dest \gets ep.buffer + (idx << ep.slot\_size)$\;
     $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
     $ep.unread.set\_bit(idx)$\;
     $write\_ep(rep, ep)$\;
     \BlankLine
     \uIf{(header.flags \& REPLY) == 0 and header.rep != 0xFFFF}{
       $sep \gets \{\ type \gets SEND$\;
-      $\quad\quad\quad\ \ \  reply \gets 1$ \}\;
+      $\quad\quad\quad\ \ \  reply \gets 1$\;
       $\quad\quad\quad\ \ \  pe \gets header.spe$\;
       $\quad\quad\quad\ \ \  ep \gets header.rep$\;
       $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
-      $\quad\quad\quad\ \ \  max\_msg\_size \gets header.rsize$\;
+      $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
       $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
       $\quad\quad\quad\ \ \  cur\_crd \gets 1$\;
-      $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\;
+      $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\ \}\;
       $write\_ep(ep.rpl\_eps + idx, sep)$\;
     }
     \uElseIf{(header.flags \& REPLY) != 0}{
@@ -517,10 +517,10 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF}{exit(INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
+    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
     \uIf{sep.type != SEND or sep.r == 0}{exit(INV\_ARGS)}
-    \uIf{sep.cur\_crd == 0}{exit(NO\_CREDITS)}
+    \uIf{sep.cur\_crd == 0}{exit(MISS\_CREDITS)}
     \BlankLine
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
@@ -560,7 +560,7 @@ The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    $ARG_1 \gets ep.buffer + (idx << ep.msg\_size)$\;
+    $ARG_1 \gets ep.buffer + (idx << ep.slot\_size)$\;
     $COMMAND \gets 0$\;
     \caption{The DTU's \texttt{FETCH} command.}
 \end{algorithm}
@@ -571,7 +571,7 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{exit(INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.msg\_size$\;
+    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
