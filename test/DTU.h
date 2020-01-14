@@ -196,13 +196,13 @@ public:
         return reinterpret_cast<const Message*>(read_reg(CmdRegs::ARG1));
     }
 
-    static void mark_read(epid_t ep, const Message *msg) {
+    static Error mark_read(epid_t ep, const Message *msg) {
         // ensure that we are really done with the message before acking it
         memory_barrier();
         reg_t off = reinterpret_cast<reg_t>(msg);
         write_reg(CmdRegs::COMMAND, build_command(ep, CmdOpCode::ACK_MSG, 0, off));
         // ensure that we don't do something else before the ack
-        get_error();
+        return get_error();
     }
 
     static Error get_error() {

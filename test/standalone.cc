@@ -138,7 +138,7 @@ static void test_msg_short() {
             const uint64_t *msg_ctrl = reinterpret_cast<const uint64_t*>(rmsg->data);
             ASSERT_EQ(*msg_ctrl, reply);
             // free slot
-            DTU::mark_read(2, rmsg);
+            ASSERT_EQ(DTU::mark_read(2, rmsg), Error::NONE);
         }
     }
 }
@@ -206,7 +206,7 @@ static void test_msg(size_t msg_size_in, size_t reply_size_in) {
         for(size_t i = 0; i < reply_size_in; ++i)
             ASSERT_EQ(msg_ctrl[i], reply[i]);
         // free slot
-        DTU::mark_read(2, rmsg);
+        ASSERT_EQ(DTU::mark_read(2, rmsg), Error::NONE);
     }
 }
 
