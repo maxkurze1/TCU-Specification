@@ -520,6 +520,7 @@ The header is defined as:
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
     \uIf{sep.type != SEND or sep.r == 0}{exit(INV\_ARGS)}
+    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{exit(INV\_ARGS)}
     \uIf{sep.cur\_crd == 0}{exit(MISS\_CREDITS)}
     \BlankLine
     sep.cur\_crd -= 1\;
