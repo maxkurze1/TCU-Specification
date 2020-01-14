@@ -39,7 +39,8 @@ public:
 
     static const vpeid_t INVALID_VPE        = 0xFFFF;
 
-    static const reg_t NO_REPLIES           = 0xFFFF;
+    static const reg_t INVALID_EP           = 0xFFFF;
+    static const reg_t NO_REPLIES           = INVALID_EP;
 
     enum class DtuRegs {
         FEATURES            = 0,
@@ -118,6 +119,11 @@ public:
     static bool is_valid(epid_t ep) {
         reg_t r0 = read_reg(ep, 0);
         return static_cast<EpType>(r0 & 0x7) != EpType::INVALID;
+    }
+
+    static int credits(epid_t ep) {
+        reg_t r0 = read_reg(ep, 0);
+        return (r0 >> 19) & 0x3F;
     }
 
     static void config_recv(epid_t ep, goff_t buf, unsigned order,
