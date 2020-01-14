@@ -446,6 +446,10 @@ The header is defined as:
       \uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
       ep.cur\_crd -= 1\;
       $write\_ep(COMMAND.ep, ep)$\;
+      $sep \gets COMMAND.ep$\;
+    }
+    \uElse{
+      $sep \gets 0xFFFF$\;
     }
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
@@ -464,7 +468,7 @@ The header is defined as:
     $\quad\quad\quad\quad\quad rsize \gets rsize$\;
     $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
-    $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
+    $\quad\quad\quad\quad\quad sep \gets sep$\;
     $\quad\quad\quad\quad\quad rep \gets rep$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
     $send\_msg(header\ |\ payload, ep.pe, ep.ep)$\;
@@ -502,7 +506,7 @@ The header is defined as:
       $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\ \}\;
       $write\_ep(ep.rpl\_eps + idx, sep)$\;
     }
-    \uElseIf{(header.flags \& REPLY) != 0}{
+    \uElseIf{(header.flags \& REPLY) != 0 and header.rep != 0xFFFF}{
       $sep \gets read\_ep(header.rep)$\;
       sep.cur\_crd += 1\;
       $write\_ep(header.rep, sep)$\;
