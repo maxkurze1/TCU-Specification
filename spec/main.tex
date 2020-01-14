@@ -459,7 +459,7 @@ The header is defined as:
     }
     \uElse{
       $rep \gets 0xFFFF$\;
-      $rsize \gets 0$\;
+      $rsize \gets log2(sizeof(header))$\;
     }
     \BlankLine
     $header \gets$ \{ flags $\gets$ 0\;
@@ -481,18 +481,20 @@ The header is defined as:
 \subsubsection{\texttt{RECEIVE}}
 
 \begin{algorithm}[H]
-    $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.type != RECEIVE}{exit(send\_ack() and drop message)}
-    \BlankLine
-    $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
-    \uIf{idx == -1}{exit(send\_ack() and drop message)}
-    $ep.occupied.set\_bit(idx)$\;
-    $ep.wpos \gets idx + 1$\;
-    \BlankLine
-    $dest \gets ep.buffer + (idx << ep.slot\_size)$\;
-    $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
-    $ep.unread.set\_bit(idx)$\;
-    $write\_ep(rep, ep)$\;
+    \uIf{header.length > 0}{
+      $ep \gets$ read\_ep(rep)\;
+      \uIf{ep.type != RECEIVE}{exit(send\_ack() and drop message)}
+      \BlankLine
+      $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
+      \uIf{idx == -1}{exit(send\_ack() and drop message)}
+      $ep.occupied.set\_bit(idx)$\;
+      $ep.wpos \gets idx + 1$\;
+      \BlankLine
+      $dest \gets ep.buffer + (idx << ep.slot\_size)$\;
+      $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
+      $ep.unread.set\_bit(idx)$\;
+      $write\_ep(rep, ep)$\;
+    }
     \BlankLine
     \uIf{(header.flags \& REPLY) == 0 and header.rep != 0xFFFF}{
       $sep \gets \{\ type \gets SEND$\;
