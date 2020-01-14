@@ -352,8 +352,8 @@ several building blocks:
   write \texttt{data} to \texttt{offset} in the given PE
   \item \texttt{send\_msg(msg, pe, ep)}:\\
   send \texttt{msg} to endpoint \texttt{ep} at given PE
-  \item \texttt{send\_ack()}:\\
-  send ACK to the sending DTU
+  \item \texttt{send\_ack(error)}:\\
+  send ACK to the sending DTU and report given error back
   \item \texttt{wait\_for\_ack()}:\\
   wait for the ACK the receiving DTU sends upon successfully storing the message into the receive
   buffer or an error occurred
@@ -483,10 +483,10 @@ The header is defined as:
 \begin{algorithm}[H]
     \uIf{header.length > 0}{
       $ep \gets$ read\_ep(rep)\;
-      \uIf{ep.type != RECEIVE}{exit(send\_ack() and drop message)}
+      \uIf{ep.type != RECEIVE}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
       \BlankLine
       $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
-      \uIf{idx == -1}{exit(send\_ack() and drop message)}
+      \uIf{idx == -1}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
       $ep.occupied.set\_bit(idx)$\;
       $ep.wpos \gets idx + 1$\;
       \BlankLine
@@ -513,7 +513,7 @@ The header is defined as:
       sep.cur\_crd += 1\;
       $write\_ep(header.rep, sep)$\;
     }
-    $send\_ack()$\;
+    $send\_ack(NONE)$\;
     \caption{If `header | payload' is received via EP `rep'.}
 \end{algorithm}
 
