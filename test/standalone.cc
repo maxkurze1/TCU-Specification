@@ -19,18 +19,10 @@
 
 // msg size in number of 64-bit elements (max: 100)
 #define MSG_SIZE   80
-#define REPLY_SIZE 80
-
-#define DATA_VAR_TYPE  uint64_t
-//#define DATA_VAR_TYPE  uint16_t
-//#define DATA_VAR_TYPE  uint8_t
-
-static uint64_t msg_list[MSG_SIZE];
-static uint64_t reply_list[REPLY_SIZE];
 
 
 // compute log to base 2 and round down
-reg_t cLog2(size_t size) {
+static reg_t cLog2(size_t size) {
     reg_t tmp_log = 0;
     while (size > 1) {
         size >>= 1;
@@ -38,8 +30,6 @@ reg_t cLog2(size_t size) {
     }
     return tmp_log;
 }
-
-
 
 
 static void test_mem_short() {
@@ -74,18 +64,23 @@ static void test_mem_short() {
 }
 
 
+template<typename DATA>
 static void test_mem(size_t size_in) {
-    DATA_VAR_TYPE buffer[MSG_SIZE];
+    DATA buffer[size_in];
 
-    DTU::config_mem(0, MEM_MODID, 0x1000, size_in*sizeof(DATA_VAR_TYPE), DTU::RW);
+    // prepare test data
+    DATA msg[size_in];
+    for(size_t i = 0; i < size_in; ++i)
+        msg[i] = i + 1;
 
-    //test write + read
+    DTU::config_mem(0, MEM_MODID, 0x1000, size_in * sizeof(DATA), DTU::RW);
+
+    // test write + read
     {
-        ASSERT_EQ(DTU::write(0, msg_list, size_in*sizeof(DATA_VAR_TYPE), 0, 0), Error::NONE);
-        ASSERT_EQ(DTU::read(0, buffer, size_in*sizeof(DATA_VAR_TYPE), 0, 0), Error::NONE);
-        for(size_t i=0; i<size_in; i++) {
-            ASSERT_EQ(buffer[i], msg_list[i]);
-        }
+        ASSERT_EQ(DTU::write(0, msg, size_in * sizeof(DATA), 0, 0), Error::NONE);
+        ASSERT_EQ(DTU::read(0, buffer, size_in * sizeof(DATA), 0, 0), Error::NONE);
+        for(size_t i = 0; i < size_in; i++)
+            ASSERT_EQ(buffer[i], msg[i]);
     }
 }
 
@@ -148,23 +143,33 @@ static void test_msg_short() {
     }
 }
 
+template<typename DATA>
 static void test_msg(size_t msg_size_in, size_t reply_size_in) {
-    constexpr size_t TOTAL_MSG_SIZE = MSG_SIZE * sizeof(DATA_VAR_TYPE) + sizeof(DTU::Header);
-    constexpr size_t TOTAL_REPLY_SIZE = REPLY_SIZE * sizeof(DATA_VAR_TYPE) + sizeof(DTU::Header);
-    char buffer[2 * TOTAL_MSG_SIZE];
-    char buffer2[2 * TOTAL_REPLY_SIZE];
+    const size_t TOTAL_MSG_SIZE = msg_size_in * sizeof(DATA) + sizeof(DTU::Header);
+    const size_t TOTAL_REPLY_SIZE = reply_size_in * sizeof(DATA) + sizeof(DTU::Header);
+
+    char rbuffer[2 * TOTAL_MSG_SIZE];
+    char rbuffer2[2 * TOTAL_REPLY_SIZE];
+
+    // prepare test data
+    DATA msg[msg_size_in];
+    DATA reply[reply_size_in];
+    for(size_t i = 0; i < msg_size_in; ++i)
+        msg[i] = i + 1;
+    for(size_t i = 0; i < reply_size_in; ++i)
+        reply[i] = reply_size_in - i;
 
     reg_t slot_msgsize = cLog2(TOTAL_MSG_SIZE) + 1;
     reg_t slot_replysize = cLog2(TOTAL_REPLY_SIZE) + 1;
 
-    DTU::config_recv(1, reinterpret_cast<uintptr_t>(&buffer), slot_msgsize+1, slot_msgsize, 3);
-    DTU::config_recv(2, reinterpret_cast<uintptr_t>(&buffer2), slot_replysize+1, slot_replysize, DTU::NO_REPLIES);
+    DTU::config_recv(1, reinterpret_cast<uintptr_t>(&rbuffer), slot_msgsize+1, slot_msgsize, 3);
+    DTU::config_recv(2, reinterpret_cast<uintptr_t>(&rbuffer2), slot_replysize+1, slot_replysize, DTU::NO_REPLIES);
 
     // send + recv + reply
     {
         DTU::config_send(0, 0x1234, OWN_MODID, 1, slot_msgsize, 1);
 
-        ASSERT_EQ(DTU::send(0, msg_list, msg_size_in * sizeof(DATA_VAR_TYPE), 0x1111, 2), Error::NONE);
+        ASSERT_EQ(DTU::send(0, msg, msg_size_in * sizeof(DATA), 0x1111, 2), Error::NONE);
 
         // fetch message
         const DTU::Message *rmsg;
@@ -172,34 +177,34 @@ static void test_msg(size_t msg_size_in, size_t reply_size_in) {
             ;
         // validate contents
         ASSERT_EQ(rmsg->label, 0x1234);
-        ASSERT_EQ(rmsg->length, msg_size_in * sizeof(DATA_VAR_TYPE));
+        ASSERT_EQ(rmsg->length, msg_size_in * sizeof(DATA));
         ASSERT_EQ(rmsg->senderEp, 0);
         ASSERT_EQ(rmsg->replyEp, 2);
         ASSERT_EQ(rmsg->senderPe, OWN_MODID);
         ASSERT_EQ(rmsg->flags, 0);
-        const DATA_VAR_TYPE *msg_ctrl = reinterpret_cast<const DATA_VAR_TYPE*>(rmsg->data);
+        const DATA *msg_ctrl = reinterpret_cast<const DATA*>(rmsg->data);
         for(size_t i = 0; i < msg_size_in; ++i)
-            ASSERT_EQ(msg_ctrl[i], msg_list[i]);
+            ASSERT_EQ(msg_ctrl[i], msg[i]);
 
         // we need the reply to get our credits back
-        ASSERT_EQ(DTU::send(0, msg_list, msg_size_in * sizeof(DATA_VAR_TYPE), 0, 2), Error::MISS_CREDITS);
+        ASSERT_EQ(DTU::send(0, msg, msg_size_in * sizeof(DATA), 0, 2), Error::MISS_CREDITS);
 
         // send reply
-        ASSERT_EQ(DTU::reply(1, reply_list, reply_size_in * sizeof(DATA_VAR_TYPE), rmsg), Error::NONE);
+        ASSERT_EQ(DTU::reply(1, reply, reply_size_in * sizeof(DATA), rmsg), Error::NONE);
 
         // fetch reply
         while((rmsg = DTU::fetch_msg(2)) == nullptr)
             ;
         // validate contents
         ASSERT_EQ(rmsg->label, 0x1111);
-        ASSERT_EQ(rmsg->length, reply_size_in * sizeof(DATA_VAR_TYPE));
+        ASSERT_EQ(rmsg->length, reply_size_in * sizeof(DATA));
         ASSERT_EQ(rmsg->senderEp, 1);
         ASSERT_EQ(rmsg->replyEp, 0);
         ASSERT_EQ(rmsg->senderPe, OWN_MODID);
         ASSERT_EQ(rmsg->flags, DTU::Header::FL_REPLY);
-        msg_ctrl = reinterpret_cast<const DATA_VAR_TYPE*>(rmsg->data);
+        msg_ctrl = reinterpret_cast<const DATA*>(rmsg->data);
         for(size_t i = 0; i < reply_size_in; ++i)
-            ASSERT_EQ(msg_ctrl[i], reply_list[i]);
+            ASSERT_EQ(msg_ctrl[i], reply[i]);
         // free slot
         DTU::mark_read(2, rmsg);
     }
@@ -209,19 +214,21 @@ static void test_msg(size_t msg_size_in, size_t reply_size_in) {
 int main() {
     init();
 
-    // prepare test data
-    for(size_t i = 0; i < MSG_SIZE; ++i)
-        msg_list[i] = i + 1;
-    for(size_t i = 0; i < REPLY_SIZE; ++i)
-        reply_list[i] = REPLY_SIZE - i;
-
     test_mem_short();
     test_msg_short();
 
     // test different lengths
-    for(size_t i=1; i<=MSG_SIZE; i++) test_mem(i);
-    for(size_t i=1; i<=MSG_SIZE; i++) test_msg(i, i);
+    for(size_t i = 1; i <= MSG_SIZE; i++) {
+        test_mem<uint8_t>(i);
+        test_mem<uint16_t>(i);
+        test_mem<uint32_t>(i);
+        test_mem<uint64_t>(i);
 
+        test_msg<uint8_t>(i, i);
+        test_msg<uint16_t>(i, i);
+        test_msg<uint32_t>(i, i);
+        test_msg<uint64_t>(i, i);
+    }
 
     deinit();
     return 0;
