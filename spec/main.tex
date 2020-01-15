@@ -440,7 +440,7 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != SEND or ep.r != 0}{exit(INV\_EP)}
+    \uIf{ep.type != SEND or ep.reply != 0}{exit(INV\_EP)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{exit(INV\_ARGS)}
     \uIf{ep.cur\_crd != 0x3F}{
       \uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
@@ -525,7 +525,7 @@ The header is defined as:
     \BlankLine
     $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
-    \uIf{sep.type != SEND or sep.r == 0}{exit(INV\_ARGS)}
+    \uIf{sep.type != SEND or sep.reply == 0}{exit(INV\_ARGS)}
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{exit(INV\_ARGS)}
     \uIf{sep.cur\_crd == 0}{exit(MISS\_CREDITS)}
     \BlankLine
