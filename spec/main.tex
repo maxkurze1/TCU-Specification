@@ -290,7 +290,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \begin{regdesc}\begin{reglist}
     \item[unread] a bitmask with the unread (not yet fetched) messages in the buffer
     \item[occupied] a bitmask with the occupied slots in the buffer
-    \item[buffer] the address of the receive buffer in local memory
+    \item[buffer] the address of the receive buffer in local memory, must be 8-byte aligned
     \item[rpos] the read position (for message fetches) within the receive buffer
     \item[wpos] the write position (for message receptions) within the receive buffer
     \item[slot\_size] the size of one slot as a power of 2
@@ -305,7 +305,7 @@ The CU can use the DTU's endpoints via \emph{internal commands}. The command reg
 pass input arguments for a command to the DTU, start a command, and wait until the command is
 finished. The following command registers are used:
 
-\begin{register}{H}{COMMAND}{\texttt{0xF000\_0030}}
+\begin{register}{H}{COMMAND}{\texttt{0xF000\_0020}}
   \regfieldb[gray!20]{reserved}{7}{57}%
   \regfieldb{arg0}{32}{25}%
   \regfieldb{error}{4}{21}%
@@ -320,7 +320,7 @@ finished. The following command registers are used:
   \end{reglist}\end{regdesc}
 \end{register}
 
-\begin{register}{H}{DATA}{\texttt{0xF000\_0038}}
+\begin{register}{H}{DATA}{\texttt{0xF000\_0028}}
   \regfieldb{size}{32}{32}%
   \regfieldb{address}{32}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -484,6 +484,7 @@ The header is defined as:
     \uIf{header.length > 0}{
       $ep \gets$ read\_ep(rep)\;
       \uIf{ep.type != RECEIVE}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
+      \uIf{(ep.buffer \& 0x7) != 0}{exit(send\_ack(INV\_EP) and drop message)}
       \BlankLine
       $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
       \uIf{idx == -1}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
