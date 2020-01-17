@@ -442,15 +442,6 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != SEND or ep.reply != 0}{exit(INV\_EP)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{exit(INV\_ARGS)}
-    \uIf{ep.cur\_crd != 0x3F}{
-      \uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
-      ep.cur\_crd -= 1\;
-      $write\_ep(COMMAND.ep, ep)$\;
-      $sep \gets COMMAND.ep$\;
-    }
-    \uElse{
-      $sep \gets 0xFFFF$\;
-    }
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
       $rep \gets read\_ep(COMMAND.arg_0$)\;
@@ -460,6 +451,16 @@ The header is defined as:
     \uElse{
       $rep \gets 0xFFFF$\;
       $rsize \gets log2(sizeof(header))$\;
+    }
+    \BlankLine
+    \uIf{ep.cur\_crd != 0x3F}{
+    	\uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
+    	ep.cur\_crd -= 1\;
+    	$write\_ep(COMMAND.ep, ep)$\;
+    	$sep \gets COMMAND.ep$\;
+    }
+    \uElse{
+    	$sep \gets 0xFFFF$\;
     }
     \BlankLine
     $header \gets$ \{ flags $\gets$ 0\;
