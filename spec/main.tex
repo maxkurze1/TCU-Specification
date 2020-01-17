@@ -482,7 +482,7 @@ The header is defined as:
 \subsubsection{\texttt{RECEIVE}}
 
 \begin{algorithm}[H]
-    \uIf{header.length > 0}{
+    \uIf{rep != 0xFFFF}{
       $ep \gets$ read\_ep(rep)\;
       \uIf{ep.type != RECEIVE}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
       \uIf{(ep.buffer \& 0x7) != 0}{exit(send\_ack(INV\_EP) and drop message)}
@@ -496,21 +496,22 @@ The header is defined as:
       $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
       $ep.unread.set\_bit(idx)$\;
       $write\_ep(rep, ep)$\;
+      \BlankLine
+      \uIf{(header.flags \& REPLY) == 0 and ep.rpl\_eps != 0xFFFF}{
+        $sep \gets \{\ type \gets SEND$\;
+        $\quad\quad\quad\ \ \  reply \gets 1$\;
+        $\quad\quad\quad\ \ \  pe \gets header.spe$\;
+        $\quad\quad\quad\ \ \  ep \gets header.rep$\;
+        $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
+        $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
+        $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
+        $\quad\quad\quad\ \ \  cur\_crd \gets 1$\;
+        $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\ \}\;
+        $write\_ep(ep.rpl\_eps + idx, sep)$\;
+      }
     }
     \BlankLine
-    \uIf{(header.flags \& REPLY) == 0 and header.rep != 0xFFFF}{
-      $sep \gets \{\ type \gets SEND$\;
-      $\quad\quad\quad\ \ \  reply \gets 1$\;
-      $\quad\quad\quad\ \ \  pe \gets header.spe$\;
-      $\quad\quad\quad\ \ \  ep \gets header.rep$\;
-      $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
-      $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
-      $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
-      $\quad\quad\quad\ \ \  cur\_crd \gets 1$\;
-      $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\ \}\;
-      $write\_ep(ep.rpl\_eps + idx, sep)$\;
-    }
-    \uElseIf{(header.flags \& REPLY) != 0 and header.rep != 0xFFFF}{
+    \uIf{(header.flags \& REPLY) != 0 and header.rep != 0xFFFF}{
       $sep \gets read\_ep(header.rep)$\;
       sep.cur\_crd += 1\;
       $write\_ep(header.rep, sep)$\;
