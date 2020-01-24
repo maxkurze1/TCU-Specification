@@ -38,3 +38,12 @@ inline void write8b(uintptr_t addr, uint64_t val) {
         : : "r"(val_lower), "r"(addr_lower)
     );
 }
+
+inline uint32_t rdcycle() {
+    uint32_t res;
+    asm volatile (
+        "rdcycle %0"
+        : "=r"(res)
+    );
+    return res;
+}
