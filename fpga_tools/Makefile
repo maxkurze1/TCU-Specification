@@ -101,7 +101,7 @@ simulate:
 
 #--------------------------------------------
 
-BITFILE ?= $(BITFILES_PATH)fpga_top_v2-5.bit
+BITFILE ?= $(BITFILES_PATH)fpga_top.bit
 
 .PHONY: program-fpga
 program-fpga:
