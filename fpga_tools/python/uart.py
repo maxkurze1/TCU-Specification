@@ -228,8 +228,11 @@ class UART(uart_noc_packet):
         self.send(test_data)
 
         recv_data = self.recv(17)
-        recvpack.unpack(recv_data)
-        #recvpack.dump("recv")
+        if recv_data:
+            recvpack.unpack(recv_data)
+            #recvpack.dump("recv")
+        else:
+            return False
 
         time.sleep(0.5)
         if (recvpack.data == 0x0A0B and recvpack.addr == 0x123):

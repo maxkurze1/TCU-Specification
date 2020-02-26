@@ -5,19 +5,9 @@ import dram
 import pm
 import uart
 import regfile
-#from . import jtag
-#from .mod import pe
-#from .mod import app
-#from .mod import cm
-#from .mod import ddr
-#from .mod import fec
-#from .mod import sphdec
-#from .mod import uart
-#from .mod import fpgaif
+
 import os
-#from  thdk_config import THDKConfig
-
-
+from ipaddress import IPv4Address
 
 
 
@@ -41,8 +31,13 @@ class fpga:
 
 
 class FPGA_TOP(fpga):
+    #dedicated addr range for FPGA: 192.168.42.240-254
+    FPGA_IP = '192.168.42.240'
+    FPGA_PORT = 1800
     def __init__(self, chipid=0):
-        print("fpga_top started")
+        self.fpga_ip_addr = str(IPv4Address(int(IPv4Address(self.FPGA_IP)) + chipid))
+        print("Connect to FPGA at %s:%d" % (self.fpga_ip_addr, self.FPGA_PORT))
+
         if not os.path.isdir("log"):
             os.mkdir("log")
         #self.jtagcomm = jtag.JTAGComm('th4')
@@ -50,32 +45,26 @@ class FPGA_TOP(fpga):
         
         #periphery
         #self.fpgaif = fpgaif.FPGA_if(self.jtagcomm, self.noccomm)
-        #self.uart = uart.UART('/dev/ttyUSB1')
+        self.uart = uart.UART('/dev/ttyUSB1')
 
         #NOC
-        self.nocif = noc.NoCethernet([('192.168.1.10', 1800), ('192.168.1.10', 1801)], ("192.168.1.1", 1800))
+        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT))
         self.nocif_rf = noc.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
 
         #regfile
-        self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
+        #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
 
         #routers
         #self.routers = [jtag.JtagDev(self.jtagcomm, 'ROUTER%d' % x) for x in [0,1,2,3]]
 
         #DRAM
         self.dram1 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1))
-        #self.dram1_rf = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1), True)
         self.dram2 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2))
-        #self.dram2_rf = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2), True)
         
         #PMs
         #self.pms = [pm.PM(self.nocif, chipid, modids.MODID_PM3, 0)]
         self.pm6 = pm.PM(self.nocif, (chipid, modids.MODID_PM6), 0)
         self.pm7 = pm.PM(self.nocif, (chipid, modids.MODID_PM7), 0)
-
-        #ASICs
-        #self.fec = fec.Fec(self.jtagcomm, self.noccomm, (0, 12))
-        #self.sphdec = sphdec.Sphdec(self.jtagcomm, self.noccomm, (0, 13))
         
         #self.mods = [self.dram1, self.dram2] + self.pms
 

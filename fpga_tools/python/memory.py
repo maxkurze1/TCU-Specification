@@ -177,12 +177,10 @@ class MemSlice(object):
         return len(self.data) * 8
 
     def __cmp__(self, other):
-        #ret = cmp(self.begin, other.begin)
         #no cmp function in Python3
         ret = (self.begin > other.begin) - (self.begin < other.begin)
         if ret:
             return ret
-        #ret = cmp(len(self), len(other))
         ret = (len(self) > len(other)) - (len(self) < len(other))
         if ret:
             return ret
@@ -202,7 +200,7 @@ class MemSlice(object):
         """
         assert addr >= self.begin and addr < self.end() and addr % 8 == 0, \
             "cannot get item %x from [%x,%x]" % (addr, self.begin, self.end())
-        return self.data[(addr - self.begin) / 8]
+        return self.data[int((addr - self.begin) / 8)]
 
     def get32(self, addr):
         """

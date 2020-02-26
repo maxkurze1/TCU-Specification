@@ -7,9 +7,11 @@ from fpga_utils import Progress
 class PM():
     DTU_EP_REG_COUNT = 8
     DTU_CFG_REG_COUNT = 8
+    DTU_STATUS_REG_COUNT = 1
 
     DTU_EP_REG_SIZE = 0x18
     DTU_CFG_REG_SIZE = 0x8
+    DTU_STATUS_REG_SIZE = 0x8
 
     DTU_REGADDR_START = 0xF000_0000
 
@@ -28,8 +30,11 @@ class PM():
     #ep regs
     DTU_REGADDR_EP_START = DTU_REGADDR_START + 0x0000_0040
 
+    #DTU status vector
+    DTU_REGADDR_DTU_STATUS = DTU_REGADDR_EP_START + DTU_EP_REG_COUNT*DTU_EP_REG_SIZE
+
     #config regs for core
-    DTU_REGADDR_CORE_CFG_START = DTU_REGADDR_EP_START + DTU_EP_REG_COUNT*DTU_EP_REG_SIZE
+    DTU_REGADDR_CORE_CFG_START = DTU_REGADDR_DTU_STATUS + DTU_STATUS_REG_COUNT*DTU_STATUS_REG_SIZE
 
 
     def __init__(self, nocif, nocid, pm_num):
@@ -83,30 +88,6 @@ class PM():
         #proc.clear()
         return ret
     
-
-    #deprecated
-
-    #write to debug register, reg 0-3, 32-bit value (val)
-    #def writeDbgReg(self, reg, val):
-    #    if reg >= 0 and reg < 4:
-    #        self.mem[self.PM_RF_BASE_ADDR+reg*4] = 0x0000000F_00000000 + val
-    #
-    #def readDbgReg(self, reg):
-    #    if reg >= 0 and reg < 4:
-    #        return self.mem[self.PM_RF_BASE_ADDR+reg*4]
-    #    else:
-    #        return -1
-
-    
-
-    #div_val: clk divider only even values (default: 1 -> pm_clk)
-    #def setClkDiv(self, div_val):
-    #    self.mem[self.PM_RF_BASE_ADDR+0x14] = 0x0000000F_00000000 + div_val
-    #
-    #def getClkDiv(self):
-    #    return self.mem[self.PM_RF_BASE_ADDR+0x14]
-
-
 
     def start(self):
         self.mem[self.DTU_REGADDR_CORE_CFG_START] = 1

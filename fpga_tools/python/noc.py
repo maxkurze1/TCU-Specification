@@ -104,7 +104,7 @@ def check_adr(adr):
 
 class NoCgateway(object):
     READRETRY = 3
-    BURST_MAX = 256 #max. number of flits in burst (16 byte data)
+    BURST_MAX = 32 #max. number of flits in burst (16 byte data)
     LOGFILE = "log/noc.log"
     READTIMEOUT = 0.5
     def __init__(self):
@@ -133,10 +133,14 @@ class NoCgateway(object):
             addr_range = (0x00000000, 0xffffffff)
         if isinstance(addr_range, int):
             addr_range = (addr_range, addr_range)
-        #print "looking for packet @ (0x%08x,0x%08x) from %s - avail %d" % (rang[0], rang[1], src_id, len(self.recvbuf))
+        #print("looking for packet @ (0x%08x,0x%08x) from %s - avail %d" % (addr_range[0], addr_range[1], src_id, len(self.recvbuf)))
+        
+        #if there are no packets in receive buffer, poll socket
+        if len(self.recvbuf) == 0:
+            self.recv()
+
         now = time.time()
         start = now
-        self.recv()
         while timeout is None or start + timeout >= now:
             ret = None
             #print("Get packets from recvbuf:")
@@ -176,11 +180,7 @@ class NoCgateway(object):
 
         #check for burst
         if not force_no_burst:
-            #assert not ((len(data_list) % 2) and (len(data_list) != 1)), "len(data_list) must be multiple of 2 (%d)" % len(data_list)
             assert (len(data_list)/2 <= self.BURST_MAX), "len(data_list)/2 must be smaller than %d (%d)" % (self.BURST_MAX, len(data_list))
-
-            #check_pack = noc_packet()
-            #check_iter = 1
 
             #do a burst transfer
             if (len(data_list) > 1):
@@ -189,10 +189,6 @@ class NoCgateway(object):
                 bsel = 0xFF if ((len(data_list) % 2) == 0) else 0x7F
                 pack.prepare(trg_id, addr, int(len(data_list)/2), MODE_WRITE_POSTED, 1, bsel)
                 self.send_packet(pack)
-                #self.sendbuf.append(copy.copy(pack))
-                #pack.dump(is_burst=False)
-
-
 
                 while (len(data_list) > 2):
                     pack.prepare_burst(data_list[0], data_list[1], 1)
@@ -204,7 +200,6 @@ class NoCgateway(object):
 
                 #last packet of burst
                 pack.prepare_burst(data_list[len(data_list)-2], data_list[len(data_list)-1], 0)
-                #pack.dump(is_burst=True)
                 self.send_packet(pack)
                 
                 data_list.pop(0)
@@ -223,24 +218,6 @@ class NoCgateway(object):
             data_list.clear()
 
         self.send_flush()
-        #return True
-
-    
-    #def readretry(self, trg_id, addr, amount=1, recv_addr=0x0):
-    #    """
-    #    reads a single data chunk from a given address. Retries if fails
-    #    """
-    #    pack = noc_packet()
-    #    pack.prepare(trg_id, addr, 0, MODE_READ_REQ)
-    #    for i in range(self.READRETRY):
-    #        self.send_packet(pack)
-    #        recv = self.recv_packet(trg_id, addr, self.READTIMEOUT)
-    #        if recv:
-    #            return recv
-    #        print("WARN: safe read failt: %d/%d" % (i+1, self.READRETRY))
-    #        self.fails += 1
-    #    print("FAILT to get %d:%d 0x%x" % (trg_id[0], trg_id[1], addr))
-    #    raise FPGA_Error("receive error - giving up")
 
 
     def read(self, trg_id, start_addr, amount=1, recv_addr=0x0):
@@ -252,7 +229,7 @@ class NoCgateway(object):
         start_addr = int(start_addr)
         amount = int(amount)    #number of 8-byte values
         #assert not ((amount % 2) and not (amount == 1))
-        assert amount <= self.BURST_MAX
+        assert amount <= 2*self.BURST_MAX
         #print "fetch %x (%d)" % (start_addr, amount)
         done = 0
         reqd = 0
@@ -293,47 +270,16 @@ class NoCgateway(object):
                 yield recvd
 
 
-        """
-        while done < amount:
-            #issue new fetch
-            if reqd <= done and reqd < amount:
-                pack.addr = start + 8 * reqd
-                sget = min(self.BURST_MAX, amount - reqd)
-                #pack.blen = 0 if sget == 64 else sget
-                #pack.burst = 1 if pack.blen != 1 else 0
-                reqd += sget
-                self.send_packet(pack)
-            self.send_flush()
-            #read something
-            addr = start + done * 8
-            #recvd = self.recv_packet(trg_id, addr, self.READTIMEOUT)
-            recvd = self.recv_packet(timeout=self.READTIMEOUT)
-            if recvd is None:
-                print("WARN: recv problem: %x.%x:%x"  % (trg_id[0], trg_id[1], addr))
-                self.fails += 1
-                recvd = self.readretry(trg_id, addr)
-                reqd = done
-            yield recvd
-            done += 1
-            #if prgss:
-            #    prgss(8)
-            """
-
 
 class NoCethernet(NoCgateway): 
     LOGFILE = "log/ethernet.log"
-    #MAGIC_TX = 0x722acce7
-    #MAGIC_RX = 0x2e2acce7
-    #UDP_PAYLOAD_LEN = 1000
     UDP_PAYLOAD_LEN = 1472
     UDP_NOC_PACKET_LEN = 18 #single packet via UDP, burst or non-burst
     PACKETFREQ = 50000.0 #packets per second
     MINSLEEP = 0.02
-    #BURST_MAX = 1
     RF_ETH_BASE_ADDR = 0xFF000000
-    def __init__(self, local_ipaddrs, send_ipaddr):
+    def __init__(self, send_ipaddr):
         super(NoCethernet, self).__init__()
-        self.local_ipaddrs = local_ipaddrs
         self.send_ipaddr = send_ipaddr
         self.socks = []
         self._reopensocks()
@@ -346,14 +292,6 @@ class NoCethernet(NoCgateway):
         self._poll()
 
     def packet_pack(self, packet, is_burst=False):
-        #buf = [0] * 7
-        #buf[0] = packet.trg_chipid
-        #buf[1] = packet.trg_modid
-        #buf[2] = packet.burst
-        #buf[3] = packet.mode
-        #buf[4] = packet.addr
-        #buf[5] = packet.data >> 32
-        #buf[6] = packet.data & 0xffffffff
         buf = bytearray(self.UDP_NOC_PACKET_LEN)
         if is_burst:
             buf[0]  = packet.burst
@@ -395,8 +333,6 @@ class NoCethernet(NoCgateway):
             buf[17] = (packet.data0 & 0x00000000000000FF)
 
         return buf
-        #ret = struct.pack("!4BIII", *buf)
-        #return ret
 
     def packet_unpack(self, buf):
         """
@@ -440,32 +376,6 @@ class NoCethernet(NoCgateway):
                             buf[17+i*self.UDP_NOC_PACKET_LEN])
             ret.append(pack)
 
-        #buf = struct.unpack("!4BIII", data[0:16])
-        #pack0 = noc_packet()
-        #pack0.src_chipid = buf[0]
-        #pack0.src_modid = buf[1]
-        #pack0.burst = buf[2]
-        #pack0.mode = buf[3]
-        #pack0.addr = buf[4]
-        #pack0.data = (buf[6] << 32) | buf[5]
-        #ret = [pack0]
-        
-        #todo: burst
-        #if pack0.burst:
-        #    for i in range(1, pack0.blen):
-        #        pack = noc_packet()
-        #        pack.src_chipid = pack0.src_chipid
-        #        pack.src_modid = pack0.src_modid
-        #        pack.blen = pack0.blen - i
-        #        pack.burst = pack0.burst
-        #        pack.mode = pack0.mode
-        #        pack.prio = pack0.prio
-        #        pack.bsel = pack0.bsel
-        #        pack.addr = pack0.addr + i * 8
-        #        idx = 12+(i*12)
-        #        payload = struct.unpack("!Q", data[idx:idx+8])
-        #        pack.data = payload[0]
-        #        ret.append(pack)
         return ret
 
     def send_flush(self):
@@ -475,7 +385,6 @@ class NoCethernet(NoCgateway):
         send_to_socket = True if len(self.sendbuf) else False
         data = bytearray()
 
-        #while len(self.sendbuf):
         for pack in self.sendbuf:
             now = time.time()
             delta = self.lastsend + (1.0 / self.PACKETFREQ) - now
@@ -485,12 +394,7 @@ class NoCethernet(NoCgateway):
                     time.sleep(self.sleepaccu)
                     self.sleepaccu = 0
             self.lastsend = now
-            #data = struct.pack("!I", self.MAGIC_TX)
             self.sendd += 1
-
-            #pack = self.sendbuf.pop(0)
-            #data += self.packet_pack(pack)
-            #pack.dump(last_flit_was_burst)
 
             data += self.packet_pack(pack, last_flit_was_burst)
             last_flit_was_burst = True if pack.burst else False
@@ -525,38 +429,43 @@ class NoCethernet(NoCgateway):
         self.flog.flush()
         self.flog.close()
 
+    def get_ip_adr(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            #could be an arbitrary address
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
+
     def _reopensocks(self):
-        #print "reopen sockets"
         for s in self.socks:
             s.close()
         self.socks = []
-        for adr in self.local_ipaddrs:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.bind(adr)
-                self.socks.append(sock)
-            except socket.error:
-                raise FPGA_Error("cannot open socket on %s:%d - board on?" % adr)
+        adr = self.get_ip_adr()
+        port = self.send_ipaddr[1]
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.bind((adr, port))
+            self.socks.append(sock)
+            print("Socket successfully bound to %s:%d" % (adr, port))
+        except socket.error:
+            raise FPGA_Error("Cannot open socket on %s:%d - board on?" % (adr, port))
 
     #reading on the sockets receiving packets and put them to the recvbuf
     def _poll(self):
-        #print "recv_scok", timeout
-        #data = struct.pack("!I", self.MAGIC_RX)
-        #self.socks[0].sendto(data, self.send_ipaddr)
         rd, wr, x = select.select(self.socks, [], [], 1.0)
         for sock in rd:
             buf = bytearray(self.UDP_PAYLOAD_LEN)
             size, address = sock.recvfrom_into(buf, self.UDP_PAYLOAD_LEN)
             self.recvd += 1
-            #print "received", size, self.sendd, self.recvd
             if not size:
                 raise Exception("receive error")
             if len(buf) < 4:
                 raise FPGA_Error("received packet smaller than 4")
-            #magic, = struct.unpack("!I", buf[0:4])
-            #if magic != self.MAGIC_TX:
-            #    raise Exception("magic bytes are wrong")
-            #packs = self.packet_unpack(buf[4:])
             packs = self.packet_unpack(buf[0:])
             #print("packs from packet_unpack:")
             #for p in packs:
@@ -572,7 +481,6 @@ class EthernetRegfile(memory.Memory):
     RF_ETH_BASE_ADDR = 0xFF000000
     def __init__(self, nocif, nocid):
         self.rf = memory.Memory(nocif, nocid, self.RF_ETH_BASE_ADDR)
-        #memory.Memory.__init__(self, nocif, nocid, self.RF_ETH_BASE_ADDR)
 
     #write to debug register, reg 0-3, 32-bit value (val)
     def writeDbgReg(self, reg, val):
