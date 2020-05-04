@@ -76,7 +76,7 @@
 \usepackage{hyperref}
 \hypersetup{
   pdfauthor   = {Nils Asmussen},
-  pdftitle    = {DTU Specification},
+  pdftitle    = {TCU Specification},
   pdfborder   = {0 0 0 [0 0]},
   colorlinks  = false
 }
@@ -110,7 +110,7 @@
 % TODOs
 \newcommand{\todo}[1]{\fbox{\bfseries\sffamily\scriptsize\color{red}TODO: #1}}
 
-\title{DTU Specification}
+\title{Trusted Communication Unit -- Specification}
 \author{Nils Asmussen}
 \date{\today}
 
@@ -123,67 +123,67 @@
 \begin{figure}[h]
   \center
   \begin{tikzpicture}[
-      dtureg/.style={draw=gray,fill=white,minimum width=2.6cm},
+      tcureg/.style={draw=gray,fill=white,minimum width=2.6cm},
       regtbl/.style={draw=black,fill=gray!30,minimum width=3cm}
     ]
 
-    \node[draw=black,minimum width=7cm,minimum height=7cm,anchor=north west] (dtu) at(4,0) {};
+    \node[draw=black,minimum width=7cm,minimum height=7cm,anchor=north west] (tcu) at(4,0) {};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=north west] (cu) at (0,0) {CU};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=south west] (mem) at (0,-7) {SPM/Cache};
 
-    \node[below right=.1cm and .1cm of dtu.north west] {DTU};
+    \node[below right=.1cm and .1cm of tcu.north west] {TCU};
 
     \node[
-      regtbl,below right=.8cm and .2cm of dtu.north west,minimum height=2cm
-    ] (dturegs) {};
-    \node[below=.1cm of dturegs.north] {DTURegs};
-    \node[dtureg,below=.7cm of dturegs.north] (dtureg0) {\texttt{EXT\_CMD}};
-    \node[dtureg,below=0cm of dtureg0]        (dtureg1) {\texttt{EVENTS}};
+      regtbl,below right=.8cm and .2cm of tcu.north west,minimum height=2cm
+    ] (tcuregs) {};
+    \node[below=.1cm of tcuregs.north] {TCURegs};
+    \node[tcureg,below=.7cm of tcuregs.north] (tcureg0) {\texttt{EXT\_CMD}};
+    \node[tcureg,below=0cm of tcureg0]        (tcureg1) {\texttt{EVENTS}};
 
     \node[
-      regtbl,below=1cm of dturegs.south,minimum height=3cm
+      regtbl,below=1cm of tcuregs.south,minimum height=3cm
     ] (cmdregs) {};
     \node[below=.1cm of cmdregs.north] {CmdRegs};
-    \node[dtureg,below=.7cm of cmdregs.north] (cmdreg0) {\texttt{COMMAND}};
+    \node[tcureg,below=.7cm of cmdregs.north] (cmdreg0) {\texttt{COMMAND}};
     \node[dtureg,below=0cm of cmdreg0]        (cmdreg1) {\texttt{ABORT}};
-    \node[dtureg,below=0cm of cmdreg1]        (cmdreg2) {\texttt{DATA}};
-    \node[dtureg,below=0cm of cmdreg2]        (cmdreg3) {\texttt{ARG$_1$}};
+    \node[tcureg,below=0cm of cmdreg1]        (cmdreg2) {\texttt{DATA}};
+    \node[tcureg,below=0cm of cmdreg2]        (cmdreg3) {\texttt{ARG$_1$}};
 
     \node[
-      regtbl,below left=1cm and .4cm of dtu.north east,minimum height=2.6cm
+      regtbl,below left=1cm and .4cm of tcu.north east,minimum height=2.6cm
     ] {};
     \node[
-      regtbl,below left=.9cm and .3cm of dtu.north east,minimum height=2.6cm
+      regtbl,below left=.9cm and .3cm of tcu.north east,minimum height=2.6cm
     ] {};
     \node[
-      regtbl,below left=.8cm and .2cm of dtu.north east,minimum height=2.6cm
+      regtbl,below left=.8cm and .2cm of tcu.north east,minimum height=2.6cm
     ] (epregs) {};
     \node[below=.1cm of epregs.north] {Ep};
-    \node[dtureg,below=.7cm of epregs.north] (epreg0) {\texttt{EP$_0$}};
-    \node[dtureg,below=0cm of epreg0]        (epreg1) {\texttt{EP$_1$}};
-    \node[dtureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
+    \node[tcureg,below=.7cm of epregs.north] (epreg0) {\texttt{EP$_0$}};
+    \node[tcureg,below=0cm of epreg0]        (epreg1) {\texttt{EP$_1$}};
+    \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
     \path
-      let \p1=(cu.east), \p2=(dtu.west) in
+      let \p1=(cu.east), \p2=(tcu.west) in
       [draw=black,thick,->] (cu.east) -- (\x2,\y1);
     \path[draw=black,thick,->] (cu) -- (mem);
     \path
-      let \p1=(mem.east), \p2=(dtu.west) in
+      let \p1=(mem.east), \p2=(tcu.west) in
       [draw=black,thick,<-] (mem.east) -- (\x2,\y1);
   \end{tikzpicture}
-  \caption{Overview of the DTU's registers and its connections to other components.}
+  \caption{Overview of the TCU's registers and its connections to other components.}
   \label{fig:overview}
 \end{figure}
 
-As shown in \rref{fig:overview}, the compute unit~(CU) is connected to the data transfer unit~(DTU)
-and can access the DTU's registers via memory mapped input/output (MMIO). Additionally, the CU is
-connected to the local memory. The DTU is also connected to the local memory to, for example, access
-messages. These components are not necessarily arranged in this way. For example, the DTU might
+As shown in \rref{fig:overview}, the compute unit~(CU) is connected to the data transfer unit~(TCU)
+and can access the TCU's registers via memory mapped input/output (MMIO). Additionally, the CU is
+connected to the local memory. The TCU is also connected to the local memory to, for example, access
+messages. These components are not necessarily arranged in this way. For example, the TCU might
 interpose itself between the CU and local memory.
 
 \section{MMIO region}
 
-The memory interface from CU to DTU is expected to be 64-bit wide. The MMIO region of the DTU is
+The memory interface from CU to TCU is expected to be 64-bit wide. The MMIO region of the TCU is
 defined as follows:
 
 \vspace{2ex}
@@ -215,10 +215,10 @@ defined as follows:
 
 \section{Endpoints}
 
-The DTU has a number of \emph{endpoints}~(EPs) to establish communication channels, which can be
+The TCU has a number of \emph{endpoints}~(EPs) to establish communication channels, which can be
 configured to three different EP types: \emph{send EPs} and \emph{receive EPs} are used for message
 passing, whereas \emph{memory EPs} are used for RDMA-like memory access. Each EP is represented by a
-DTU register and can be configured (at runtime) to one of these EP types. Each EP consists of 192
+TCU register and can be configured (at runtime) to one of these EP types. Each EP consists of 192
 bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved for now and
 173 bits (shown as dark grey below), whose meaning depends on the EP type:\\[.1em]
 
@@ -263,7 +263,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \regfieldb[gray!20]{reserved}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[label] the label the DTU puts into the header of each sent message
+    \item[label] the label the TCU puts into the header of each sent message
     \item[pe] the ID of the destination PE
     \item[ep] the ID of the receive EP
     \item[reply] whether this is a reply EP
@@ -301,8 +301,8 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
 
 \section{Commands}
 
-The CU can use the DTU's endpoints via \emph{internal commands}. The command registers are used to
-pass input arguments for a command to the DTU, start a command, and wait until the command is
+The CU can use the TCU's endpoints via \emph{internal commands}. The command registers are used to
+pass input arguments for a command to the TCU, start a command, and wait until the command is
 finished. The following command registers are used:
 
 \begin{register}{H}{COMMAND}{\texttt{0xF000\_0020}}
@@ -334,14 +334,14 @@ finished. The following command registers are used:
 
 \subsection{Pseudo Code Building Blocks}
 
-The following sections use pseudo code to describe the behavior of the DTU commands, based on
+The following sections use pseudo code to describe the behavior of the TCU commands, based on
 several building blocks:
 
 \begin{itemize}
   \item \texttt{read\_ep(id) -> EP}:\\
-  read the DTU-internal EP register with the given id
+  read the TCU-internal EP register with the given id
   \item \texttt{write\_ep(id, EP)}:\\
-  write \texttt{EP} to the DTU-internal EP register with given id
+  write \texttt{EP} to the TCU-internal EP register with given id
   \item \texttt{read\_mem(addr, size) -> data}:\\
   read \texttt{size} bytes from given address in local memory into \texttt{data}
   \item \texttt{write\_mem(data, addr, size)}:\\
@@ -353,9 +353,9 @@ several building blocks:
   \item \texttt{send\_msg(msg, pe, ep)}:\\
   send \texttt{msg} to endpoint \texttt{ep} at given PE
   \item \texttt{send\_ack(error)}:\\
-  send ACK to the sending DTU and report given error back
+  send ACK to the sending TCU and report given error back
   \item \texttt{wait\_for\_ack()}:\\
-  wait for the ACK the receiving DTU sends upon successfully storing the message into the receive
+  wait for the ACK the receiving TCU sends upon successfully storing the message into the receive
   buffer or an error occurred
   \item \texttt{find\_slot(mask, pos, slots, val) -> idx}:\\
   searches for a bit with value \texttt{val} in the given mask between bit 0 and bit $(1 << slots) -
@@ -381,7 +381,7 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $write\_mem(data, DATA.address, DATA.size)$\;
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{READ} command.}
+    \caption{The TCU's \texttt{READ} command.}
 \end{algorithm}
 
 \subsubsection{\texttt{WRITE}}
@@ -396,7 +396,7 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
     $write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{WRITE} command.}
+    \caption{The TCU's \texttt{WRITE} command.}
 \end{algorithm}
 
 \subsection{Message Passing}
@@ -406,8 +406,8 @@ exactly one receive EP, whereas each receive EP can receive from multiple send E
 supports the command \texttt{SEND}, whereas the receive EP supports \texttt{REPLY}, \texttt{FETCH},
 and \texttt{ACK\_MSG}.
 
-Each message consists of a header and a payload. The header is built by the DTU and the payload is
-given by the application. The DTU stores both header and payload into the receive buffer in memory.
+Each message consists of a header and a payload. The header is built by the TCU and the payload is
+given by the application. The TCU stores both header and payload into the receive buffer in memory.
 The header is defined as:
 
 \begin{register}{H}{Message Header}{}
@@ -476,7 +476,7 @@ The header is defined as:
     $wait\_for\_ack()$\;
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{SEND} command.}
+    \caption{The TCU's \texttt{SEND} command.}
 \end{algorithm}
 
 \subsubsection{\texttt{RECEIVE}}
@@ -552,7 +552,7 @@ The header is defined as:
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{REPLY} command.}
+    \caption{The TCU's \texttt{REPLY} command.}
 \end{algorithm}
 
 \subsubsection{\texttt{FETCH}}
@@ -572,7 +572,7 @@ The header is defined as:
     \BlankLine
     $ARG_1 \gets ep.buffer + (idx << ep.slot\_size)$\;
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{FETCH} command.}
+    \caption{The TCU's \texttt{FETCH} command.}
 \end{algorithm}
 
 \subsubsection{\texttt{ACK\_MSG}}
@@ -592,7 +592,7 @@ The header is defined as:
     }
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The DTU's \texttt{ACK\_MSG} command.}
+    \caption{The TCU's \texttt{ACK\_MSG} command.}
 \end{algorithm}
 
 \end{document}
