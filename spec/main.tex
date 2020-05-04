@@ -118,7 +118,64 @@
 
 \maketitle
 
-\section{Overview}
+\section{System Overview}
+\label{sec:systemoverview}
+
+\newcommand{\fillpe}[3]{
+    \node[below=.6em of #1.north] {#2};
+    \node[cu, above right=.6em and .6em of #1.south west,#3] (cu1) {CU};
+    \node[tcu,above left=.6em and .6em of #1.south east,#3] (tcu1) {TCU};
+
+    \draw[noc] ($(#1.south west)-(0,1.0em)$) -- ($(pe3.south east)-(0,1.0em)$);
+    \draw[noc] ($(#1.south west)-(0,1.2em)$) -- ($(pe3.south east)-(0,1.2em)$);
+    \draw[noc] ($(#1.south west)-(0,1.4em)$) -- ($(pe3.south east)-(0,1.4em)$);
+
+    \draw
+      let \p1=(tcu1.south), \p2=($(#1.south west)-(0,1.2em)$) in
+      (tcu1.south) -- (\x1, \y2);
+    \fill[radius=.2em]
+      let \p1=(tcu1.south), \p2=($(#1.south west)-(0,1.2em)$) in
+      (\x1, \y2) circle node {};
+}
+
+\begin{figure}[h]
+  \center
+  \begin{tikzpicture}[
+      pe/.style={draw=gray,minimum width=9.5em,minimum height=8em},
+      cu/.style={draw=gray,fill=red!50,minimum width=4.5em,minimum height=4.5em},
+      tcu/.style={draw=gray,fill=green!50,minimum width=3em,minimum height=3em},
+      noc/.style={draw=green},
+    ]
+
+    \node[pe] (pe1) {};
+    \node[pe,right=2em of pe1] (pe2) {};
+    \node[pe,right=2em of pe2] (pe3) {};
+
+    \fillpe{pe1}{Kernel PE}{fill=green!50};
+    \fillpe{pe2}{User PE}{};
+    \fillpe{pe3}{User PE}{};
+
+  \end{tikzpicture}
+  \caption{System Overview.}
+  \label{fig:sysoverview}
+\end{figure}
+
+\noindent The trusted communication unit~(TCU) is a building block that can be used to construct
+secure systems. As shown in \rref{fig:sysoverview}, the system consists of multiple processing
+elements~(PEs), each containing a compute unit~(CU) and a TCU. The PEs are linked through some
+interconnect (e.g., a network-on-chip) and are split into \emph{kernel PEs} and \emph{user PEs}. The
+former are privileged (green) and manage the TCUs of the user PEs, whereas the latter are
+unprivileged (red).
+
+In this system, the TCU, the interconnect, and the kernel PEs are trusted (shown green), whereas the
+CUs in the user PEs are untrusted (shown red). By default, all PEs are isolated from each other, but
+communication channels between PEs can be established. These communication channels can only kernel
+be establish by kernel PEs, but can be used afterwards by user PEs.
+
+Privilege is defined by the TCU's \texttt{FEATURES} register, which is set to be privileged at boot
+and can be downgraded afterwards.
+
+\section{Processing Elements}
 
 \begin{figure}[h]
   \center
@@ -158,7 +215,7 @@
     \node[
       regtbl,below left=.8cm and .2cm of tcu.north east,minimum height=2.6cm
     ] (epregs) {};
-    \node[below=.1cm of epregs.north] {Ep};
+    \node[below=.1cm of epregs.north] {EpRegs};
     \node[tcureg,below=.7cm of epregs.north] (epreg0) {\texttt{EP$_0$}};
     \node[tcureg,below=0cm of epreg0]        (epreg1) {\texttt{EP$_1$}};
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
@@ -171,15 +228,24 @@
       let \p1=(mem.east), \p2=(tcu.west) in
       [draw=black,thick,<-] (mem.east) -- (\x2,\y1);
   \end{tikzpicture}
-  \caption{Overview of the TCU's registers and its connections to other components.}
-  \label{fig:overview}
+  \caption{The internal organization of a PE.}
+  \label{fig:peinternal}
 \end{figure}
 
-As shown in \rref{fig:overview}, the compute unit~(CU) is connected to the data transfer unit~(TCU)
-and can access the TCU's registers via memory mapped input/output (MMIO). Additionally, the CU is
-connected to the local memory. The TCU is also connected to the local memory to, for example, access
-messages. These components are not necessarily arranged in this way. For example, the TCU might
-interpose itself between the CU and local memory.
+\rref{fig:peinternal} shows the internals of a processing element~(PE). The compute unit~(CU) is
+connected to the data transfer unit~(TCU) and can access the TCU's registers via memory mapped
+input/output (MMIO). Additionally, the CU is connected to the local memory. The TCU is also
+connected to the local memory to, for example, access messages. These components are not necessarily
+arranged in this way. For example, the TCU might interpose itself between the CU and local memory.
+
+To support the security model introduced in \rref{sec:systemoverview}, the registers are split into
+different groups, each group having different access permissions. All registers are generally
+readable. \emph{External registers} can only be written externally, that is, from a remote PE. They
+are intended for the kernel PE to manipulate the state of remote TCUs. \emph{Endpoint registers} can
+be written externally and locally by the kernel PE. \emph{Unprivileged registers} can be written by
+the CU. In consequence, only kernel PEs can \emph{establish} communication channels by writing
+endpoint registers, but user PEs can \emph{use} these communication channels through the
+unprivileged registers.
 
 \section{MMIO region}
 
@@ -215,7 +281,25 @@ defined as follows:
   \texttt{0xF000\_0100} & \texttt{EP$_{n0}$} & EpRegs & First register of EP$_{n}$ \\
   \texttt{0xF000\_0108} & \texttt{EP$_{n1}$} & EpRegs & Second register of EP$_{n}$ \\
   \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
-\end{tabular}
+\end{tabular}\\[1em]
+
+\noindent The \texttt{FEATURES} register defines the features of a TCU and has the following format:
+
+\begin{register}{H}{\texttt{FEATURES}}{}
+  \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
+  \regfield{kernel}{1}{0}{1}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[kernel] whether the TCU belongs to a kernel PE
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent In other words, the \texttt{FEATURES} register currently only defines whether the TCU
+belongs to a kernel PE. At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel
+PEs. The software starting on one PE can afterwards downgrade the other PEs to user PEs.
+
+If \texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create
+a communication channel to the TCU's MMIO region in another PE, which allows to establish other
+communication channels by writing to the endpoint registers within the MMIO region.
 
 \section{Endpoints}
 
@@ -612,8 +696,8 @@ The header is defined as:
 \section{External Commands}
 
 The TCU supports \emph{external commands} that allow to manipulate the state externally, that is,
-from a remote PE. External commands are intended for the \myos{} kernel and are triggered by writing
-to the \texttt{EXT\_CMD} register and feedback is given via this register as well. The
+from a remote PE. External commands are intended for the kernel PE and are triggered by writing to
+the \texttt{EXT\_CMD} register and feedback is given via this register as well. The
 \texttt{EXT\_CMD} register has the following format:
 
 \begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
