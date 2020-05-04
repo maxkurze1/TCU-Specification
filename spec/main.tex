@@ -506,6 +506,10 @@ exactly one receive EP, whereas each receive EP can receive from multiple send E
 supports the command \texttt{SEND}, whereas the receive EP supports \texttt{REPLY}, \texttt{FETCH},
 and \texttt{ACK\_MSG}.
 
+For flow control and to prevent denial-of-service attacks on recipients, the TCU uses a credit
+system. The idea is to let the recipient hand out credits to its senders, decrease the credits on
+sent messages and increase them again on received replies.
+
 Each message consists of a header and a payload. The header is built by the TCU and the payload is
 given by the application. The TCU stores both header and payload into the receive buffer in memory.
 The header is defined as:
