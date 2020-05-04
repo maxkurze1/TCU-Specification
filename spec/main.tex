@@ -487,8 +487,7 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.type != RECEIVE}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
-    \uIf{(ep.buffer \& 0x7) != 0}{exit(send\_ack(INV\_EP) and drop message)}
+    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{exit(send\_ack(INV\_EP) and drop message)}
     \BlankLine
     $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
     \uIf{idx == -1}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
