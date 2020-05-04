@@ -449,10 +449,11 @@ The header is defined as:
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
       $rep \gets read\_ep(COMMAND.arg_0$)\;
       \uIf{rep.type != RECEIVE}{exit(INV\_EP)}
+      $repid \gets COMMAND.arg_0$\;
       $rsize \gets rep.slot\_size$\;
     }
     \uElse{
-      $rep \gets 0xFFFF$\;
+      $repid \gets 0xFFFF$\;
       $rsize \gets log2(sizeof(header))$\;
     }
     \BlankLine
@@ -460,10 +461,10 @@ The header is defined as:
     	\uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
     	ep.cur\_crd -= 1\;
     	$write\_ep(COMMAND.ep, ep)$\;
-    	$sep \gets COMMAND.ep$\;
+    	$sepid \gets COMMAND.ep$\;
     }
     \uElse{
-    	$sep \gets 0xFFFF$\;
+    	$sepid \gets 0xFFFF$\;
     }
     \BlankLine
     $header \gets$ \{ flags $\gets$ 0\;
@@ -472,8 +473,8 @@ The header is defined as:
     $\quad\quad\quad\quad\quad rsize \gets rsize$\;
     $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
-    $\quad\quad\quad\quad\quad sep \gets sep$\;
-    $\quad\quad\quad\quad\quad rep \gets rep$ \}\;
+    $\quad\quad\quad\quad\quad sep \gets sepid$\;
+    $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
     $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
