@@ -254,10 +254,11 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
 \end{register}
 
 \begin{register}{H}{Send EP}{}
-  \regfieldb{label}{64}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{32}{32}%
+  \regfieldb{label}{32}{0}\regnewline%
   \regfieldb[gray!20]{reserved}{40}{24}%
-  \regfieldb{pe}{8}{16}%
-  \regfieldb{ep}{16}{0}\regnewline%
+  \regfieldb{tgt\_pe}{8}{16}%
+  \regfieldb{tgt\_ep}{16}{0}\regnewline%
   \regfieldb[gray!20]{reserved}{10}{54}%
   \regfieldb{reply}{1}{53}%
   \regfieldb{crd\_ep}{16}{37}%
@@ -268,8 +269,8 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[label] the label the TCU puts into the header of each sent message
-    \item[pe] the ID of the destination PE
-    \item[ep] the ID of the receive EP
+    \item[tgt\_pe] the ID of the target PE
+    \item[tgt\_ep] the ID of the receive EP at the target PE
     \item[reply] whether this is a reply EP
     \item[crd\_ep] for reply EPs: the send EP at sender-side to receive credits
     \item[max\_crd] the initially received (=max) credits (in messages)
@@ -281,8 +282,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
 \begin{register}{H}{Receive EP}{}
   \regfieldb{unread}{32}{32}%
   \regfieldb{occupied}{32}{0}\regnewline%
-  \regfieldb[gray!20]{reserved}{32}{32}%
-  \regfieldb{buffer}{32}{0}\regnewline%
+  \regfieldb{buffer}{64}{0}\regnewline%
   \regfieldb[gray!20]{reserved}{5}{59}%
   \regfieldb{rpos}{6}{53}%
   \regfieldb{wpos}{6}{47}%
@@ -294,7 +294,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \begin{regdesc}\begin{reglist}
     \item[unread] a bitmask with the unread (not yet fetched) messages in the buffer
     \item[occupied] a bitmask with the occupied slots in the buffer
-    \item[buffer] the address of the receive buffer in local memory, must be 8-byte aligned
+    \item[buffer] the physical address of the receive buffer, must be 8-byte aligned
     \item[rpos] the read position (for message fetches) within the receive buffer
     \item[wpos] the write position (for message receptions) within the receive buffer
     \item[slot\_size] the size of one slot as a power of 2
@@ -309,11 +309,10 @@ The CU can use the TCU's endpoints via \emph{internal commands}. The unprivilege
 to pass input arguments for a command to the TCU, start a command, and wait until the command is
 finished. The following unprivileged registers are used:
 
-\begin{register}{H}{COMMAND}{\texttt{0xF000\_0020}}
-  \regfieldb[gray!20]{reserved}{7}{57}%
-  \regfieldb{arg0}{32}{25}%
-  \regfieldb{error}{4}{21}%
-  \regfieldb[gray!20]{reserved}{1}{20}%
+\begin{register}{H}{COMMAND}{\texttt{0xF000\_0010}}
+  \regfieldb[gray!20]{reserved}{8}{56}%
+  \regfieldb{arg0}{32}{24}%
+  \regfieldb{error}{4}{20}%
   \regfieldb{ep}{16}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -324,7 +323,7 @@ finished. The following unprivileged registers are used:
   \end{reglist}\end{regdesc}
 \end{register}
 
-\begin{register}{H}{DATA}{\texttt{0xF000\_0028}}
+\begin{register}{H}{DATA}{\texttt{0xF000\_0018}}
   \regfieldb{size}{32}{32}%
   \regfieldb{address}{32}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -476,7 +475,7 @@ The header is defined as:
     $\quad\quad\quad\quad\quad sep \gets sep$\;
     $\quad\quad\quad\quad\quad rep \gets rep$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
-    $send\_msg(header\ |\ payload, ep.pe, ep.ep)$\;
+    $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
     $COMMAND \gets 0$\;
@@ -504,8 +503,8 @@ The header is defined as:
       \uIf{(header.flags \& REPLY) == 0 and ep.rpl\_eps != 0xFFFF}{
         $sep \gets \{\ type \gets SEND$\;
         $\quad\quad\quad\ \ \  reply \gets 1$\;
-        $\quad\quad\quad\ \ \  pe \gets header.spe$\;
-        $\quad\quad\quad\ \ \  ep \gets header.rep$\;
+        $\quad\quad\quad\ \ \  tgt\_pe \gets header.spe$\;
+        $\quad\quad\quad\ \ \  tgt\_ep \gets header.rep$\;
         $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
         $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
         $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
@@ -548,7 +547,7 @@ The header is defined as:
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
     $payload \gets read\_mem(DATA.address, DATA.size)$\;
-    $send\_msg(header\ |\ payload, sep.pe, sep.ep)$\;
+    $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
     $ep.occupied.clear\_bit(idx)$\;
