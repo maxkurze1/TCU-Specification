@@ -439,9 +439,10 @@ several building blocks:
 
 \begin{itemize}
   \item \texttt{read\_ep(id) -> EP}:\\
-  read the TCU-internal EP register with the given id
+  read the TCU-internal EP register with the given id. If the id is out of bounds, an invalid EP is
+  returned.
   \item \texttt{write\_ep(id, EP)}:\\
-  write \texttt{EP} to the TCU-internal EP register with given id
+  write \texttt{EP} to the TCU-internal EP register with given id (assumed to be within bounds)
   \item \texttt{read\_mem(addr, size) -> data}:\\
   read \texttt{size} bytes from given address in local memory into \texttt{data}
   \item \texttt{write\_mem(data, addr, size)}:\\
@@ -462,7 +463,9 @@ several building blocks:
   1$, starting at \texttt{pos} and rotating around. The function returns the position of the bit or
   $-1$ if none was found.
   \item \texttt{exit(error)}:\\
-  stop the execution of the internal/external command. In both cases, the opcode is set to 0 and the error code to the given error, either using \texttt{COMMAND} (for internal commands) or \texttt{EXT\_CMD} (for external commands).
+  stop the execution of the internal/external command. In both cases, the opcode is set to 0 and the
+  error code to the given error, either using \texttt{COMMAND} (for internal commands) or
+  \texttt{EXT\_CMD} (for external commands).
 \end{itemize}
 
 \subsection{Memory Access}
