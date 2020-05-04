@@ -378,7 +378,7 @@ several building blocks:
   1$, starting at \texttt{pos} and rotating around. The function returns the position of the bit or
   $-1$ if none was found.
   \item \texttt{exit(error)}:\\
-  stop the execution of the command, set \texttt{COMMAND.op} to 0 and \texttt{COMMAND.err} to given error
+  stop the execution of the internal/external command. In both cases, the opcode is set to 0 and the error code to the given error, either using \texttt{COMMAND} (for internal commands) or \texttt{EXT\_CMD} (for external commands).
 \end{itemize}
 
 \subsection{Memory Access}
@@ -607,6 +607,58 @@ The header is defined as:
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{ACK\_MSG} command.}
+\end{algorithm}
+
+\section{External Commands}
+
+The TCU supports \emph{external commands} that allow to manipulate the state externally, that is,
+from a remote PE. External commands are intended for the \myos{} kernel and are triggered by writing
+to the \texttt{EXT\_CMD} register and feedback is given via this register as well. The
+\texttt{EXT\_CMD} register has the following format:
+
+\begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
+  \regfieldb{arg}{56}{8}%
+  \regfieldb{err}{4}{4}%
+  \regfieldb{op}{4}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[arg] an argument for the operation
+    \item[err] the result of the operation (output field)
+    \item[op] the operation to execute
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\subsection{Command List}
+
+The TCU supports the following external commands with the opcodes in parentheses:
+
+\begin{itemize}
+  \item \texttt{INV\_EP} (1): invalidate an endpoint.
+\end{itemize}
+
+\subsection{Command Description}
+
+\subsubsection{\texttt{INV\_EP}}
+
+\begin{algorithm}[H]
+    $epid \gets EXT\_CMD.arg\ \&\ 0xFFFF$\;
+    $force \gets EXT\_CMD.arg >> 16$\;
+    \BlankLine
+    $EXT\_CMD.arg \gets 0$\;
+    \BlankLine
+    $ep \gets$ read\_ep(epid)\;
+    \uIf{force == 0 and ep.type == SEND}{
+      \uIf{ep.cur\_crd != ep.max\_crd}{exit(MISS\_CREDITS)}
+    }
+    \uIf{force == 0 and ep.type == RECEIVE}{
+      $EXT\_CMD.arg \gets ep.unread$\;
+    }
+    \BlankLine
+    $ep \gets \{~type \gets INVALID~\}$\;
+    $write\_ep(epid, ep)$\;
+    \BlankLine
+    $EXT\_CMD.err \gets 0$\;
+    $EXT\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INV\_EP} command.}
 \end{algorithm}
 
 \end{document}
