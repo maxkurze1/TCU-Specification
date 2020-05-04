@@ -527,7 +527,7 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF}{exit(INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
+    $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
     \uIf{sep.type != SEND or sep.reply == 0}{exit(INV\_ARGS)}
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{exit(INV\_ARGS)}
@@ -562,7 +562,7 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{exit(INV\_EP)}
     \uIf{ep.unread == 0}{
-      $ARG_1 \gets 0$\;
+      $ARG_1 \gets -1$\;
       exit(0)\;
     }
     \BlankLine
@@ -571,7 +571,7 @@ The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    $ARG_1 \gets ep.buffer + (idx << ep.slot\_size)$\;
+    $ARG_1 \gets idx << ep.slot\_size$\;
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{FETCH} command.}
 \end{algorithm}
@@ -582,7 +582,7 @@ The header is defined as:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{exit(INV\_EP)}
     \BlankLine
-    $idx \gets (COMMAND.arg_0 - ep.buffer) >> ep.slot\_size$\;
+    $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
