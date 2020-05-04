@@ -136,18 +136,18 @@
     \node[
       regtbl,below right=.8cm and .2cm of tcu.north west,minimum height=2cm
     ] (tcuregs) {};
-    \node[below=.1cm of tcuregs.north] {TCURegs};
-    \node[tcureg,below=.7cm of tcuregs.north] (tcureg0) {\texttt{EXT\_CMD}};
-    \node[tcureg,below=0cm of tcureg0]        (tcureg1) {\texttt{EVENTS}};
+    \node[below=.1cm of tcuregs.north] {ExtRegs};
+    \node[tcureg,below=.7cm of tcuregs.north] (extreg0) {\texttt{FEATURES}};
+    \node[tcureg,below=0cm of extreg0]        (extreg1) {\texttt{EXT\_CMD}};
 
     \node[
       regtbl,below=1cm of tcuregs.south,minimum height=3cm
     ] (cmdregs) {};
-    \node[below=.1cm of cmdregs.north] {CmdRegs};
+    \node[below=.1cm of cmdregs.north] {UnprivRegs};
     \node[tcureg,below=.7cm of cmdregs.north] (cmdreg0) {\texttt{COMMAND}};
-    \node[dtureg,below=0cm of cmdreg0]        (cmdreg1) {\texttt{ABORT}};
-    \node[tcureg,below=0cm of cmdreg1]        (cmdreg2) {\texttt{DATA}};
-    \node[tcureg,below=0cm of cmdreg2]        (cmdreg3) {\texttt{ARG$_1$}};
+    \node[tcureg,below=0cm of cmdreg0]        (cmdreg1) {\texttt{DATA}};
+    \node[tcureg,below=0cm of cmdreg1]        (cmdreg2) {\texttt{ARG$_1$}};
+    \node[tcureg,below=0cm of cmdreg2]        (cmdreg3) {\texttt{CUR\_TIME}};
 
     \node[
       regtbl,below left=1cm and .4cm of tcu.north east,minimum height=2.6cm
@@ -190,21 +190,25 @@ defined as follows:
 \noindent
 \begin{tabular}{ p{3cm} | c | c | l }
   \textbf{Address} & \textbf{Register} & \textbf{Group} & \textbf{Description} \\
-  \texttt{0xF000\_0020} & \texttt{COMMAND} & CmdRegs & Triggers internal commands \\
+  \texttt{0xF000\_0000} & \texttt{FEATURES} & ExtRegs & Contains feature flags \\
   \hline
-  \texttt{0xF000\_0028} & \texttt{ABORT} & CmdRegs & Aborts internal commands \\
+  \texttt{0xF000\_0008} & \texttt{EXT\_CMD} & ExtRegs & Triggers external commands \\
   \hline
-  \texttt{0xF000\_0030} & \texttt{DATA} & CmdRegs & Specifies the data for commands \\
+  \texttt{0xF000\_0010} & \texttt{COMMAND} & UnprivRegs & Triggers internal commands \\
   \hline
-  \texttt{0xF000\_0038} & \texttt{ARG$_1$} & CmdRegs & Additional argument for commands \\
+  \texttt{0xF000\_0018} & \texttt{DATA} & UnprivRegs & Specifies the data for commands \\
   \hline
-  \texttt{0xF000\_0040} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
-  \texttt{0xF000\_0048} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
-  \texttt{0xF000\_0050} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
+  \texttt{0xF000\_0020} & \texttt{ARG$_1$} & UnprivRegs & Additional argument for commands \\
   \hline
-  \texttt{0xF000\_0058} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
-  \texttt{0xF000\_0060} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
-  \texttt{0xF000\_0068} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
+  \texttt{0xF000\_0028} & \texttt{CUR\_TIME} & UnprivRegs & Yields the current time in nanoseconds \\
+  \hline
+  \texttt{0xF000\_0030} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
+  \texttt{0xF000\_0038} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
+  \texttt{0xF000\_0040} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
+  \hline
+  \texttt{0xF000\_0048} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
+  \texttt{0xF000\_0050} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
+  \texttt{0xF000\_0058} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
   \hline
   \multicolumn{4}{c}{\dots} \\
   \hline
@@ -301,9 +305,9 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
 
 \section{Commands}
 
-The CU can use the TCU's endpoints via \emph{internal commands}. The command registers are used to
-pass input arguments for a command to the TCU, start a command, and wait until the command is
-finished. The following command registers are used:
+The CU can use the TCU's endpoints via \emph{internal commands}. The unprivileged registers are used
+to pass input arguments for a command to the TCU, start a command, and wait until the command is
+finished. The following unprivileged registers are used:
 
 \begin{register}{H}{COMMAND}{\texttt{0xF000\_0020}}
   \regfieldb[gray!20]{reserved}{7}{57}%
