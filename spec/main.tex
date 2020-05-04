@@ -285,14 +285,16 @@ defined as follows:
 
 \noindent The \texttt{FEATURES} register defines the features of a TCU and has the following format:
 
-\begin{register}{H}{\texttt{FEATURES}}{}
+\setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
   \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
-  \regfield{kernel}{1}{0}{1}\regnewline%
+  \regfield{kernel}{1}{0}{1}%
+  \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[kernel] whether the TCU belongs to a kernel PE
   \end{reglist}\end{regdesc}
 \end{register}
+\setlength{\regWidth}{\textwidth}
 
 \noindent In other words, the \texttt{FEATURES} register currently only defines whether the TCU
 belongs to a kernel PE. At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel
