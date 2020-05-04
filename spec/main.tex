@@ -337,15 +337,15 @@ is finished. The following unprivileged registers are used:
 
 \subsection{Command List}
 
-The TCU supports the following unprivileged commands:
+The TCU supports the following unprivileged commands with the opcodes in parentheses:
 
 \begin{itemize}
-  \item \texttt{READ}: read data from a region defined in a memory EP into local memory,
-  \item \texttt{WRITE}: write data from local memory into a region defined in a memory EP,
-  \item \texttt{SEND}: send a message via a send EP to a receive EP,
-  \item \texttt{REPLY}: reply on a message that has been received earlier via a receive EP,
-  \item \texttt{FETCH}: fetch a new message from a receive EP,
-  \item \texttt{ACK\_MSG}: acknowledge that the processing of a message has been completed.
+  \item \texttt{SEND} (1): send a message via a send EP to a receive EP,
+  \item \texttt{REPLY} (2): reply on a message that has been received earlier via a receive EP,
+  \item \texttt{READ} (3): read data from a region defined in a memory EP into local memory,
+  \item \texttt{WRITE} (4): write data from local memory into a region defined in a memory EP,
+  \item \texttt{FETCH} (5): fetch a new message from a receive EP,
+  \item \texttt{ACK\_MSG} (6): acknowledge that the processing of a message has been completed.
 \end{itemize}
 
 \subsection{Pseudo Code Building Blocks}
