@@ -286,6 +286,7 @@ defined as follows:
 \noindent The \texttt{FEATURES} register defines the features of a TCU and has the following format:
 
 \begin{register}{H}{\texttt{FEATURES}}{}
+\begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
   \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
   \regfield{kernel}{1}{0}{1}\regnewline%
   \begin{regdesc}\begin{reglist}
