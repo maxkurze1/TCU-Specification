@@ -194,7 +194,7 @@ defined as follows:
   \hline
   \texttt{0xF000\_0008} & \texttt{EXT\_CMD} & ExtRegs & Triggers external commands \\
   \hline
-  \texttt{0xF000\_0010} & \texttt{COMMAND} & UnprivRegs & Triggers internal commands \\
+  \texttt{0xF000\_0010} & \texttt{COMMAND} & UnprivRegs & Triggers unprivileged commands \\
   \hline
   \texttt{0xF000\_0018} & \texttt{DATA} & UnprivRegs & Specifies the data for commands \\
   \hline
@@ -303,11 +303,11 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \end{reglist}\end{regdesc}
 \end{register}
 
-\section{Commands}
+\section{Unprivileged Commands}
 
-The CU can use the TCU's endpoints via \emph{internal commands}. The unprivileged registers are used
-to pass input arguments for a command to the TCU, start a command, and wait until the command is
-finished. The following unprivileged registers are used:
+The CU can use the TCU's endpoints via \emph{unprivileged commands}. The unprivileged registers are
+used to pass input arguments for a command to the TCU, start a command, and wait until the command
+is finished. The following unprivileged registers are used:
 
 \begin{register}{H}{COMMAND}{\texttt{0xF000\_0010}}
   \regfieldb[gray!20]{reserved}{8}{56}%
@@ -334,6 +334,19 @@ finished. The following unprivileged registers are used:
 
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
 \texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
+
+\subsection{Command List}
+
+The TCU supports the following unprivileged commands:
+
+\begin{itemize}
+  \item \texttt{READ}: read data from a region defined in a memory EP into local memory,
+  \item \texttt{WRITE}: write data from local memory into a region defined in a memory EP,
+  \item \texttt{SEND}: send a message via a send EP to a receive EP,
+  \item \texttt{REPLY}: reply on a message that has been received earlier via a receive EP,
+  \item \texttt{FETCH}: fetch a new message from a receive EP,
+  \item \texttt{ACK\_MSG}: acknowledge that the processing of a message has been completed.
+\end{itemize}
 
 \subsection{Pseudo Code Building Blocks}
 
