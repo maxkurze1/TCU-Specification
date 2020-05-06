@@ -422,6 +422,57 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
   \end{reglist}\end{regdesc}
 \end{register}
 
+\section{Transfers}
+
+The TCU uses \emph{transfers} to load data from local memory or write data into local memory. Since
+these local memory accesses need to be performed in multiple steps and need to be paused and
+resumed\colorbox{pemux}{, under some conditions,} the TCU maintains state for each transfer and
+supports a limited number of transfers at a time (at least 2). However, the transfers and their
+states are not software facing, so that this specification does not describe any software interface,
+but only the behavior of transfers.
+
+There are two different kinds of transfers: \emph{local transfers} issued by \texttt{read\_local()},
+\texttt{write\_local()}, or \texttt{write\_local\_phys()} and \emph{remote transfers} issued by
+\texttt{read\_remote()} or \texttt{write\_remote()} (see \rref{sec:unprivcmdspseudo}). Local
+transfers always belong to the current unprivileged command, implying that there is at most one.
+Remote transfers are triggered by requests from other TCUs (e.g., an incoming message or an access
+to the local memory).
+
+\cbstart
+\subsection{Translations}
+
+With virtual memory support, all transfers except \texttt{write\_local\_phys()} refer to a virtual
+address and thus require address translations to determine the physical address for the actual
+memory access. The TCU keeps a small translation look-aside buffer~(TLB) to cache these translations
+and issues a translation core request on TLB misses. In this case, the transfer is paused until the
+completion of a translation core request, which creates a corresponding new TLB entry and resumes
+the transfer.
+
+While both local and remote transfers require address translations, only local transfers can cause
+page faults. If a remote transfer triggers a page fault (due to insufficient permissions, either in
+TLB or reported by software upon a translation core request), the transfer is aborted with the error
+\texttt{PAGEFAULT}. Local transfers can cause page faults, leading to potentially long transfer
+times.
+
+Without virtual memory support, there is no difference between \texttt{write\_local()} and
+\texttt{write\_local\_phys()}. However, with virtual memory support, \texttt{write\_local\_phys()}
+refers to a physical address, so that no translation is required.
+
+\subsection{Translation Look-aside Buffer}
+\label{sec:tlb}
+
+The TLB contains a virtual address, 16-bit address space id~(asid), physical address, and
+permissions. The permissions are defined as follows:
+
+\begin{itemize}
+  \item \texttt{READ} (1): read permission,
+  \item \texttt{WRITE} (2): write permission,
+  \item \texttt{EXEC} (4): execute permission \todo{remove that?},
+  \item \texttt{LARGE} (8): large page mapping (2 MiB),
+  \item \texttt{FIXED} (16): fixed entry, will not be evicted.
+\end{itemize}
+\cbend
+
 \section{Unprivileged Interface}
 
 The unprivileged interface of the TCU is available to unprivileged software. Most importantly, it
@@ -480,14 +531,19 @@ several building blocks:
   returned.
   \item \texttt{write\_ep(id, EP)}:\\
   write \texttt{EP} to the TCU-internal EP register with given id (assumed to be within bounds)
-  \item \texttt{read\_mem(addr, size) -> data}:\\
-  read \texttt{size} bytes from given address in local memory into \texttt{data}
-  \item \texttt{write\_mem(data, addr, size)}:\\
-  write \texttt{data} of \texttt{size} bytes to given address in local memory
-  \item \texttt{read\_remote(pe, size, offset) -> data}:\\
-  read \texttt{size} bytes from the given PE at given offset into \texttt{data}
-  \item \texttt{write\_remote(data, pe, offset)}:\\
-  write \texttt{data} to \texttt{offset} in the given PE
+  \item \texttt{read\_local(virt\_addr, size) -> (Error, data)}:\\
+  read \texttt{size} bytes from given address in local memory into \texttt{data} and return the error
+  code (0~=~success)
+  \item \texttt{write\_local(data, virt\_addr, size) -> Error}:\\
+  write \texttt{data} of \texttt{size} bytes to given address in local memory and return the error
+  code (0~=~success)
+  \item \texttt{write\_local\_phys(data, phys\_addr, size)}:\\
+  write \texttt{data} of \texttt{size} bytes to given physical address in local memory
+  \item \texttt{read\_remote(pe, size, offset) -> (Error, data)}:\\
+  read \texttt{size} bytes from the given PE at given offset into \texttt{data} and return the error
+  code (0~=~success)
+  \item \texttt{write\_remote(data, pe, offset) -> Error}:\\
+  write \texttt{data} to \texttt{offset} in the given PE and return the error code (0~=~success)
   \item \texttt{send\_msg(msg, pe, ep)}:\\
   send \texttt{msg} to endpoint \texttt{ep} at given PE
   \item \texttt{send\_ack(error)}:\\
@@ -519,9 +575,11 @@ The commands behave as follows:
     \uIf{ep.rw \& READ == 0}{unpriv\_fail(NO\_PERM)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
-    $data \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
-    $write\_mem(data, DATA.address, DATA.size)$\;
+    $(err, data) \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
     \BlankLine
+    $err \gets write\_local(data, DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{READ} command.}
 \end{algorithm}
@@ -534,8 +592,10 @@ The commands behave as follows:
     \uIf{ep.rw \& WRITE == 0}{unpriv\_fail(NO\_PERM)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
-    $data \gets read\_mem(DATA.address, DATA.size)$\;
-    $write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
+    $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{WRITE} command.}
@@ -600,6 +660,9 @@ The header is defined as:
       $rsize \gets log2(sizeof(header))$\;
     }
     \BlankLine
+    $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
     	\uIf{ep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
     	ep.cur\_crd -= 1\;
@@ -618,7 +681,6 @@ The header is defined as:
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets sepid$\;
     $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
-    $payload \gets read\_mem(DATA.address, DATA.size)$\;
     $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
@@ -638,7 +700,7 @@ The header is defined as:
     $ep.wpos \gets idx + 1$\;
     \BlankLine
     $dest \gets ep.buffer + (idx << ep.slot\_size)$\;
-    $write\_mem(header\ |\ payload, dest, sizeof(header) + header.length)$\;
+    $write\_local\_phys(header\ |\ payload, dest, sizeof(header) + header.length)$\;
     $ep.unread.set\_bit(idx)$\;
     $write\_ep(rep, ep)$\;
     \BlankLine
@@ -683,8 +745,11 @@ The header is defined as:
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
     \uIf{sep.type != SEND or sep.reply == 0}{unpriv\_fail(INV\_ARGS)}
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_fail(INV\_ARGS)}
-    \uIf{sep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
     \BlankLine
+    $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
+    \uIf{sep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
@@ -696,7 +761,6 @@ The header is defined as:
     $\quad\quad\quad\quad\quad spe \gets ownPE$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
-    $payload \gets read\_mem(DATA.address, DATA.size)$\;
     $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
