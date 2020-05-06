@@ -256,9 +256,12 @@ defined as follows:
 \noindent
 \begin{tabular}{ p{3cm} | c | c | l }
   \textbf{Address} & \textbf{Register} & \textbf{Group} & \textbf{Description} \\
+  \hline
+  \hline
   \texttt{0xF000\_0000} & \texttt{FEATURES} & ExtRegs & Contains feature flags \\
   \hline
   \texttt{0xF000\_0008} & \texttt{EXT\_CMD} & ExtRegs & Triggers external commands \\
+  \hline
   \hline
   \texttt{0xF000\_0010} & \texttt{COMMAND} & UnprivRegs & Triggers unprivileged commands \\
   \hline
@@ -267,6 +270,7 @@ defined as follows:
   \texttt{0xF000\_0020} & \texttt{ARG$_1$} & UnprivRegs & Additional argument for commands \\
   \hline
   \texttt{0xF000\_0028} & \texttt{CUR\_TIME} & UnprivRegs & Yields the current time in nanoseconds \\
+  \hline
   \hline
   \texttt{0xF000\_0030} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
   \texttt{0xF000\_0038} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
