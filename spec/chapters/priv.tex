@@ -164,8 +164,8 @@ several building blocks:
 \section{Core Requests}
 
 With the privileged interface to support virtual memory and PE sharing, the TCU needs assistance of
-the CU in some cases. Since we assume in this case that the CU is a general-purpose core, we call
-these requests for assistance \emph{core requests}. Core requests are needed, for example, if a
+the CU in some cases. Since we assume in this case that the CU is a general-purpose core, these
+requests for assistance are called \emph{core requests}. Core requests are needed, for example, if a
 message for another VPE than the currently running VPE (\texttt{CUR\_VPE}) is received.
 
 Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
@@ -174,7 +174,7 @@ requests and handles them in FIFO order. To handle the first in the queue, the T
 of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
 completion of the request. Upon receiving this signal, the TCU issues the next core request, if
 there is any. New core requests are appended to the queue via \texttt{queue\_foreign\_msg\_req()}
-(see \rref{sec::unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{todo}).
+(see \rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}).
 
 \begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_1000}}
   \regfieldb[gray!60]{}{63}{1}%
