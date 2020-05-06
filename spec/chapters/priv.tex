@@ -9,15 +9,19 @@ The interface consists of multiple privileged registers, privileged commands, an
 requests}, which are raised by the TCU and answered by the privileged software. The TCU stores the
 id of the current VPE including the number of unread messages in all its receive EPs in the
 \texttt{CUR\_VPE} register:
+
+\setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
-  \regfieldb[gray!20]{reserved}{32}{32}%
-  \regfieldb{msgs}{16}{16}%
-  \regfieldb{id}{16}{0}\regnewline%
+  \regfield[gray!20]{reserved}{32}{32}{{uninitialized}}%
+  \regfield{msgs}{16}{16}{0}%
+  \regfield{id}{16}{0}{1111111111111111}%
+  \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[msgs] the sum of all unread messages in the receive EPs for this VPE
     \item[id] the VPE id
   \end{reglist}\end{regdesc}
 \end{register}
+\setlength{\regWidth}{\textwidth}
 
 \noindent To support the privileged software in the management of multiple VPEs, privileged commands
 are used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as
