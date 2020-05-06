@@ -29,6 +29,11 @@
 \usepackage{microtype}
 \usepackage[linesnumbered,ruled]{algorithm2e}
 \usepackage[color]{register}
+\usepackage[leftbars,color]{changebar}
+
+\colorlet{pemux}{green!20}
+\cbcolor{pemux}
+\setlength{\changebarwidth}{.4em}
 
 \renewcommand{\regBitWidth}{64}
 \setlength{\regWidth}{\textwidth}
@@ -184,7 +189,7 @@ and can be downgraded afterwards.
       regtbl/.style={draw=black,fill=gray!30,minimum width=3cm}
     ]
 
-    \node[draw=black,minimum width=7cm,minimum height=7cm,anchor=north west] (tcu) at(4,0) {};
+    \node[draw=black,minimum width=7cm,minimum height=7.65cm,anchor=north west] (tcu) at(4,0) {};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=north west] (cu) at (0,0) {CU};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=south west] (mem) at (0,-7) {SPM/Cache};
 
@@ -220,6 +225,16 @@ and can be downgraded afterwards.
     \node[tcureg,below=0cm of epreg0]        (epreg1) {\texttt{EP$_1$}};
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
+    \node[
+      regtbl,fill=pemux,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
+    ] (prvregs) {};
+    \node[below=.1cm of prvregs.north] {PrivRegs};
+    \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CORE\_REQ}};
+    \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CMD}};
+    \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD\_ARG}};
+    \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_VPE}};
+    \node[tcureg,below=0cm of prvreg3]        (prvreg4) {\texttt{OLD\_VPE}};
+
     \path
       let \p1=(cu.east), \p2=(tcu.west) in
       [draw=black,thick,->] (cu.east) -- (\x2,\y1);
@@ -246,6 +261,11 @@ be written externally and locally by the kernel PE. \emph{Unprivileged registers
 the CU. In consequence, only kernel PEs can \emph{establish} communication channels by writing
 endpoint registers, but user PEs can \emph{use} these communication channels through the
 unprivileged registers.
+
+\cbstart The \emph{privileged registers} are intended for privileged software running on PEs that
+are shared among multiple VPEs. The privileged software is called \emph{PEMux} for PE multiplexer.
+PEMux should make sure that unprivileged software running on the same PE cannot access the
+privileged registers. \cbend
 
 \section{MMIO region}
 
@@ -285,6 +305,13 @@ defined as follows:
   \texttt{0xF000\_0100} & \texttt{EP$_{n0}$} & EpRegs & First register of EP$_{n}$ \\
   \texttt{0xF000\_0108} & \texttt{EP$_{n1}$} & EpRegs & Second register of EP$_{n}$ \\
   \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
+  \hline
+  \hline
+  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \cbstart \\
+  \texttt{0xF000\_1008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
+  \texttt{0xF000\_1010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \\
+  \texttt{0xF000\_1018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \\
+  \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \cbend \\
 \end{tabular}\\[1em]
 
 \noindent The \texttt{FEATURES} register defines the features of a TCU and has the following format:
@@ -314,16 +341,17 @@ The TCU has a number of \emph{endpoints}~(EPs) to establish communication channe
 configured to three different EP types: \emph{send EPs} and \emph{receive EPs} are used for message
 passing, whereas \emph{memory EPs} are used for RDMA-like memory access. Each EP is represented by a
 TCU register and can be configured (at runtime) to one of these EP types. Each EP consists of 192
-bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved for now and
+bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that can use the EP and
 173 bits (shown as dark grey below), whose meaning depends on the EP type:\\[.1em]
 
 \begin{register}{H}{Endpoint}{}
   \regfieldb[gray!60]{}{64}{0}\regnewline%
   \regfieldb[gray!60]{}{64}{0}\regnewline%
   \regfieldb[gray!60]{}{45}{19}%
-  \regfieldb[gray!20]{reserved}{16}{3}%
+  \regfieldb[pemux]{vpe}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
+    \item[vpe] \cbstart the id of the VPE that can use this endpoint \cbend
     \item[type] the endpoint type: INVALID (0), SEND (1), RECEIVE (2), or MEMORY (3)
   \end{reglist}\end{regdesc}
 \end{register}
@@ -334,7 +362,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \regfieldb[gray!20]{reserved}{33}{31}%
   \regfieldb{pe}{8}{23}%
   \regfieldb{rw}{4}{19}%
-  \regfieldb[gray!20]{reserved}{16}{3}%
+  \regfieldb[pemux]{vpe}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[size] the size of the region at the destination
@@ -356,7 +384,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \regfieldb{msg\_sz}{6}{31}%
   \regfieldb{max\_crd}{6}{25}%
   \regfieldb{cur\_crd}{6}{19}%
-  \regfieldb[gray!20]{reserved}{16}{3}%
+  \regfieldb[pemux]{vpe}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[label] the label the TCU puts into the header of each sent message
@@ -380,7 +408,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \regfieldb{slot\_size}{6}{41}%
   \regfieldb{slots}{6}{35}%
   \regfieldb{rpl\_eps}{16}{19}%
-  \regfieldb[gray!20]{reserved}{16}{3}%
+  \regfieldb[pemux]{vpe}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[unread] a bitmask with the unread (not yet fetched) messages in the buffer
@@ -394,9 +422,10 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits that are reserved 
   \end{reglist}\end{regdesc}
 \end{register}
 
-\section{Unprivileged Commands}
+\section{Unprivileged Interface}
 
-The CU can use the TCU's endpoints via \emph{unprivileged commands}. The unprivileged registers are
+The unprivileged interface of the TCU is available to unprivileged software. Most importantly, it
+allows to use the TCU's endpoints via \emph{unprivileged commands}. The unprivileged registers are
 used to pass input arguments for a command to the TCU, start a command, and wait until the command
 is finished. The following unprivileged registers are used:
 
@@ -440,6 +469,7 @@ The TCU supports the following unprivileged commands with the opcodes in parenth
 \end{itemize}
 
 \subsection{Pseudo Code Building Blocks}
+\label{sec:unprivcmdspseudo}
 
 The following sections use pseudo code to describe the behavior of the TCU commands, based on
 several building blocks:
@@ -469,23 +499,25 @@ several building blocks:
   searches for a bit with value \texttt{val} in the given mask between bit 0 and bit $(1 << slots) -
   1$, starting at \texttt{pos} and rotating around. The function returns the position of the bit or
   $-1$ if none was found.
-  \item \texttt{exit(error)}:\\
-  stop the execution of the internal/external command. In both cases, the opcode is set to 0 and the
-  error code to the given error, either using \texttt{COMMAND} (for internal commands) or
-  \texttt{EXT\_CMD} (for external commands).
+  \item \texttt{unpriv\_fail(error)}:\\
+  stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
+  the error code to the given error.
+  \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\cbstart\\
+  append a new foreign-message request to the queue of core requests. \cbend
 \end{itemize}
 
 \subsection{Memory Access}
 
-Memory access is performed with a memory EP based on the commands \texttt{READ} and \texttt{WRITE}. The commands behave as follows:
+Memory access is performed with a memory EP based on the commands \texttt{READ} and \texttt{WRITE}.
+The commands behave as follows:
 
 \subsubsection{\texttt{READ}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != MEMORY}{exit(INV\_EP)}
-    \uIf{ep.rw \& READ == 0}{exit(NO\_PERM)}
-    \uIf{DATA.size + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.rw \& READ == 0}{unpriv\_fail(NO\_PERM)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
     $data \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
     $write\_mem(data, DATA.address, DATA.size)$\;
@@ -498,9 +530,9 @@ Memory access is performed with a memory EP based on the commands \texttt{READ} 
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != MEMORY}{exit(INV\_EP)}
-    \uIf{ep.rw \& WRITE == 0}{exit(NO\_PERM)}
-    \uIf{DATA.size + $ARG_1$ > ep.size}{exit(INV\_ARGS)}
+    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.rw \& WRITE == 0}{unpriv\_fail(NO\_PERM)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
     $data \gets read\_mem(DATA.address, DATA.size)$\;
     $write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
@@ -554,12 +586,12 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != SEND or ep.reply != 0}{exit(INV\_EP)}
-    \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{exit(INV\_ARGS)}
+    \uIf{ep.type != SEND or ep.reply != 0\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
       $rep \gets read\_ep(COMMAND.arg_0$)\;
-      \uIf{rep.type != RECEIVE}{exit(INV\_EP)}
+      \uIf{rep.type != RECEIVE}{unpriv\_fail(INV\_EP)}
       $repid \gets COMMAND.arg_0$\;
       $rsize \gets rep.slot\_size$\;
     }
@@ -569,7 +601,7 @@ The header is defined as:
     }
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
-    	\uIf{ep.cur\_crd == 0}{exit(MISS\_CREDITS)}
+    	\uIf{ep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
     	ep.cur\_crd -= 1\;
     	$write\_ep(COMMAND.ep, ep)$\;
     	$sepid \gets COMMAND.ep$\;
@@ -598,10 +630,10 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{exit(send\_ack(INV\_EP) and drop message)}
+    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{unpriv\_fail(send\_ack(INV\_EP) and drop message)}
     \BlankLine
     $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
-    \uIf{idx == -1}{exit(send\_ack(NO\_RING\_SPACE) and drop message)}
+    \uIf{idx == -1}{unpriv\_fail(send\_ack(NO\_RING\_SPACE) and drop message)}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
@@ -629,6 +661,15 @@ The header is defined as:
       $write\_ep(header.rep, sep)$\;
     }
     $send\_ack(NONE)$\;
+    \cbstart
+    \BlankLine
+    \uIf{ep.vpe == CUR\_VPE.id}{
+      CUR\_VPE.msgs += 1\;
+    }
+    \uElse{
+      $queue\_foreign\_msg\_req(rep, ep.vpe)$\;
+    }
+    \cbend
     \caption{If `header | payload' is received via EP `rep'.}
 \end{algorithm}
 
@@ -636,13 +677,13 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF}{exit(INV\_EP)}
+    \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
-    \uIf{sep.type != SEND or sep.reply == 0}{exit(INV\_ARGS)}
-    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{exit(INV\_ARGS)}
-    \uIf{sep.cur\_crd == 0}{exit(MISS\_CREDITS)}
+    \uIf{sep.type != SEND or sep.reply == 0}{unpriv\_fail(INV\_ARGS)}
+    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_fail(INV\_ARGS)}
+    \uIf{sep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
     \BlankLine
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
@@ -659,6 +700,12 @@ The header is defined as:
     $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
+    \cbstart
+    \uIf{ep.unread.is\_set(idx)}{
+      CUR\_VPE.msgs -= 1\;
+    }
+    \cbend
+    \BlankLine
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
@@ -671,16 +718,20 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE}{exit(INV\_EP)}
-    \uIf{ep.unread == 0}{
+    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.unread == 0\colorbox{pemux}{ or CUR\_VPE.msgs == 0}}{
       $ARG_1 \gets -1$\;
-      exit(0)\;
+      unpriv\_fail(0)\;
     }
     \BlankLine
     $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots, 1)\;
     $ep.unread.clear\_bit(idx)$\;
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
+    \cbstart
+    CUR\_VPE.msgs -= 1\;
+    \cbend
     \BlankLine
     $ARG_1 \gets idx << ep.slot\_size$\;
     $COMMAND \gets 0$\;
@@ -691,9 +742,16 @@ The header is defined as:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE}{exit(INV\_EP)}
+    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
+    \BlankLine
+    \cbstart
+    \uIf{ep.unread.is\_set(idx)}{
+      CUR\_VPE.msgs -= 1\;
+    }
+    \cbend
+    \BlankLine
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
@@ -707,12 +765,239 @@ The header is defined as:
     \caption{The TCU's \texttt{ACK\_MSG} command.}
 \end{algorithm}
 
-\section{External Commands}
+\cbstart
+\section{Privileged Interface}
 
-The TCU supports \emph{external commands} that allow to manipulate the state externally, that is,
-from a remote PE. External commands are intended for the kernel PE and are triggered by writing to
-the \texttt{EXT\_CMD} register and feedback is given via this register as well. The
-\texttt{EXT\_CMD} register has the following format:
+The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU. The
+interface consists of multiple privileged registers, privileged commands, and \emph{core requests},
+which are raised by the TCU and answered by the privileged software. The TCU stores the id of the
+current VPE including the number of unread messages in all its receive EPs in the \texttt{CUR\_VPE}
+register:
+
+\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
+  \regfieldb[gray!20]{reserved}{32}{32}%
+  \regfieldb{msgs}{16}{16}%
+  \regfieldb{id}{16}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[msgs] the sum of all unread messages in the receive EPs for this VPE
+    \item[id] the VPE id
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent To support the privileged software in the management of multiple VPEs, privileged commands
+are used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as
+follows:
+
+\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_1010}}
+  \regfieldb{arg}{60}{4}%
+  \regfieldb{op}{4}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[arg] the argument for the privileged command
+    \item[op] the opcode of the privileged command
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\subsection{Command List}
+
+The following privileged commands are supported with the opcodes in parentheses:
+
+\begin{itemize}
+  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB,
+  \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
+  \item \texttt{INS\_TLB} (3): insert an entry into the TLB,
+  \item \texttt{XCHG\_VPE} (4): change the VPE,
+  \item \texttt{SET\_TIMER} (5): start/stop the timer,
+  \item \texttt{ABORT\_CMD} (6): abort the unprivileged command.
+\end{itemize}
+
+\subsection{Pseudo Code Building Blocks}
+
+The following sections use pseudo code to describe the behavior of the privileged commands, based on
+several building blocks:
+
+\begin{itemize}
+  \item \texttt{insert\_tlb\_entry(asid, virt, phys, flags)}:\\
+  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for address space \texttt{asid}
+  \item \texttt{remove\_tlb\_entry(asid, virt)}:\\
+  removes the entry with \texttt{virt} in address space \texttt{asid}
+  \item \texttt{clear\_tlb()}:\\
+  removes all entries from the TLB
+  \item \texttt{set\_timer(timeout)}:\\
+  starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
+  \item \texttt{unset\_timer()}:\\
+  stops the timer
+  \item \texttt{waiting\_for\_resp() -> bool}:\\
+  returns whether the TCU is currently waiting for a remote TCU's response (to \texttt{SEND},
+  \texttt{REPLY}, \texttt{READ}, or \texttt{WRITE})
+  \item \texttt{wait\_for\_resp()}:\\
+  waits until a remote TCU responds (to \texttt{SEND}, \texttt{REPLY}, \texttt{READ}, or
+  \texttt{WRITE})
+  \item \texttt{abort\_remote\_xfer()}:\\
+  lets the current remote transfer fail, so that \texttt{read\_remote()} or \texttt{write\_remote()}
+  return the error ABORT (see \rref{sec:unprivcmdspseudo})
+  \item \texttt{abort\_local\_xfer() -> bool}:\\
+  checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,
+  so that \texttt{read\_local()} or \texttt{write\_local()} return the error ABORT (see
+  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted
+\end{itemize}
+
+\subsection{Command Description}
+
+\todo{think about virtual address width}
+\todo{document asid width}
+
+\subsubsection{\texttt{INV\_PAGE}}
+
+\begin{algorithm}[H]
+    $asid \gets PRIV\_CMD.arg0 >> 44$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_FFFF$\;
+    \BlankLine
+    $remove\_tlb\_entry(asid, virt)$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INV\_PAGE} command.}
+\end{algorithm}
+
+\subsubsection{\texttt{INV\_TLB}}
+
+\begin{algorithm}[H]
+    $clear\_tlb()$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INV\_TLB} command.}
+\end{algorithm}
+
+\subsubsection{\texttt{INS\_TLB}}
+
+\begin{algorithm}[H]
+    $asid \gets PRIV\_CMD.arg0 >> 44$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_F000$\;
+    $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
+    $phys \gets PRIV\_CMD\_ARG1$\;
+    \BlankLine
+    $insert\_tlb\_entry(asid, virt, phys, flags)$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INS\_TLB} command.}
+\end{algorithm}
+
+\subsubsection{\texttt{XCHG\_VPE}}
+
+\begin{algorithm}[H]
+    $old \gets CUR\_VPE$\;
+    $OLD\_VPE \gets old$\;
+    $CUR\_VPE \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{XCHG\_VPE} command.}
+\end{algorithm}
+
+\subsubsection{\texttt{SET\_TIMER}}
+
+\begin{algorithm}[H]
+    $nanos \gets PRIV\_CMD.arg0$\;
+    \uIf{nanos == 0}{
+      $unset\_timer()$\;
+    }
+    \uElse{
+      $set\_timer(nanos)$\;
+    }
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{SET\_TIMER} command.}
+\end{algorithm}
+
+\subsubsection{\texttt{ABORT\_CMD}}
+
+\begin{algorithm}[H]
+    \uIf{COMMAND.op != 0}{
+      \uIf{waiting\_for\_resp()}{
+        \uIf{COMMAND.op == READ or COMMAND.op == WRITE}{
+          $PRIV\_CMD.arg0 \gets 1$\;
+          $abort\_remote\_xfer()$\;
+        }
+        $wait\_for\_resp()$\;
+      }
+      \uElseIf{abort\_local\_xfer()}{
+        $PRIV\_CMD.arg0 \gets 1$\;
+      }
+    }
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{ABORT\_CMD} command.}
+\end{algorithm}
+
+\subsection{Core Requests}
+
+With the privileged interface to support virtual memory and PE sharing, the TCU needs assistance of
+the CU in some cases. Since we assume in this case that the CU is a general-purpose core, we call
+these requests for assistance \emph{core requests}. Core requests are needed, for example, if a
+message for another VPE than the currently running VPE (\texttt{CUR\_VPE}) is received.
+
+Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
+requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
+\texttt{CORE\_REQ} and injects an interrupt to inform the core about the request. After the handling
+of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
+completion of the request. Upon receiving this signal, the TCU issues the next core request, if
+there is any. New core requests are appended to the queue via \texttt{queue\_foreign\_msg\_req()}
+(see \rref{sec::unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{todo}).
+
+\begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_1000}}
+  \regfieldb[gray!60]{}{63}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[type] the type of CU request (0 = translation, 1 = foreign message)
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
+most of the bits depend on the type of request/response, defined in the following.
+
+\begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_1000}}
+  \regfieldb{vpe}{16}{48}%
+  \regfieldb{virt}{36}{12}%
+  \regfieldb[gray!20]{reserved}{8}{4}%
+  \regfieldb{access}{2}{2}%
+  \regfieldb{pf}{1}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[pf] whether the translation may page fault or should fail in this case
+    \item[access] the requested access permissions (see \rref{sec:tlb})
+    \item[virt] the virtual address to translate (shifted right by 12 bits)
+    \item[vpe] the id of the VPE for whom to perform the translation
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_1000}}
+  \regfieldb{phys}{52}{12}%
+  \regfieldb[gray!20]{reserved}{7}{5}%
+  \regfieldb{flags}{5}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[flags] the flags for the TLB entry (see \rref{sec:tlb})
+    \item[phys] the physical address for the TLB entry
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_1000}}
+  \regfieldb{vpe}{16}{48}%
+  \regfieldb[gray!20]{reserved}{31}{17}%
+  \regfieldb{ep}{16}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[ep] the receive EP which received a message
+    \item[vpe] the VPE that received the message
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_1000}}
+  \regfieldb[gray!20]{reserved}{64}{0}\regnewline%
+\end{register}
+
+\cbend
+
+\section{External Interface}
+
+The external interface of the TCU allows remote PEs to manipulate its state. For that purpose, the
+TCU supports \emph{external commands}, which are triggered by writing to the \texttt{EXT\_CMD}
+register and feedback is given via this register as well. The \texttt{EXT\_CMD} register has the
+following format:
 
 \begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
   \regfieldb{arg}{56}{8}%
@@ -733,6 +1018,18 @@ The TCU supports the following external commands with the opcodes in parentheses
   \item \texttt{INV\_EP} (1): invalidate an endpoint.
 \end{itemize}
 
+\subsection{Pseudo Code Building Blocks}
+\label{sec:extcmdspseudo}
+
+The following sections use pseudo code to describe the behavior of the external TCU commands, based
+on the following building blocks:
+
+\begin{itemize}
+  \item \texttt{ext\_fail(error)}:\\
+  stop the execution of the external command by setting the opcode in \texttt{EXT\_CMD} to 0 and the
+  error code to the given error.
+\end{itemize}
+
 \subsection{Command Description}
 
 \subsubsection{\texttt{INV\_EP}}
@@ -745,7 +1042,7 @@ The TCU supports the following external commands with the opcodes in parentheses
     \BlankLine
     $ep \gets$ read\_ep(epid)\;
     \uIf{force == 0 and ep.type == SEND}{
-      \uIf{ep.cur\_crd != ep.max\_crd}{exit(MISS\_CREDITS)}
+      \uIf{ep.cur\_crd != ep.max\_crd}{ext\_fail(MISS\_CREDITS)}
     }
     \uIf{force == 0 and ep.type == RECEIVE}{
       $EXT\_CMD.arg \gets ep.unread$\;
