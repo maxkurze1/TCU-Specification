@@ -49,11 +49,10 @@ unprivileged (red).
 
 In this system, the TCU, the interconnect, and the kernel PEs are trusted (shown green), whereas the
 CUs in the user PEs are untrusted (shown red). By default, all PEs are isolated from each other, but
-communication channels between PEs can be established. These communication channels can only kernel
-be establish by kernel PEs, but can be used afterwards by user PEs.
-
-Privilege is defined by the TCU's \texttt{FEATURES} register, which is set to be privileged at boot
-and can be downgraded afterwards.
+communication channels between PEs can be established. These communication channels can only be
+establish by kernel PEs, but can be used afterwards by user PEs. Which PEs are kernel PEs is defined
+by the TCU's \texttt{FEATURES} register. At boot, all PEs are kernel PEs, which can be changed by
+the kernel booting on one specific PE before the other PEs start.
 
 \section{Processing Elements}
 
