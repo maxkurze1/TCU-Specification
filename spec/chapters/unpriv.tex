@@ -215,6 +215,9 @@ The header is defined as:
 
 \subsection{\texttt{RECEIVE}}
 
+Note that \texttt{RECEIVE} is not a command, but just the logic at the receiver side that accepts
+and stores messages. Nevertheless, its behavior is described by the following algorithm:
+
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
     \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{unpriv\_fail(send\_ack(INV\_EP) and drop message)}
