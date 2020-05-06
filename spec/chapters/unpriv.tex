@@ -104,7 +104,7 @@ The commands behave as follows:
     \uIf{err != 0}{unpriv\_fail(err)}
     \BlankLine
     $err \gets write\_local(data, DATA.address, DATA.size)$\;
-    \uIf{err != 0}{unpriv\_fail(err)}
+    \extstart{vm}\uIf{err != 0}{unpriv\_fail(err)}\extend{}
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{READ} command.}
 \end{algorithm}
@@ -118,7 +118,7 @@ The commands behave as follows:
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
     $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
-    \uIf{err != 0}{unpriv\_fail(err)}
+    \extstart{vm}\uIf{err != 0}{unpriv\_fail(err)}\extend{}
     $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
     \uIf{err != 0}{unpriv\_fail(err)}
     \BlankLine

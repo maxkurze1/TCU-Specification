@@ -47,7 +47,7 @@
           minimum width=1.8em, minimum height=1.8em] (app2) {\tiny App};
     \node[draw=black, fill=white,
           above right=.3em and .3em of cu3.south west,
-          minimum width=3.9em, minimum height=1.8em] (pex) {PEMux};
+          minimum width=3.9em, minimum height=1.8em] (pex) {Priv};
     \node[draw=black, fill=pemux, above left=.3em and .3em of tcu3.south east] {};
     \node[draw=black, fill=vm, above left=.3em and 1.2em of tcu3.south east] {};
 
@@ -72,10 +72,11 @@ the kernel booting on one specific PE before the other PEs start.
 
 User PEs can have different complexities, mostly driven by the used CU. The left user PE uses a
 simple core with scratchpad memory and a basic TCU without extensions. The right user PE uses a
-complex core with caches and virtual memory support and a multiplexer (PEMux) that supports multiple
+complex core with caches and virtual memory support and a multiplexer (Priv) that supports multiple
 applications on the same PE. These features require TCU extensions for virtual memory (\extbox{vm})
-and PE sharing (\extbox{pemux}). This specification highlights the portions that are only required
-if an extension should be supported correspondingly.
+and PE sharing (\extbox{pemux}). This specification highlights the portions that are required by
+only one extension in its color and portions that are required by either extension as
+\extbox{vmpex}.
 
 \section{Processing Elements}
 
@@ -123,7 +124,7 @@ if an extension should be supported correspondingly.
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
     \node[
-      regtbl,fill=pemux,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
+      regtbl,fill=vmpex,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
     ] (prvregs) {};
     \node[below=.1cm of prvregs.north] {PrivRegs};
     \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CORE\_REQ}};
@@ -159,10 +160,10 @@ the CU. In consequence, only kernel PEs can \emph{establish} communication chann
 endpoint registers, but user PEs can \emph{use} these communication channels through the
 unprivileged registers.
 
-\extstart{pemux} The \emph{privileged registers} are intended for privileged software running on PEs
-that are shared among multiple VPEs. The privileged software is called \emph{PEMux} for PE
-multiplexer. PEMux should make sure that unprivileged software running on the same PE cannot access
-the privileged registers. \extend{}
+\extstart{vmpex} The \emph{privileged registers} are intended for privileged software running on PEs
+that are multiplexed among multiple VPEs and/or use virtual memory. The privileged software should
+make sure that unprivileged software running on the same PE cannot access the privileged registers.
+\extend{}
 
 \section{Registers}
 
@@ -205,9 +206,9 @@ as follows:
   \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
   \hline
   \hline
-  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{pemux} \\
+  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmpex} \\
   \texttt{0xF000\_1008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
-  \texttt{0xF000\_1010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \\
-  \texttt{0xF000\_1018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \\
+  \texttt{0xF000\_1010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
+  \texttt{0xF000\_1018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \\
   \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \extend{} \\
 \end{tabular}\\[1em]

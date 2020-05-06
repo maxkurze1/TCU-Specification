@@ -1,14 +1,27 @@
 \chapter{Privileged Interface}
 
 The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU and is
-thus only required if either of these features are desired. In this chapter, all non-highlighted
-functionality is required for PE sharing, whereas the highlighted functionality (\extbox{vm}) is
-only required for virtual memory.
+thus only required if either of these features are desired. Thus, all non-highlighted functionality
+is required if either extension is used, whereas the highlighted functionality is only required for
+one specific extension.
 
 The interface consists of multiple privileged registers, privileged commands, and \emph{core
-requests}, which are raised by the TCU and answered by the privileged software. The TCU stores the
-id of the current VPE including the number of unread messages in all its receive EPs in the
-\texttt{CUR\_VPE} register:
+requests}, which are raised by the TCU and answered by the privileged software. To support the
+privileged software in the management of multiple VPEs or virtual memory, privileged commands are
+used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
+
+\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_1010}}
+  \regfieldb{arg}{60}{4}%
+  \regfieldb{op}{4}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[arg] the argument for the privileged command
+    \item[op] the opcode of the privileged command
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\extstart{pemux}
+\noindent The TCU stores the id of the current VPE including the number of unread messages in all
+its receive EPs in the \texttt{CUR\_VPE} register:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
@@ -22,31 +35,19 @@ id of the current VPE including the number of unread messages in all its receive
   \end{reglist}\end{regdesc}
 \end{register}
 \setlength{\regWidth}{\textwidth}
-
-\noindent To support the privileged software in the management of multiple VPEs, privileged commands
-are used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as
-follows:
-
-\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_1010}}
-  \regfieldb{arg}{60}{4}%
-  \regfieldb{op}{4}{0}\regnewline%
-  \begin{regdesc}\begin{reglist}
-    \item[arg] the argument for the privileged command
-    \item[op] the opcode of the privileged command
-  \end{reglist}\end{regdesc}
-\end{register}
+\extend{}
 
 \section{Command List}
 
 The following privileged commands are supported with the opcodes in parentheses:
 
 \begin{itemize}
-  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB \extstart{vm},
+  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB, \extstart{vm}
   \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
-  \item \texttt{INS\_TLB} (3): insert an entry into the TLB \extend{},
-  \item \texttt{XCHG\_VPE} (4): change the VPE,
+  \item \texttt{INS\_TLB} (3): insert an entry into the TLB, \extend{}
+  \item \texttt{XCHG\_VPE} (4): change the VPE, \extstart{pemux}
   \item \texttt{SET\_TIMER} (5): start/stop the timer,
-  \item \texttt{ABORT\_CMD} (6): abort the unprivileged command.
+  \item \texttt{ABORT\_CMD} (6): abort the unprivileged command. \extend{}
 \end{itemize}
 
 \section{Pseudo Code Building Blocks}
@@ -61,7 +62,7 @@ several building blocks:
   removes the entry with \texttt{virt} in address space \texttt{asid}
   \item \texttt{clear\_tlb()}:\\
   removes all entries from the TLB \extend{}
-  \item \texttt{set\_timer(timeout)}:\\
+  \item \texttt{set\_timer(timeout)}: \extstart{pemux}\\
   starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
   \item \texttt{unset\_timer()}:\\
   stops the timer
@@ -77,7 +78,7 @@ several building blocks:
   \item \texttt{abort\_local\_xfer() -> bool}:\\
   checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,
   so that \texttt{read\_local()} or \texttt{write\_local()} return the error ABORT (see
-  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted
+  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted. \extend{}
 \end{itemize}
 
 \section{Command Description}
@@ -119,6 +120,7 @@ several building blocks:
 \end{algorithm}
 \extend{}
 
+\extstart{pemux}
 \subsection{\texttt{XCHG\_VPE}}
 
 \begin{algorithm}[H]
@@ -164,6 +166,7 @@ several building blocks:
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{ABORT\_CMD} command.}
 \end{algorithm}
+\extend{}
 
 \section{Core Requests}
 
@@ -218,6 +221,7 @@ most of the bits depend on the type of request/response, defined in the followin
 \end{register}
 \extend{}
 
+\extstart{pemux}
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_1000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb[gray!20]{reserved}{31}{17}%
@@ -232,3 +236,4 @@ most of the bits depend on the type of request/response, defined in the followin
 \begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_1000}}
   \regfieldb[gray!20]{reserved}{64}{0}\regnewline%
 \end{register}
+\extend{}
