@@ -1,0 +1,92 @@
+\chapter{Endpoints}
+
+The TCU has a number of \emph{endpoints}~(EPs) to establish communication channels, which can be
+configured to three different EP types: \emph{send EPs} and \emph{receive EPs} are used for message
+passing, whereas \emph{memory EPs} are used for RDMA-like memory access. Each EP is represented by a
+TCU register and can be configured (at runtime) to one of these EP types. Each EP consists of 192
+bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that can use the EP and
+173 bits (shown as dark grey below), whose meaning depends on the EP type:\\[.1em]
+
+\begin{register}{H}{Endpoint}{}
+  \regfieldb[gray!60]{}{64}{0}\regnewline%
+  \regfieldb[gray!60]{}{64}{0}\regnewline%
+  \regfieldb[gray!60]{}{45}{19}%
+  \regfieldb[pemux]{vpe}{16}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[vpe] \cbstart the id of the VPE that can use this endpoint \cbend
+    \item[type] the endpoint type: INVALID (0), SEND (1), RECEIVE (2), or MEMORY (3)
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\section{Memory Endpoint}
+
+\begin{register}{H}{Memory EP}{}
+  \regfieldb{size}{64}{0}\regnewline%
+  \regfieldb{addr}{64}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{33}{31}%
+  \regfieldb{pe}{8}{23}%
+  \regfieldb{rw}{4}{19}%
+  \regfieldb[pemux]{vpe}{16}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[size] the size of the region at the destination
+    \item[addr] the base address of the region at the destination
+    \item[pe] the destination PE ID
+    \item[rw] the permission bits (read = 1, write = 2)
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\section{Send Endpoint}
+
+\begin{register}{H}{Send EP}{}
+  \regfieldb[gray!20]{reserved}{32}{32}%
+  \regfieldb{label}{32}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{40}{24}%
+  \regfieldb{tgt\_pe}{8}{16}%
+  \regfieldb{tgt\_ep}{16}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{10}{54}%
+  \regfieldb{reply}{1}{53}%
+  \regfieldb{crd\_ep}{16}{37}%
+  \regfieldb{msg\_sz}{6}{31}%
+  \regfieldb{max\_crd}{6}{25}%
+  \regfieldb{cur\_crd}{6}{19}%
+  \regfieldb[pemux]{vpe}{16}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[label] the label the TCU puts into the header of each sent message
+    \item[tgt\_pe] the ID of the target PE
+    \item[tgt\_ep] the ID of the receive EP at the target PE
+    \item[reply] whether this is a reply EP
+    \item[crd\_ep] for reply EPs: the send EP at sender-side to receive credits
+    \item[max\_crd] the initially received (=max) credits (in messages)
+    \item[cur\_crd] the currently owned credits (in messages)
+    \item[msg\_sz] the maximum message size supported by the receiver (as power of 2)
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\section{Receive Endpoint}
+
+\begin{register}{H}{Receive EP}{}
+  \regfieldb{unread}{32}{32}%
+  \regfieldb{occupied}{32}{0}\regnewline%
+  \regfieldb{buffer}{64}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{5}{59}%
+  \regfieldb{rpos}{6}{53}%
+  \regfieldb{wpos}{6}{47}%
+  \regfieldb{slot\_size}{6}{41}%
+  \regfieldb{slots}{6}{35}%
+  \regfieldb{rpl\_eps}{16}{19}%
+  \regfieldb[pemux]{vpe}{16}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[unread] a bitmask with the unread (not yet fetched) messages in the buffer
+    \item[occupied] a bitmask with the occupied slots in the buffer
+    \item[buffer] the physical address of the receive buffer, must be 8-byte aligned
+    \item[rpos] the read position (for message fetches) within the receive buffer
+    \item[wpos] the write position (for message receptions) within the receive buffer
+    \item[slot\_size] the size of one slot as a power of 2
+    \item[slots] the number of slots in the receive buffer as a power of 2
+    \item[rpl\_eps] the offset of the reply EPs
+  \end{reglist}\end{regdesc}
+\end{register}

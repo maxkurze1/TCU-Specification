@@ -1,0 +1,355 @@
+\chapter{Unprivileged Interface}
+
+The unprivileged interface of the TCU is available to unprivileged software. Most importantly, it
+allows to use the TCU's endpoints via \emph{unprivileged commands}. The unprivileged registers are
+used to pass input arguments for a command to the TCU, start a command, and wait until the command
+is finished. The following unprivileged registers are used:
+
+\begin{register}{H}{COMMAND}{\texttt{0xF000\_0010}}
+  \regfieldb[gray!20]{reserved}{8}{56}%
+  \regfieldb{arg0}{32}{24}%
+  \regfieldb{error}{4}{20}%
+  \regfieldb{ep}{16}{4}%
+  \regfieldb{op}{4}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[arg0] the first argument for the command
+    \item[error] the error code (0 = no error)
+    \item[ep] the endpoint to use for the command
+    \item[op] the opcode of the command
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{DATA}{\texttt{0xF000\_0018}}
+  \regfieldb{size}{32}{32}%
+  \regfieldb{address}{32}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[size] the size of the data in local memory
+    \item[address] the address of the data in local memory
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent A write to the \texttt{COMMAND} register starts the command with opcode
+\texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
+
+\section{Command List}
+
+The TCU supports the following unprivileged commands with the opcodes in parentheses:
+
+\begin{itemize}
+  \item \texttt{SEND} (1): send a message via a send EP to a receive EP,
+  \item \texttt{REPLY} (2): reply on a message that has been received earlier via a receive EP,
+  \item \texttt{READ} (3): read data from a region defined in a memory EP into local memory,
+  \item \texttt{WRITE} (4): write data from local memory into a region defined in a memory EP,
+  \item \texttt{FETCH} (5): fetch a new message from a receive EP,
+  \item \texttt{ACK\_MSG} (6): acknowledge that the processing of a message has been completed.
+\end{itemize}
+
+\section{Pseudo Code Building Blocks}
+\label{sec:unprivcmdspseudo}
+
+The following sections use pseudo code to describe the behavior of the TCU commands, based on
+several building blocks:
+
+\begin{itemize}
+  \item \texttt{read\_ep(id) -> EP}:\\
+  read the TCU-internal EP register with the given id. If the id is out of bounds, an invalid EP is
+  returned.
+  \item \texttt{write\_ep(id, EP)}:\\
+  write \texttt{EP} to the TCU-internal EP register with given id (assumed to be within bounds)
+  \item \texttt{read\_local(virt\_addr, size) -> (Error, data)}:\\
+  read \texttt{size} bytes from given address in local memory into \texttt{data} and return the error
+  code (0~=~success)
+  \item \texttt{write\_local(data, virt\_addr, size) -> Error}:\\
+  write \texttt{data} of \texttt{size} bytes to given address in local memory and return the error
+  code (0~=~success)
+  \item \texttt{write\_local\_phys(data, phys\_addr, size)}:\\
+  write \texttt{data} of \texttt{size} bytes to given physical address in local memory
+  \item \texttt{read\_remote(pe, size, offset) -> (Error, data)}:\\
+  read \texttt{size} bytes from the given PE at given offset into \texttt{data} and return the error
+  code (0~=~success)
+  \item \texttt{write\_remote(data, pe, offset) -> Error}:\\
+  write \texttt{data} to \texttt{offset} in the given PE and return the error code (0~=~success)
+  \item \texttt{send\_msg(msg, pe, ep)}:\\
+  send \texttt{msg} to endpoint \texttt{ep} at given PE
+  \item \texttt{send\_ack(error)}:\\
+  send ACK to the sending TCU and report given error back
+  \item \texttt{wait\_for\_ack()}:\\
+  wait for the ACK the receiving TCU sends upon successfully storing the message into the receive
+  buffer or an error occurred
+  \item \texttt{find\_slot(mask, pos, slots, val) -> idx}:\\
+  searches for a bit with value \texttt{val} in the given mask between bit 0 and bit $(1 << slots) -
+  1$, starting at \texttt{pos} and rotating around. The function returns the position of the bit or
+  $-1$ if none was found.
+  \item \texttt{unpriv\_fail(error)}:\\
+  stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
+  the error code to the given error.
+  \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\cbstart\\
+  append a new foreign-message request to the queue of core requests. \cbend
+\end{itemize}
+
+\section{Memory Access}
+
+Memory access is performed with a memory EP based on the commands \texttt{READ} and \texttt{WRITE}.
+The commands behave as follows:
+
+\subsection{\texttt{READ}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.rw \& READ == 0}{unpriv\_fail(NO\_PERM)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
+    \BlankLine
+    $(err, data) \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
+    $err \gets write\_local(data, DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{READ} command.}
+\end{algorithm}
+
+\subsection{\texttt{WRITE}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.rw \& WRITE == 0}{unpriv\_fail(NO\_PERM)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
+    \BlankLine
+    $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{WRITE} command.}
+\end{algorithm}
+
+\section{Message Passing}
+
+Message passing is performed between a send EP and a receive EP. Each send EP is connected to
+exactly one receive EP, whereas each receive EP can receive from multiple send EPs. The send EP
+supports the command \texttt{SEND}, whereas the receive EP supports \texttt{REPLY}, \texttt{FETCH},
+and \texttt{ACK\_MSG}.
+
+For flow control and to prevent denial-of-service attacks on recipients, the TCU uses a credit
+system. The idea is to let the recipient hand out credits to its senders, decrease the credits on
+sent messages and increase them again on received replies.
+
+Each message consists of a header and a payload. The header is built by the TCU and the payload is
+given by the application. The TCU stores both header and payload into the receive buffer in memory.
+The header is defined as:
+
+\begin{register}{H}{Message Header}{}
+  \regfieldb{label}{32}{32}%
+  \regfieldb{rlabel}{32}{0}\regnewline%
+  \regfieldb{length}{16}{48}%
+  \regfieldb{rep}{16}{32}%
+  \regfieldb{sep}{16}{16}%
+  \regfieldb{spe}{8}{8}%
+  \regfieldb{rsize}{6}{2}%
+  \regfieldb{flags}{2}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[label] the label of the sender
+    \item[rlabel] the label the receiver should use for the reply
+    \item[length] the payload size in bytes
+    \item[rep] the receive endpoint ID for the reply at the sender side
+    \item[sep] the sender endpoint ID
+    \item[spe] the sender PE ID
+    \item[rsize] the size of the reply message as a power of 2
+    \item[flags] contains the following flags:
+    \begin{itemize}
+      \item \texttt{REPLY} (1): the message is a reply
+    \end{itemize}
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent The commands and the message reception behave as follows:
+
+\subsection{\texttt{SEND}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != SEND or ep.reply != 0\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_fail(INV\_ARGS)}
+    \BlankLine
+    \uIf{COMMAND.arg\_0 != 0xFFFF}{
+      $rep \gets read\_ep(COMMAND.arg_0$)\;
+      \uIf{rep.type != RECEIVE}{unpriv\_fail(INV\_EP)}
+      $repid \gets COMMAND.arg_0$\;
+      $rsize \gets rep.slot\_size$\;
+    }
+    \uElse{
+      $repid \gets 0xFFFF$\;
+      $rsize \gets log2(sizeof(header))$\;
+    }
+    \BlankLine
+    $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
+    \uIf{ep.cur\_crd != 0x3F}{
+        \uIf{ep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
+        ep.cur\_crd -= 1\;
+        $write\_ep(COMMAND.ep, ep)$\;
+        $sepid \gets COMMAND.ep$\;
+    }
+    \uElse{
+        $sepid \gets 0xFFFF$\;
+    }
+    \BlankLine
+    $header \gets$ \{ flags $\gets$ 0\;
+    $\quad\quad\quad\quad\quad label \gets ep.label$\;
+    $\quad\quad\quad\quad\quad length \gets DATA.size$\;
+    $\quad\quad\quad\quad\quad rsize \gets rsize$\;
+    $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
+    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
+    $\quad\quad\quad\quad\quad sep \gets sepid$\;
+    $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
+    $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
+    $wait\_for\_ack()$\;
+    \BlankLine
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{SEND} command.}
+\end{algorithm}
+
+\subsection{\texttt{RECEIVE}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(rep)\;
+    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{unpriv\_fail(send\_ack(INV\_EP) and drop message)}
+    \BlankLine
+    $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
+    \uIf{idx == -1}{unpriv\_fail(send\_ack(NO\_RING\_SPACE) and drop message)}
+    $ep.occupied.set\_bit(idx)$\;
+    $ep.wpos \gets idx + 1$\;
+    \BlankLine
+    $dest \gets ep.buffer + (idx << ep.slot\_size)$\;
+    $write\_local\_phys(header\ |\ payload, dest, sizeof(header) + header.length)$\;
+    $ep.unread.set\_bit(idx)$\;
+    $write\_ep(rep, ep)$\;
+    \BlankLine
+    \uIf{(header.flags \& REPLY) == 0 and ep.rpl\_eps != 0xFFFF and header.rep != 0xFFFF}{
+      $sep \gets \{\ type \gets SEND$\;
+      $\quad\quad\quad\ \ \  reply \gets 1$\;
+      $\quad\quad\quad\ \ \  tgt\_pe \gets header.spe$\;
+      $\quad\quad\quad\ \ \  tgt\_ep \gets header.rep$\;
+      $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
+      $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
+      $\quad\quad\quad\ \ \  max\_crd \gets 1$\;
+      $\quad\quad\quad\ \ \  cur\_crd \gets 1$\;
+      $\quad\quad\quad\ \ \  crd\_ep \gets header.sep$\ \}\;
+      $write\_ep(ep.rpl\_eps + idx, sep)$\;
+    }
+    \BlankLine
+    \uIf{(header.flags \& REPLY) != 0 and header.rep != 0xFFFF}{
+      $sep \gets read\_ep(header.rep)$\;
+      sep.cur\_crd += 1\;
+      $write\_ep(header.rep, sep)$\;
+    }
+    $send\_ack(NONE)$\;
+    \cbstart
+    \BlankLine
+    \uIf{ep.vpe == CUR\_VPE.id}{
+      CUR\_VPE.msgs += 1\;
+    }
+    \uElse{
+      $queue\_foreign\_msg\_req(rep, ep.vpe)$\;
+    }
+    \cbend
+    \caption{If `header | payload' is received via EP `rep'.}
+\end{algorithm}
+
+\subsection{\texttt{REPLY}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \BlankLine
+    $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
+    $sep = read\_ep(ep.rpl\_eps + idx)$\;
+    \uIf{sep.type != SEND or sep.reply == 0}{unpriv\_fail(INV\_ARGS)}
+    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_fail(INV\_ARGS)}
+    \BlankLine
+    $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
+    \uIf{err != 0}{unpriv\_fail(err)}
+    \BlankLine
+    \uIf{sep.cur\_crd == 0}{unpriv\_fail(MISS\_CREDITS)}
+    sep.cur\_crd -= 1\;
+    $write\_ep(ep.rpl\_eps + idx, sep)$\;
+    \BlankLine
+    $header \gets$ \{ flags $\gets$ REPLY\;
+    $\quad\quad\quad\quad\quad label \gets sep.label$\;
+    $\quad\quad\quad\quad\quad length \gets DATA.size$\;
+    $\quad\quad\quad\quad\quad rsize \gets 0$\;
+    $\quad\quad\quad\quad\quad rlabel \gets 0$\;
+    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
+    $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
+    $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
+    $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
+    $wait\_for\_ack()$\;
+    \BlankLine
+    \cbstart
+    \uIf{ep.unread.is\_set(idx)}{
+      CUR\_VPE.msgs -= 1\;
+    }
+    \cbend
+    \BlankLine
+    $ep.occupied.clear\_bit(idx)$\;
+    $ep.unread.clear\_bit(idx)$\;
+    $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{REPLY} command.}
+\end{algorithm}
+
+\subsection{\texttt{FETCH}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \uIf{ep.unread == 0\colorbox{pemux}{ or CUR\_VPE.msgs == 0}}{
+      $ARG_1 \gets -1$\;
+      unpriv\_fail(0)\;
+    }
+    \BlankLine
+    $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots, 1)\;
+    $ep.unread.clear\_bit(idx)$\;
+    $ep.rpos \gets idx + 1$\;
+    $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
+    \cbstart
+    CUR\_VPE.msgs -= 1\;
+    \cbend
+    \BlankLine
+    $ARG_1 \gets idx << ep.slot\_size$\;
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{FETCH} command.}
+\end{algorithm}
+
+\subsection{\texttt{ACK\_MSG}}
+
+\begin{algorithm}[H]
+    $ep \gets$ read\_ep(COMMAND.ep)\;
+    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_fail(INV\_EP)}
+    \BlankLine
+    $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
+    \BlankLine
+    \cbstart
+    \uIf{ep.unread.is\_set(idx)}{
+      CUR\_VPE.msgs -= 1\;
+    }
+    \cbend
+    \BlankLine
+    $ep.occupied.clear\_bit(idx)$\;
+    $ep.unread.clear\_bit(idx)$\;
+    $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
+    \uIf{ep.rpl\_eps != 0xFFFF}{
+      $sep \gets \{~type \gets INVALID~\}$\;
+      $write\_ep(ep.rpl\_eps + idx, sep)$\;
+    }
+    \BlankLine
+    $COMMAND \gets 0$\;
+    \caption{The TCU's \texttt{ACK\_MSG} command.}
+\end{algorithm}

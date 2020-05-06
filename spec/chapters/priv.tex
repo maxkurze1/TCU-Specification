@@ -1,0 +1,226 @@
+\cbstart
+\chapter{Privileged Interface}
+
+The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU. The
+interface consists of multiple privileged registers, privileged commands, and \emph{core requests},
+which are raised by the TCU and answered by the privileged software. The TCU stores the id of the
+current VPE including the number of unread messages in all its receive EPs in the \texttt{CUR\_VPE}
+register:
+
+\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
+  \regfieldb[gray!20]{reserved}{32}{32}%
+  \regfieldb{msgs}{16}{16}%
+  \regfieldb{id}{16}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[msgs] the sum of all unread messages in the receive EPs for this VPE
+    \item[id] the VPE id
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent To support the privileged software in the management of multiple VPEs, privileged commands
+are used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as
+follows:
+
+\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_1010}}
+  \regfieldb{arg}{60}{4}%
+  \regfieldb{op}{4}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[arg] the argument for the privileged command
+    \item[op] the opcode of the privileged command
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\section{Command List}
+
+The following privileged commands are supported with the opcodes in parentheses:
+
+\begin{itemize}
+  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB,
+  \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
+  \item \texttt{INS\_TLB} (3): insert an entry into the TLB,
+  \item \texttt{XCHG\_VPE} (4): change the VPE,
+  \item \texttt{SET\_TIMER} (5): start/stop the timer,
+  \item \texttt{ABORT\_CMD} (6): abort the unprivileged command.
+\end{itemize}
+
+\section{Pseudo Code Building Blocks}
+
+The following sections use pseudo code to describe the behavior of the privileged commands, based on
+several building blocks:
+
+\begin{itemize}
+  \item \texttt{insert\_tlb\_entry(asid, virt, phys, flags)}:\\
+  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for address space \texttt{asid}
+  \item \texttt{remove\_tlb\_entry(asid, virt)}:\\
+  removes the entry with \texttt{virt} in address space \texttt{asid}
+  \item \texttt{clear\_tlb()}:\\
+  removes all entries from the TLB
+  \item \texttt{set\_timer(timeout)}:\\
+  starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
+  \item \texttt{unset\_timer()}:\\
+  stops the timer
+  \item \texttt{waiting\_for\_resp() -> bool}:\\
+  returns whether the TCU is currently waiting for a remote TCU's response (to \texttt{SEND},
+  \texttt{REPLY}, \texttt{READ}, or \texttt{WRITE})
+  \item \texttt{wait\_for\_resp()}:\\
+  waits until a remote TCU responds (to \texttt{SEND}, \texttt{REPLY}, \texttt{READ}, or
+  \texttt{WRITE})
+  \item \texttt{abort\_remote\_xfer()}:\\
+  lets the current remote transfer fail, so that \texttt{read\_remote()} or \texttt{write\_remote()}
+  return the error ABORT (see \rref{sec:unprivcmdspseudo})
+  \item \texttt{abort\_local\_xfer() -> bool}:\\
+  checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,
+  so that \texttt{read\_local()} or \texttt{write\_local()} return the error ABORT (see
+  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted
+\end{itemize}
+
+\section{Command Description}
+
+\todo{think about virtual address width}
+\todo{document asid width}
+
+\subsection{\texttt{INV\_PAGE}}
+
+\begin{algorithm}[H]
+    $asid \gets PRIV\_CMD.arg0 >> 44$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_FFFF$\;
+    \BlankLine
+    $remove\_tlb\_entry(asid, virt)$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INV\_PAGE} command.}
+\end{algorithm}
+
+\subsection{\texttt{INV\_TLB}}
+
+\begin{algorithm}[H]
+    $clear\_tlb()$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INV\_TLB} command.}
+\end{algorithm}
+
+\subsection{\texttt{INS\_TLB}}
+
+\begin{algorithm}[H]
+    $asid \gets PRIV\_CMD.arg0 >> 44$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_F000$\;
+    $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
+    $phys \gets PRIV\_CMD\_ARG1$\;
+    \BlankLine
+    $insert\_tlb\_entry(asid, virt, phys, flags)$\;
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{INS\_TLB} command.}
+\end{algorithm}
+
+\subsection{\texttt{XCHG\_VPE}}
+
+\begin{algorithm}[H]
+    $old \gets CUR\_VPE$\;
+    $OLD\_VPE \gets old$\;
+    $CUR\_VPE \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{XCHG\_VPE} command.}
+\end{algorithm}
+
+\subsection{\texttt{SET\_TIMER}}
+
+\begin{algorithm}[H]
+    $nanos \gets PRIV\_CMD.arg0$\;
+    \uIf{nanos == 0}{
+      $unset\_timer()$\;
+    }
+    \uElse{
+      $set\_timer(nanos)$\;
+    }
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{SET\_TIMER} command.}
+\end{algorithm}
+
+\subsection{\texttt{ABORT\_CMD}}
+
+\begin{algorithm}[H]
+    \uIf{COMMAND.op != 0}{
+      \uIf{waiting\_for\_resp()}{
+        \uIf{COMMAND.op == READ or COMMAND.op == WRITE}{
+          $PRIV\_CMD.arg0 \gets 1$\;
+          $abort\_remote\_xfer()$\;
+        }
+        $wait\_for\_resp()$\;
+      }
+      \uElseIf{abort\_local\_xfer()}{
+        $PRIV\_CMD.arg0 \gets 1$\;
+      }
+    }
+    \BlankLine
+    $PRIV\_CMD.op \gets 0$\;
+    \caption{The TCU's \texttt{ABORT\_CMD} command.}
+\end{algorithm}
+
+\section{Core Requests}
+
+With the privileged interface to support virtual memory and PE sharing, the TCU needs assistance of
+the CU in some cases. Since we assume in this case that the CU is a general-purpose core, we call
+these requests for assistance \emph{core requests}. Core requests are needed, for example, if a
+message for another VPE than the currently running VPE (\texttt{CUR\_VPE}) is received.
+
+Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
+requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
+\texttt{CORE\_REQ} and injects an interrupt to inform the core about the request. After the handling
+of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
+completion of the request. Upon receiving this signal, the TCU issues the next core request, if
+there is any. New core requests are appended to the queue via \texttt{queue\_foreign\_msg\_req()}
+(see \rref{sec::unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{todo}).
+
+\begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_1000}}
+  \regfieldb[gray!60]{}{63}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[type] the type of CU request (0 = translation, 1 = foreign message)
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
+most of the bits depend on the type of request/response, defined in the following.
+
+\begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_1000}}
+  \regfieldb{vpe}{16}{48}%
+  \regfieldb{virt}{36}{12}%
+  \regfieldb[gray!20]{reserved}{8}{4}%
+  \regfieldb{access}{2}{2}%
+  \regfieldb{pf}{1}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[pf] whether the translation may page fault or should fail in this case
+    \item[access] the requested access permissions (see \rref{sec:tlb})
+    \item[virt] the virtual address to translate (shifted right by 12 bits)
+    \item[vpe] the id of the VPE for whom to perform the translation
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_1000}}
+  \regfieldb{phys}{52}{12}%
+  \regfieldb[gray!20]{reserved}{7}{5}%
+  \regfieldb{flags}{5}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[flags] the flags for the TLB entry (see \rref{sec:tlb})
+    \item[phys] the physical address for the TLB entry
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_1000}}
+  \regfieldb{vpe}{16}{48}%
+  \regfieldb[gray!20]{reserved}{31}{17}%
+  \regfieldb{ep}{16}{1}%
+  \regfieldb{type}{1}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[ep] the receive EP which received a message
+    \item[vpe] the VPE that received the message
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_1000}}
+  \regfieldb[gray!20]{reserved}{64}{0}\regnewline%
+\end{register}
+
+\cbend
