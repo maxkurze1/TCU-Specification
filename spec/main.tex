@@ -1,5 +1,5 @@
 % option draft um zu lange Zeilen anzuzeigen
-\documentclass[a4paper,11pt]{article}
+\documentclass[a4paper,11pt]{book}
 
 \usepackage[inner=3cm,outer=3cm]{geometry}
 \usepackage[english]{babel}
@@ -123,7 +123,7 @@
 \maketitle
 \tableofcontents
 
-\section{System Overview}
+\chapter{System Overview}
 \label{sec:systemoverview}
 
 \newcommand{\fillpe}[3]{
@@ -267,10 +267,11 @@ are shared among multiple VPEs. The privileged software is called \emph{PEMux} f
 PEMux should make sure that unprivileged software running on the same PE cannot access the
 privileged registers. \cbend
 
-\section{MMIO region}
+\section{Registers}
 
-The memory interface from CU to TCU is expected to be 64-bit wide. The MMIO region of the TCU is
-defined as follows:
+The TCU has several registers that are accessible through memory-mapped input/output~(MMIO). The
+memory interface from CU to TCU is expected to be 64-bit wide. The MMIO region of the TCU is defined
+as follows:
 
 \vspace{2ex}
 \noindent
@@ -314,28 +315,7 @@ defined as follows:
   \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \cbend \\
 \end{tabular}\\[1em]
 
-\noindent The \texttt{FEATURES} register defines the features of a TCU and has the following format:
-
-\setlength{\regWidth}{.95\textwidth}
-\begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
-  \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
-  \regfield{kernel}{1}{0}{1}%
-  \reglabel{Reset}\regnewline%
-  \begin{regdesc}\begin{reglist}
-    \item[kernel] whether the TCU belongs to a kernel PE
-  \end{reglist}\end{regdesc}
-\end{register}
-\setlength{\regWidth}{\textwidth}
-
-\noindent In other words, the \texttt{FEATURES} register currently only defines whether the TCU
-belongs to a kernel PE. At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel
-PEs. The software starting on one PE can afterwards downgrade the other PEs to user PEs.
-
-If \texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create
-a communication channel to the TCU's MMIO region in another PE, which allows to establish other
-communication channels by writing to the endpoint registers within the MMIO region.
-
-\section{Endpoints}
+\chapter{Endpoints}
 
 The TCU has a number of \emph{endpoints}~(EPs) to establish communication channels, which can be
 configured to three different EP types: \emph{send EPs} and \emph{receive EPs} are used for message
@@ -356,6 +336,8 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
   \end{reglist}\end{regdesc}
 \end{register}
 
+\section{Memory Endpoint}
+
 \begin{register}{H}{Memory EP}{}
   \regfieldb{size}{64}{0}\regnewline%
   \regfieldb{addr}{64}{0}\regnewline%
@@ -371,6 +353,8 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
     \item[rw] the permission bits (read = 1, write = 2)
   \end{reglist}\end{regdesc}
 \end{register}
+
+\section{Send Endpoint}
 
 \begin{register}{H}{Send EP}{}
   \regfieldb[gray!20]{reserved}{32}{32}%
@@ -398,6 +382,8 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
   \end{reglist}\end{regdesc}
 \end{register}
 
+\section{Receive Endpoint}
+
 \begin{register}{H}{Receive EP}{}
   \regfieldb{unread}{32}{32}%
   \regfieldb{occupied}{32}{0}\regnewline%
@@ -422,7 +408,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
   \end{reglist}\end{regdesc}
 \end{register}
 
-\section{Transfers}
+\chapter{Transfers}
 
 The TCU uses \emph{transfers} to load data from local memory or write data into local memory. Since
 these local memory accesses need to be performed in multiple steps and need to be paused and
@@ -439,7 +425,7 @@ Remote transfers are triggered by requests from other TCUs (e.g., an incoming me
 to the local memory).
 
 \cbstart
-\subsection{Translations}
+\section{Translations}
 
 With virtual memory support, all transfers except \texttt{write\_local\_phys()} refer to a virtual
 address and thus require address translations to determine the physical address for the actual
@@ -458,7 +444,7 @@ Without virtual memory support, there is no difference between \texttt{write\_lo
 \texttt{write\_local\_phys()}. However, with virtual memory support, \texttt{write\_local\_phys()}
 refers to a physical address, so that no translation is required.
 
-\subsection{Translation Look-aside Buffer}
+\section{Translation Look-aside Buffer}
 \label{sec:tlb}
 
 The TLB contains a virtual address, 16-bit address space id~(asid), physical address, and
@@ -473,7 +459,7 @@ permissions. The permissions are defined as follows:
 \end{itemize}
 \cbend
 
-\section{Unprivileged Interface}
+\chapter{Unprivileged Interface}
 
 The unprivileged interface of the TCU is available to unprivileged software. Most importantly, it
 allows to use the TCU's endpoints via \emph{unprivileged commands}. The unprivileged registers are
@@ -506,7 +492,7 @@ is finished. The following unprivileged registers are used:
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
 \texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
 
-\subsection{Command List}
+\section{Command List}
 
 The TCU supports the following unprivileged commands with the opcodes in parentheses:
 
@@ -519,7 +505,7 @@ The TCU supports the following unprivileged commands with the opcodes in parenth
   \item \texttt{ACK\_MSG} (6): acknowledge that the processing of a message has been completed.
 \end{itemize}
 
-\subsection{Pseudo Code Building Blocks}
+\section{Pseudo Code Building Blocks}
 \label{sec:unprivcmdspseudo}
 
 The following sections use pseudo code to describe the behavior of the TCU commands, based on
@@ -562,12 +548,12 @@ several building blocks:
   append a new foreign-message request to the queue of core requests. \cbend
 \end{itemize}
 
-\subsection{Memory Access}
+\section{Memory Access}
 
 Memory access is performed with a memory EP based on the commands \texttt{READ} and \texttt{WRITE}.
 The commands behave as follows:
 
-\subsubsection{\texttt{READ}}
+\subsection{\texttt{READ}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -584,7 +570,7 @@ The commands behave as follows:
     \caption{The TCU's \texttt{READ} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{WRITE}}
+\subsection{\texttt{WRITE}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -601,7 +587,7 @@ The commands behave as follows:
     \caption{The TCU's \texttt{WRITE} command.}
 \end{algorithm}
 
-\subsection{Message Passing}
+\section{Message Passing}
 
 Message passing is performed between a send EP and a receive EP. Each send EP is connected to
 exactly one receive EP, whereas each receive EP can receive from multiple send EPs. The send EP
@@ -642,7 +628,7 @@ The header is defined as:
 
 \noindent The commands and the message reception behave as follows:
 
-\subsubsection{\texttt{SEND}}
+\subsection{\texttt{SEND}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -688,7 +674,7 @@ The header is defined as:
     \caption{The TCU's \texttt{SEND} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{RECEIVE}}
+\subsection{\texttt{RECEIVE}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
@@ -735,7 +721,7 @@ The header is defined as:
     \caption{If `header | payload' is received via EP `rep'.}
 \end{algorithm}
 
-\subsubsection{\texttt{REPLY}}
+\subsection{\texttt{REPLY}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -778,7 +764,7 @@ The header is defined as:
     \caption{The TCU's \texttt{REPLY} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{FETCH}}
+\subsection{\texttt{FETCH}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -802,7 +788,7 @@ The header is defined as:
     \caption{The TCU's \texttt{FETCH} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{ACK\_MSG}}
+\subsection{\texttt{ACK\_MSG}}
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -830,7 +816,7 @@ The header is defined as:
 \end{algorithm}
 
 \cbstart
-\section{Privileged Interface}
+\chapter{Privileged Interface}
 
 The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU. The
 interface consists of multiple privileged registers, privileged commands, and \emph{core requests},
@@ -861,7 +847,7 @@ follows:
   \end{reglist}\end{regdesc}
 \end{register}
 
-\subsection{Command List}
+\section{Command List}
 
 The following privileged commands are supported with the opcodes in parentheses:
 
@@ -874,7 +860,7 @@ The following privileged commands are supported with the opcodes in parentheses:
   \item \texttt{ABORT\_CMD} (6): abort the unprivileged command.
 \end{itemize}
 
-\subsection{Pseudo Code Building Blocks}
+\section{Pseudo Code Building Blocks}
 
 The following sections use pseudo code to describe the behavior of the privileged commands, based on
 several building blocks:
@@ -905,12 +891,12 @@ several building blocks:
   \rref{sec:unprivcmdspseudo}). Returns true if it was aborted
 \end{itemize}
 
-\subsection{Command Description}
+\section{Command Description}
 
 \todo{think about virtual address width}
 \todo{document asid width}
 
-\subsubsection{\texttt{INV\_PAGE}}
+\subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
     $asid \gets PRIV\_CMD.arg0 >> 44$\;
@@ -921,7 +907,7 @@ several building blocks:
     \caption{The TCU's \texttt{INV\_PAGE} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{INV\_TLB}}
+\subsection{\texttt{INV\_TLB}}
 
 \begin{algorithm}[H]
     $clear\_tlb()$\;
@@ -929,7 +915,7 @@ several building blocks:
     \caption{The TCU's \texttt{INV\_TLB} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{INS\_TLB}}
+\subsection{\texttt{INS\_TLB}}
 
 \begin{algorithm}[H]
     $asid \gets PRIV\_CMD.arg0 >> 44$\;
@@ -942,7 +928,7 @@ several building blocks:
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{XCHG\_VPE}}
+\subsection{\texttt{XCHG\_VPE}}
 
 \begin{algorithm}[H]
     $old \gets CUR\_VPE$\;
@@ -953,7 +939,7 @@ several building blocks:
     \caption{The TCU's \texttt{XCHG\_VPE} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{SET\_TIMER}}
+\subsection{\texttt{SET\_TIMER}}
 
 \begin{algorithm}[H]
     $nanos \gets PRIV\_CMD.arg0$\;
@@ -968,7 +954,7 @@ several building blocks:
     \caption{The TCU's \texttt{SET\_TIMER} command.}
 \end{algorithm}
 
-\subsubsection{\texttt{ABORT\_CMD}}
+\subsection{\texttt{ABORT\_CMD}}
 
 \begin{algorithm}[H]
     \uIf{COMMAND.op != 0}{
@@ -988,7 +974,7 @@ several building blocks:
     \caption{The TCU's \texttt{ABORT\_CMD} command.}
 \end{algorithm}
 
-\subsection{Core Requests}
+\section{Core Requests}
 
 With the privileged interface to support virtual memory and PE sharing, the TCU needs assistance of
 the CU in some cases. Since we assume in this case that the CU is a general-purpose core, we call
@@ -1056,12 +1042,34 @@ most of the bits depend on the type of request/response, defined in the followin
 
 \cbend
 
-\section{External Interface}
+\chapter{External Interface}
 
-The external interface of the TCU allows remote PEs to manipulate its state. For that purpose, the
-TCU supports \emph{external commands}, which are triggered by writing to the \texttt{EXT\_CMD}
-register and feedback is given via this register as well. The \texttt{EXT\_CMD} register has the
+The external interface of the TCU allows remote PEs to manipulate its state. First of all, the TCU
+can be made privileged or unprivileged through the \texttt{FEATURES} register, which has the
 following format:
+
+\setlength{\regWidth}{.95\textwidth}
+\begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
+  \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
+  \regfield{kernel}{1}{0}{1}%
+  \reglabel{Reset}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[kernel] whether the TCU belongs to a kernel PE
+  \end{reglist}\end{regdesc}
+\end{register}
+\setlength{\regWidth}{\textwidth}
+
+\noindent In other words, the \texttt{FEATURES} register currently only defines whether the TCU
+belongs to a kernel PE. At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel
+PEs. The software starting on one PE can afterwards downgrade the other PEs to user PEs.
+
+If \texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create
+a communication channel to the TCU's MMIO region in another PE, which allows to establish other
+communication channels by writing to the endpoint registers within the MMIO region.
+
+Additionally, the TCU supports \emph{external commands}, which are triggered by writing to the
+\texttt{EXT\_CMD} register and feedback is given via this register as well. The \texttt{EXT\_CMD}
+register has the following format:
 
 \begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
   \regfieldb{arg}{56}{8}%
@@ -1074,7 +1082,7 @@ following format:
   \end{reglist}\end{regdesc}
 \end{register}
 
-\subsection{Command List}
+\section{Command List}
 
 The TCU supports the following external commands with the opcodes in parentheses:
 
@@ -1082,7 +1090,7 @@ The TCU supports the following external commands with the opcodes in parentheses
   \item \texttt{INV\_EP} (1): invalidate an endpoint.
 \end{itemize}
 
-\subsection{Pseudo Code Building Blocks}
+\section{Pseudo Code Building Blocks}
 \label{sec:extcmdspseudo}
 
 The following sections use pseudo code to describe the behavior of the external TCU commands, based
@@ -1094,9 +1102,9 @@ on the following building blocks:
   error code to the given error.
 \end{itemize}
 
-\subsection{Command Description}
+\section{Command Description}
 
-\subsubsection{\texttt{INV\_EP}}
+\subsection{\texttt{INV\_EP}}
 
 \begin{algorithm}[H]
     $epid \gets EXT\_CMD.arg\ \&\ 0xFFFF$\;
