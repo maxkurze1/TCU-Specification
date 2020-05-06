@@ -60,8 +60,7 @@
 secure systems. As shown in \rref{fig:sysoverview}, the system consists of multiple processing
 elements~(PEs), each containing a compute unit~(CU) and a TCU. The PEs are linked through some
 interconnect (e.g., a network-on-chip) and are split into \emph{kernel PEs} and \emph{user PEs}. The
-former are privileged (green) and manage the TCUs of the user PEs, whereas the latter are
-unprivileged (red).
+former are privileged and manage the TCUs of the user PEs, whereas the latter are unprivileged.
 
 In this system, the TCU, the interconnect, and the kernel PEs are trusted (shown green), whereas the
 CUs in the user PEs are untrusted (shown red). By default, all PEs are isolated from each other, but
