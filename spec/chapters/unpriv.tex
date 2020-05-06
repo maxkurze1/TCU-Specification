@@ -220,10 +220,10 @@ and stores messages. Nevertheless, its behavior is described by the following al
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{unpriv\_fail(send\_ack(INV\_EP) and drop message)}
+    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{send\_ack(INV\_EP) and drop message}
     \BlankLine
     $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
-    \uIf{idx == -1}{unpriv\_fail(send\_ack(NO\_RING\_SPACE) and drop message)}
+    \uIf{idx == -1}{send\_ack(NO\_RING\_SPACE) and drop message}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
