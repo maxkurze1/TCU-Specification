@@ -2,7 +2,7 @@
 
 The TCU uses \emph{transfers} to load data from local memory or write data into local memory. Since
 these local memory accesses need to be performed in multiple steps and need to be paused and
-resumed\colorbox{pemux}{, under some conditions,} the TCU maintains state for each transfer and
+resumed\colorbox{vm}{, under some conditions,} the TCU maintains state for each transfer and
 supports a limited number of transfers at a time (at least 2). However, the transfers and their
 states are not software facing, so that this specification does not describe any software interface,
 but only the behavior of transfers.
@@ -14,8 +14,9 @@ transfers always belong to the current unprivileged command, implying that there
 Remote transfers are triggered by requests from other TCUs (e.g., an incoming message or an access
 to the local memory).
 
-\cbstart
+\extstart{vm}
 \section{Translations}
+\label{sec:xlates}
 
 With virtual memory support, all transfers except \texttt{write\_local\_phys()} refer to a virtual
 address and thus require address translations to determine the physical address for the actual
@@ -47,4 +48,4 @@ permissions. The permissions are defined as follows:
   \item \texttt{LARGE} (8): large page mapping (2 MiB),
   \item \texttt{FIXED} (16): fixed entry, will not be evicted.
 \end{itemize}
-\cbend
+\extend{}

@@ -31,9 +31,18 @@
 \usepackage[color]{register}
 \usepackage[leftbars,color]{changebar}
 
-\colorlet{pemux}{green!20}
-\cbcolor{pemux}
 \setlength{\changebarwidth}{.4em}
+
+\colorlet{pemux}{blue!20}
+\colorlet{vm}{red!20}
+
+\newcommand{\extstart}[1]{\cbcolor{#1}\cbstart}
+\newcommand{\extend}{\cbend}
+\newcommand{\extbox}[1]{
+  \begin{tikzpicture}
+    \node[draw=black, fill=#1, minimum width=.3em, minimum height=.3em] {};
+  \end{tikzpicture}
+}
 
 \renewcommand{\regBitWidth}{64}
 \setlength{\regWidth}{\textwidth}

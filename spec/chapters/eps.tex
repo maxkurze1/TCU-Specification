@@ -14,7 +14,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the VPE that c
   \regfieldb[pemux]{vpe}{16}{3}%
   \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[vpe] \cbstart the id of the VPE that can use this endpoint \cbend
+    \item[vpe] \extstart{pemux} the id of the VPE that can use this endpoint \extend{}
     \item[type] the endpoint type: INVALID (0), SEND (1), RECEIVE (2), or MEMORY (3)
   \end{reglist}\end{regdesc}
 \end{register}

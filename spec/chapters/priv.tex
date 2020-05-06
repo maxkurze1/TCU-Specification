@@ -1,11 +1,14 @@
 \chapter{Privileged Interface}
 
-The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU. The
-interface consists of multiple privileged registers, privileged commands, and \emph{core requests},
-which are raised by the TCU and answered by the privileged software. The TCU stores the id of the
-current VPE including the number of unread messages in all its receive EPs in the \texttt{CUR\_VPE}
-register:
+The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU and is
+thus only required if either of these features are desired. In this chapter, all non-highlighted
+functionality is required for PE sharing, whereas the highlighted functionality (\extbox{vm}) is
+only required for virtual memory.
 
+The interface consists of multiple privileged registers, privileged commands, and \emph{core
+requests}, which are raised by the TCU and answered by the privileged software. The TCU stores the
+id of the current VPE including the number of unread messages in all its receive EPs in the
+\texttt{CUR\_VPE} register:
 \begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
   \regfieldb[gray!20]{reserved}{32}{32}%
   \regfieldb{msgs}{16}{16}%
@@ -34,9 +37,9 @@ follows:
 The following privileged commands are supported with the opcodes in parentheses:
 
 \begin{itemize}
-  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB,
+  \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB \extstart{vm},
   \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
-  \item \texttt{INS\_TLB} (3): insert an entry into the TLB,
+  \item \texttt{INS\_TLB} (3): insert an entry into the TLB \extend{},
   \item \texttt{XCHG\_VPE} (4): change the VPE,
   \item \texttt{SET\_TIMER} (5): start/stop the timer,
   \item \texttt{ABORT\_CMD} (6): abort the unprivileged command.
@@ -48,12 +51,12 @@ The following sections use pseudo code to describe the behavior of the privilege
 several building blocks:
 
 \begin{itemize}
-  \item \texttt{insert\_tlb\_entry(asid, virt, phys, flags)}:\\
+  \item \texttt{insert\_tlb\_entry(asid, virt, phys, flags)}: \extstart{vm}\\
   inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for address space \texttt{asid}
   \item \texttt{remove\_tlb\_entry(asid, virt)}:\\
   removes the entry with \texttt{virt} in address space \texttt{asid}
   \item \texttt{clear\_tlb()}:\\
-  removes all entries from the TLB
+  removes all entries from the TLB \extend{}
   \item \texttt{set\_timer(timeout)}:\\
   starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
   \item \texttt{unset\_timer()}:\\
@@ -78,6 +81,7 @@ several building blocks:
 \todo{think about virtual address width}
 \todo{document asid width}
 
+\extstart{vm}
 \subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
@@ -109,6 +113,7 @@ several building blocks:
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
+\extend{}
 
 \subsection{\texttt{XCHG\_VPE}}
 
@@ -182,6 +187,7 @@ there is any. New core requests are appended to the queue via \texttt{queue\_for
 \noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
 most of the bits depend on the type of request/response, defined in the following.
 
+\extstart{vm}
 \begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_1000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb{virt}{36}{12}%
@@ -206,6 +212,7 @@ most of the bits depend on the type of request/response, defined in the followin
     \item[phys] the physical address for the TLB entry
   \end{reglist}\end{regdesc}
 \end{register}
+\extend{}
 
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_1000}}
   \regfieldb{vpe}{16}{48}%

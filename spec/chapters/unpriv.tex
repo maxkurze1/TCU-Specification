@@ -83,8 +83,8 @@ several building blocks:
   \item \texttt{unpriv\_fail(error)}:\\
   stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
   the error code to the given error.
-  \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\cbstart\\
-  append a new foreign-message request to the queue of core requests. \cbend
+  \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\extstart{pemux}\\
+  append a new foreign-message request to the queue of core requests. \extend{}
 \end{itemize}
 
 \section{Memory Access}
@@ -248,7 +248,7 @@ The header is defined as:
       $write\_ep(header.rep, sep)$\;
     }
     $send\_ack(NONE)$\;
-    \cbstart
+    \extstart{pemux}
     \BlankLine
     \uIf{ep.vpe == CUR\_VPE.id}{
       CUR\_VPE.msgs += 1\;
@@ -256,7 +256,7 @@ The header is defined as:
     \uElse{
       $queue\_foreign\_msg\_req(rep, ep.vpe)$\;
     }
-    \cbend
+    \extend{}
     \caption{If `header | payload' is received via EP `rep'.}
 \end{algorithm}
 
@@ -289,11 +289,11 @@ The header is defined as:
     $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
     $wait\_for\_ack()$\;
     \BlankLine
-    \cbstart
+    \extstart{pemux}
     \uIf{ep.unread.is\_set(idx)}{
       CUR\_VPE.msgs -= 1\;
     }
-    \cbend
+    \extend{}
     \BlankLine
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
@@ -318,9 +318,9 @@ The header is defined as:
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    \cbstart
+    \extstart{pemux}
     CUR\_VPE.msgs -= 1\;
-    \cbend
+    \extend{}
     \BlankLine
     $ARG_1 \gets idx << ep.slot\_size$\;
     $COMMAND \gets 0$\;
@@ -335,11 +335,11 @@ The header is defined as:
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     \BlankLine
-    \cbstart
+    \extstart{pemux}
     \uIf{ep.unread.is\_set(idx)}{
       CUR\_VPE.msgs -= 1\;
     }
-    \cbend
+    \extend{}
     \BlankLine
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;

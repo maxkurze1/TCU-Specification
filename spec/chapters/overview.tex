@@ -2,19 +2,19 @@
 \label{sec:systemoverview}
 
 \newcommand{\fillpe}[3]{
-    \node[below=.6em of #1.north] {#2};
-    \node[cu, above right=.6em and .6em of #1.south west,#3] (cu1) {CU};
-    \node[tcu,above left=.6em and .6em of #1.south east,#3] (tcu1) {TCU};
+    \node[below=.6em of pe#1.north] {#2};
+    \node[cu, above right=.6em and .6em of pe#1.south west,#3] (cu#1) {CU};
+    \node[tcu,above left=.6em and .6em of pe#1.south east,#3] (tcu#1) {TCU};
 
-    \draw[noc] ($(#1.south west)-(0,1.0em)$) -- ($(pe3.south east)-(0,1.0em)$);
-    \draw[noc] ($(#1.south west)-(0,1.2em)$) -- ($(pe3.south east)-(0,1.2em)$);
-    \draw[noc] ($(#1.south west)-(0,1.4em)$) -- ($(pe3.south east)-(0,1.4em)$);
+    \draw[noc] ($(pe#1.south west)-(0,1.0em)$) -- ($(pe3.south east)-(0,1.0em)$);
+    \draw[noc] ($(pe#1.south west)-(0,1.2em)$) -- ($(pe3.south east)-(0,1.2em)$);
+    \draw[noc] ($(pe#1.south west)-(0,1.4em)$) -- ($(pe3.south east)-(0,1.4em)$);
 
     \draw
-      let \p1=(tcu1.south), \p2=($(#1.south west)-(0,1.2em)$) in
-      (tcu1.south) -- (\x1, \y2);
+      let \p1=(tcu#1.south), \p2=($(pe#1.south west)-(0,1.2em)$) in
+      (tcu#1.south) -- (\x1, \y2);
     \fill[radius=.2em]
-      let \p1=(tcu1.south), \p2=($(#1.south west)-(0,1.2em)$) in
+      let \p1=(tcu#1.south), \p2=($(pe#1.south west)-(0,1.2em)$) in
       (\x1, \y2) circle node {};
 }
 
@@ -31,9 +31,25 @@
     \node[pe,right=2em of pe1] (pe2) {};
     \node[pe,right=2em of pe2] (pe3) {};
 
-    \fillpe{pe1}{Kernel PE}{fill=green!50};
-    \fillpe{pe2}{User PE}{};
-    \fillpe{pe3}{User PE}{};
+    \fillpe{1}{Kernel PE}{fill=green!50};
+    \fillpe{2}{User PE}{};
+    \fillpe{3}{User PE}{};
+
+    \node[draw=black, fill=white,
+          below right=.3em and .3em of cu2.north west,
+          minimum width=3.9em, minimum height=3.9em] {App};
+
+    \node[draw=black, fill=white,
+          below right=.3em and .3em of cu3.north west,
+          minimum width=1.8em, minimum height=1.8em] (app1) {\tiny App};
+          \node[draw=black, fill=white,
+          right=.3em of app1.east,
+          minimum width=1.8em, minimum height=1.8em] (app2) {\tiny App};
+    \node[draw=black, fill=white,
+          above right=.3em and .3em of cu3.south west,
+          minimum width=3.9em, minimum height=1.8em] (pex) {PEMux};
+    \node[draw=black, fill=pemux, above left=.3em and .3em of tcu3.south east] {};
+    \node[draw=black, fill=vm, above left=.3em and 1.2em of tcu3.south east] {};
 
   \end{tikzpicture}
   \caption{System Overview.}
@@ -53,6 +69,13 @@ communication channels between PEs can be established. These communication chann
 establish by kernel PEs, but can be used afterwards by user PEs. Which PEs are kernel PEs is defined
 by the TCU's \texttt{FEATURES} register. At boot, all PEs are kernel PEs, which can be changed by
 the kernel booting on one specific PE before the other PEs start.
+
+User PEs can have different complexities, mostly driven by the used CU. The left user PE uses a
+simple core with scratchpad memory and a basic TCU without extensions. The right user PE uses a
+complex core with caches and virtual memory support and a multiplexer (PEMux) that supports multiple
+applications on the same PE. These features require TCU extensions for virtual memory (\extbox{vm})
+and PE sharing (\extbox{pemux}). This specification highlights the portions that are only required
+if an extension should be supported correspondingly.
 
 \section{Processing Elements}
 
@@ -136,10 +159,10 @@ the CU. In consequence, only kernel PEs can \emph{establish} communication chann
 endpoint registers, but user PEs can \emph{use} these communication channels through the
 unprivileged registers.
 
-\cbstart The \emph{privileged registers} are intended for privileged software running on PEs that
-are shared among multiple VPEs. The privileged software is called \emph{PEMux} for PE multiplexer.
-PEMux should make sure that unprivileged software running on the same PE cannot access the
-privileged registers. \cbend
+\extstart{pemux} The \emph{privileged registers} are intended for privileged software running on PEs
+that are shared among multiple VPEs. The privileged software is called \emph{PEMux} for PE
+multiplexer. PEMux should make sure that unprivileged software running on the same PE cannot access
+the privileged registers. \extend{}
 
 \section{Registers}
 
@@ -182,9 +205,9 @@ as follows:
   \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
   \hline
   \hline
-  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \cbstart \\
+  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{pemux} \\
   \texttt{0xF000\_1008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
   \texttt{0xF000\_1010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \\
   \texttt{0xF000\_1018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \\
-  \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \cbend \\
+  \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \extend{} \\
 \end{tabular}\\[1em]
