@@ -145,8 +145,8 @@ if an extension should be supported correspondingly.
 \end{figure}
 
 \rref{fig:peinternal} shows the internals of a processing element~(PE). The compute unit~(CU) is
-connected to the data transfer unit~(TCU) and can access the TCU's registers via memory mapped
-input/output (MMIO). Additionally, the CU is connected to the local memory. The TCU is also
+connected to the trusted communication unit~(TCU) and can access the TCU's registers via memory
+mapped input/output (MMIO). Additionally, the CU is connected to the local memory. The TCU is also
 connected to the local memory to, for example, access messages. These components are not necessarily
 arranged in this way. For example, the TCU might interpose itself between the CU and local memory.
 
