@@ -73,7 +73,7 @@ several building blocks:
   waits until a remote TCU responds (to \texttt{SEND}, \texttt{REPLY}, \texttt{READ}, or
   \texttt{WRITE})
   \item \texttt{abort\_remote\_xfer()}:\\
-  lets the current remote transfer fail, so that \texttt{read\_remote()} or \texttt{write\_remote()}
+  lets the current remote transfer fail, so that \texttt{read\_remote\_phys()} or \texttt{write\_remote\_phys()}
   return the error ABORT (see \rref{sec:unprivcmdspseudo})
   \item \texttt{abort\_local\_xfer() -> bool}:\\
   checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,

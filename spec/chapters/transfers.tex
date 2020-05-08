@@ -9,32 +9,29 @@ but only the behavior of transfers.
 
 There are two different kinds of transfers: \emph{local transfers} issued by \texttt{read\_local()},
 \texttt{write\_local()}, or \texttt{write\_local\_phys()} and \emph{remote transfers} issued by
-\texttt{read\_remote()} or \texttt{write\_remote()} (see \rref{sec:unprivcmdspseudo}). Local
-transfers always belong to the current unprivileged command, implying that there is at most one.
-Remote transfers are triggered by requests from other TCUs (e.g., an incoming message or an access
-to the local memory), implying that there may be multiple remote transfers at a time.
+\texttt{read\_remote\_phys()} or \texttt{write\_remote\_phys()} (see \rref{sec:unprivcmdspseudo}).
+Local transfers always belong to the current unprivileged command, implying that there is at most
+one. Remote transfers are triggered by requests from other TCUs (e.g., an incoming message or a
+remote access to the local memory), implying that there may be multiple remote transfers at a time.
 
 \extstart{vm}
 \section{Translations}
 \label{sec:xlates}
 
-With virtual memory support, all transfers except \texttt{write\_local\_phys()} refer to a virtual
-address and thus require address translations to determine the physical address for the actual
-memory access. The TCU keeps a small translation look-aside buffer~(TLB) to cache these translations
-and issues a translation core request on TLB misses via \texttt{queue\_xlate\_req()}. In this case,
-the transfer is paused until the completion of a translation core request, which creates a
-corresponding new TLB entry and resumes the transfer.
+With virtual memory support, all local transfers except \texttt{write\_local\_phys()} refer to a
+virtual address and thus require address translations to determine the physical address for the
+actual memory access. Remote transfers always refer to physical memory, requiring no translation.
+The TCU keeps a small translation look-aside buffer~(TLB) to cache these translations and issues a
+translation core request on TLB misses via \texttt{queue\_xlate\_req()}. In this case, the transfer
+is paused until the completion of a translation core request, which creates a corresponding new TLB
+entry and resumes the transfer. These translations can also lead to page faults, leading to
+potentially long transfer times. If a transfer triggers a page fault (due to insufficient
+permissions, either in TLB or reported by software upon a translation core request), the transfer is
+aborted with the error \texttt{PAGEFAULT}.
 
-While both local and remote transfers require address translations, only local transfers can cause
-page faults. If a remote transfer triggers a page fault (due to insufficient permissions, either in
-TLB or reported by software upon a translation core request), the transfer is aborted with the error
-\texttt{PAGEFAULT}. Local transfers can cause page faults, leading to potentially long transfer
-times.
-
-Without virtual memory support, there is no difference between \texttt{write\_local()} and
-\texttt{write\_local\_phys()}. However, with virtual memory support, \texttt{write\_local\_phys()}
-refers to a physical address, so that no translation is required, in contrast to
-\texttt{write\_local()}.
+Without virtual memory support, \texttt{write\_local()} and \texttt{write\_local\_phys()} are
+equivalent. However, with virtual memory support, \texttt{write\_local\_phys()} refers to a physical
+address, so that no translation is required, in contrast to \texttt{write\_local()}.
 
 \section{Translation Look-aside Buffer}
 \label{sec:tlb}

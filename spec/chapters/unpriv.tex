@@ -64,11 +64,10 @@ several building blocks:
   code (0~=~success)
   \item \texttt{write\_local\_phys(data, phys\_addr, size)}:\\
   write \texttt{data} of \texttt{size} bytes to given physical address in local memory
-  \item \texttt{read\_remote(pe, size, offset) -> (Error, data)}:\\
-  read \texttt{size} bytes from the given PE at given offset into \texttt{data} and return the error
-  code (0~=~success)
-  \item \texttt{write\_remote(data, pe, offset) -> Error}:\\
-  write \texttt{data} to \texttt{offset} in the given PE and return the error code (0~=~success)
+  \item \texttt{read\_remote\_phys(pe, size, offset) -> data}:\\
+  read \texttt{size} bytes from the given PE at given offset into \texttt{data}
+  \item \texttt{write\_remote\_phys(data, pe, offset)}:\\
+  write \texttt{data} to \texttt{offset} in the given PE
   \item \texttt{send\_msg(msg, pe, ep)}:\\
   send \texttt{msg} to endpoint \texttt{ep} at given PE
   \item \texttt{send\_ack(error)}:\\
@@ -100,9 +99,7 @@ The commands behave as follows:
     \uIf{ep.rw \& READ == 0}{unpriv\_fail(NO\_PERM)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_fail(INV\_ARGS)}
     \BlankLine
-    $(err, data) \gets read\_remote(ep.PE, DATA.size, ep.addr + ARG_1)$\;
-    \uIf{err != 0}{unpriv\_fail(err)}
-    \BlankLine
+    $data \gets read\_remote\_phys(ep.PE, DATA.size, ep.addr + ARG_1)$\;
     $err \gets write\_local(data, DATA.address, DATA.size)$\;
     \extstart{vm}\uIf{err != 0}{unpriv\_fail(err)}\extend{}
     $COMMAND \gets 0$\;
@@ -119,8 +116,7 @@ The commands behave as follows:
     \BlankLine
     $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
     \extstart{vm}\uIf{err != 0}{unpriv\_fail(err)}\extend{}
-    $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1)$\;
-    \uIf{err != 0}{unpriv\_fail(err)}
+    $write\_remote\_phys(data, ep.PE, ep.addr + ARG_1)$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{WRITE} command.}
