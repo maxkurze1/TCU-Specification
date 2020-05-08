@@ -29,7 +29,9 @@ is finished. The following unprivileged registers are used:
 \end{register}
 
 \noindent A write to the \texttt{COMMAND} register starts the command with opcode
-\texttt{COMMAND.op}. The meaning of the three argument registers depends on the opcode.
+\texttt{COMMAND.op} and the \texttt{DATA} register specifies the source or destination data in local
+memory. The meaning of the two arguments (\texttt{COMMAND.arg0} and \texttt{ARG1}) depends on the
+opcode.
 
 \section{Command List}
 
