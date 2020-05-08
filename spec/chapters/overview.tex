@@ -200,14 +200,10 @@ as follows:
   \hline
   \multicolumn{4}{c}{\dots} \\
   \hline
-  \texttt{0xF000\_0100} & \texttt{EP$_{n0}$} & EpRegs & First register of EP$_{n}$ \\
-  \texttt{0xF000\_0108} & \texttt{EP$_{n1}$} & EpRegs & Second register of EP$_{n}$ \\
-  \texttt{0xF000\_0110} & \texttt{EP$_{n2}$} & EpRegs & Third register of EP$_{n}$ \\
   \hline
-  \hline
-  \texttt{0xF000\_1000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmpex} \\
-  \texttt{0xF000\_1008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
-  \texttt{0xF000\_1010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
-  \texttt{0xF000\_1018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \\
-  \texttt{0xF000\_1020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \extend{} \\
+  \texttt{0xF000\_2000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmpex} \\
+  \texttt{0xF000\_2008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
+  \texttt{0xF000\_2010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
+  \texttt{0xF000\_2018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \\
+  \texttt{0xF000\_2020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \extend{} \\
 \end{tabular}\\[1em]
