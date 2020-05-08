@@ -83,15 +83,12 @@ several building blocks:
 
 \section{Command Description}
 
-\todo{think about virtual address width}
-\todo{document asid width}
-
 \extstart{vm}
 \subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
-    $asid \gets PRIV\_CMD.arg0 >> 44$\;
-    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_FFFF$\;
+    $asid \gets PRIV\_CMD.arg0 >> 32$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
     \BlankLine
     $remove\_tlb\_entry(asid, virt)$\;
     $PRIV\_CMD.op \gets 0$\;
@@ -109,8 +106,8 @@ several building blocks:
 \subsection{\texttt{INS\_TLB}}
 
 \begin{algorithm}[H]
-    $asid \gets PRIV\_CMD.arg0 >> 44$\;
-    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFF\_FFFF\_F000$\;
+    $asid \gets PRIV\_CMD.arg0 >> 32$\;
+    $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     $phys \gets PRIV\_CMD\_ARG1$\;
     \BlankLine
