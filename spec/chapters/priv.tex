@@ -42,6 +42,7 @@ its receive EPs in the \texttt{CUR\_VPE} register:
 The following privileged commands are supported with the opcodes in parentheses:
 
 \begin{itemize}
+  \item \texttt{IDLE} (0): \extstart{vmpex} don't do anything, \extend{}
   \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB, \extstart{vm}
   \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
   \item \texttt{INS\_TLB} (3): insert an entry into the TLB, \extend{}
