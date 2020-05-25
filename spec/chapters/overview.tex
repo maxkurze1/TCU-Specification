@@ -189,14 +189,16 @@ as follows:
   \hline
   \texttt{0xF000\_0028} & \texttt{CUR\_TIME} & UnprivRegs & Yields the current time in nanoseconds \\
   \hline
+  \texttt{0xF000\_0030} & \emph{reserved} & UnprivRegs & Reserved for future use (\texttt{PRINT} in gem5) \\
   \hline
-  \texttt{0xF000\_0030} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
-  \texttt{0xF000\_0038} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
-  \texttt{0xF000\_0040} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
   \hline
-  \texttt{0xF000\_0048} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
-  \texttt{0xF000\_0050} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
-  \texttt{0xF000\_0058} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
+  \texttt{0xF000\_0038} & \texttt{EP$_{00}$} & EpRegs & First register of EP$_0$ \\
+  \texttt{0xF000\_0040} & \texttt{EP$_{01}$} & EpRegs & Second register of EP$_0$ \\
+  \texttt{0xF000\_0048} & \texttt{EP$_{02}$} & EpRegs & Third register of EP$_0$ \\
+  \hline
+  \texttt{0xF000\_0050} & \texttt{EP$_{10}$} & EpRegs & First register of EP$_1$ \\
+  \texttt{0xF000\_0058} & \texttt{EP$_{11}$} & EpRegs & Second register of EP$_1$ \\
+  \texttt{0xF000\_0060} & \texttt{EP$_{12}$} & EpRegs & Third register of EP$_1$ \\
   \hline
   \multicolumn{4}{c}{\dots} \\
   \hline
