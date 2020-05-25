@@ -10,7 +10,7 @@ requests}, which are raised by the TCU and answered by the privileged software. 
 privileged software in the management of multiple VPEs or virtual memory, privileged commands are
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
 
-\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_1010}}
+\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2010}}
   \regfieldb{arg}{60}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -24,7 +24,7 @@ used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is d
 its receive EPs in the \texttt{CUR\_VPE} register:
 
 \setlength{\regWidth}{.95\textwidth}
-\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_1020}}
+\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_2020}}
   \regfield[gray!20]{reserved}{32}{32}{{uninitialized}}%
   \regfield{msgs}{16}{16}{0}%
   \regfield{id}{16}{0}{1111111111111111}%
@@ -181,7 +181,7 @@ completion of the request. Upon receiving this signal, the TCU issues the next c
 there is any. New core requests are appended to the queue via \texttt{queue\_foreign\_msg\_req()}
 (see \rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}).
 
-\begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_1000}}
+\begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_2000}}
   \regfieldb[gray!60]{}{63}{1}%
   \regfieldb{type}{1}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -193,7 +193,7 @@ there is any. New core requests are appended to the queue via \texttt{queue\_for
 most of the bits depend on the type of request/response, defined in the following.
 
 \extstart{vm}
-\begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_1000}}
+\begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb{virt}{36}{12}%
   \regfieldb[gray!20]{reserved}{8}{4}%
@@ -208,7 +208,7 @@ most of the bits depend on the type of request/response, defined in the followin
   \end{reglist}\end{regdesc}
 \end{register}
 
-\begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_1000}}
+\begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_2000}}
   \regfieldb{phys}{52}{12}%
   \regfieldb[gray!20]{reserved}{7}{5}%
   \regfieldb{flags}{5}{0}\regnewline%
@@ -220,7 +220,7 @@ most of the bits depend on the type of request/response, defined in the followin
 \extend{}
 
 \extstart{pemux}
-\begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_1000}}
+\begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb[gray!20]{reserved}{31}{17}%
   \regfieldb{ep}{16}{1}%
@@ -231,7 +231,7 @@ most of the bits depend on the type of request/response, defined in the followin
   \end{reglist}\end{regdesc}
 \end{register}
 
-\begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_1000}}
+\begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_2000}}
   \regfieldb[gray!20]{reserved}{64}{0}\regnewline%
 \end{register}
 \extend{}
