@@ -3,8 +3,17 @@
 typedef unsigned int size_t;
 typedef unsigned int uintptr_t;
 
+
+#define read_csr(reg) ({ unsigned long __tmp; \
+  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
+  __tmp; })
+
+
 inline void memory_barrier() {
 }
+
+
+#if (__riscv_xlen == 32)
 
 inline uint64_t read8b(uintptr_t addr) {
     uintptr_t addr_lower = addr;
@@ -47,3 +56,28 @@ inline uint32_t rdcycle() {
     );
     return res;
 }
+
+#elif (__riscv_xlen == 64)
+
+inline uint64_t read8b(uintptr_t addr) {
+    uint64_t res;
+    asm volatile (
+        "ld %0, (%1)"
+        : "=r"(res)
+        : "r"(addr)
+    );
+    return res;
+}
+
+inline void write8b(uintptr_t addr, uint64_t val) {
+    asm volatile (
+        "sd %0, (%1)"
+        : : "r"(val), "r"(addr)
+    );
+}
+
+#ifndef rdcycle
+    #define rdcycle() read_csr(mcycle)
+#endif
+
+#endif
