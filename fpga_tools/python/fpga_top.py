@@ -62,9 +62,10 @@ class FPGA_TOP(fpga):
         self.dram2 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2))
         
         #PMs
-        #self.pms = [pm.PM(self.nocif, chipid, modids.MODID_PM3, 0)]
-        self.pm6 = pm.PM(self.nocif, (chipid, modids.MODID_PM6), 0)
-        self.pm7 = pm.PM(self.nocif, (chipid, modids.MODID_PM7), 0)
+        self.pm6 = pm.PM(self.nocif, (chipid, modids.MODID_PM6), 1)
+        self.pm7 = pm.PM(self.nocif, (chipid, modids.MODID_PM7), 2)
+        self.pm3 = pm.PM(self.nocif, (chipid, modids.MODID_PM3), 3)
+        self.pm5 = pm.PM(self.nocif, (chipid, modids.MODID_PM5), 4)
         
         #self.mods = [self.dram1, self.dram2] + self.pms
 
