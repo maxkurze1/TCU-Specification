@@ -127,7 +127,7 @@ IP and MAC addresses of the FPGA are set via DIP switch DIP_SW[3:0] (SW12). The 
 
 Uploading the bitfile is done via an USB connection. Plug in the USB cable to the JTAG connector (J106) on the FPGA board and connect it to your host-PC. Additionally, Xilinx Vivado must be added to your environment.
 
-Upload the latest bitfile. In the testcase directory or in `fpga_tools/` run:
+Upload the latest bitfile. In a testcase directory run:
 ```shell
 make program-fpga
 ```
