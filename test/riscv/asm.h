@@ -10,6 +10,7 @@ typedef unsigned int uintptr_t;
 
 
 inline void memory_barrier() {
+    asm volatile ("fence");
 }
 
 
