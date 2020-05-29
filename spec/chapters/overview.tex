@@ -71,11 +71,11 @@ the kernel booting on one specific PE before the other PEs start.
 
 User PEs can have different complexities, mostly driven by the used CU. The left user PE uses a
 simple core with scratchpad memory and a basic TCU without extensions. The right user PE uses a
-complex core with caches and virtual memory support and a multiplexer (Priv) that supports multiple
-applications on the same PE. These features require TCU extensions for virtual memory (\extbox{vm})
-and PE sharing (\extbox{pemux}). This specification highlights the portions that are required by
-only one extension in its color and portions that are required by either extension as
-\extbox{vmpex}.
+complex core with caches and virtual memory support and a privileged software (Priv) that enables
+multiple applications on the same PE and/or virtual memory. These features require TCU extensions
+for virtual memory (\extbox{vm}) and/or PE sharing (\extbox{pemux}). This specification highlights
+the portions that are required by only one extension in its color and portions that are required by
+either extension as \extbox{vmpex}.
 
 \section{Processing Elements}
 
@@ -147,8 +147,9 @@ only one extension in its color and portions that are required by either extensi
 \rref{fig:peinternal} shows the internals of a processing element~(PE). The compute unit~(CU) is
 connected to the trusted communication unit~(TCU) and can access the TCU's registers via memory
 mapped input/output (MMIO). Additionally, the CU is connected to the local memory. The TCU is also
-connected to the local memory to, for example, access messages. These components are not necessarily
-arranged in this way. For example, the TCU might interpose itself between the CU and local memory.
+connected to the local memory (SPM or cache) to, for example, access messages. These components are
+not necessarily arranged in this way. For example, the TCU might interpose itself between the CU and
+local memory.
 
 To support the security model introduced in \rref{sec:systemoverview}, the registers are split into
 different groups, each group having different access permissions. All registers are generally
