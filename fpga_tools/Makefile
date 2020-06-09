@@ -77,6 +77,7 @@ clean:
 
 #--------------------------------------------
 PYTHON := python3
+export PYTHONPATH = ../../python
 
 .PHONY: run
 run:
