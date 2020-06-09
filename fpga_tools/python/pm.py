@@ -1,46 +1,12 @@
 
 import noc
 import memory
+from tcu import TCU
 from fpga_utils import Progress
 
 
 class PM():
-    TCU_EP_REG_COUNT = 8
-    TCU_CFG_REG_COUNT = 8
-    TCU_STATUS_REG_COUNT = 1
-
-    TCU_EP_REG_SIZE = 0x18
-    TCU_CFG_REG_SIZE = 0x8
-    TCU_STATUS_REG_SIZE = 0x8
-
-    TCU_REGADDR_START = 0xF000_0000
-
-    #ext regs
-    TCU_REGADDR_FEATURES = TCU_REGADDR_START + 0x0000_0000
-    TCU_REGADDR_EXT_CMD  = TCU_REGADDR_START + 0x0000_0008
     
-    #unpriv. regs
-    TCU_REGADDR_COMMAND  = TCU_REGADDR_START + 0x0000_0010
-    TCU_REGADDR_DATA     = TCU_REGADDR_START + 0x0000_0018
-    TCU_REGADDR_ARG1     = TCU_REGADDR_START + 0x0000_0020
-    TCU_REGADDR_CUR_TIME = TCU_REGADDR_START + 0x0000_0028
-
-    #ep regs
-    TCU_REGADDR_EP_START = TCU_REGADDR_START + 0x0000_0038
-
-    #TCU status vector
-    TCU_REGADDR_TCU_STATUS = TCU_REGADDR_EP_START + TCU_EP_REG_COUNT*TCU_EP_REG_SIZE
-
-    #config regs for core
-    TCU_REGADDR_CORE_CFG_START = TCU_REGADDR_TCU_STATUS + TCU_STATUS_REG_COUNT*TCU_STATUS_REG_SIZE
-
-    #priv. regs
-    TCU_REGADDR_CORE_REQ     = TCU_REGADDR_START + 0x0000_2000
-    TCU_REGADDR_PRIV_CMD     = TCU_REGADDR_START + 0x0000_2008
-    TCU_REGADDR_PRIV_CMD_ARG = TCU_REGADDR_START + 0x0000_2010
-    TCU_REGADDR_CUR_VPE      = TCU_REGADDR_START + 0x0000_2018
-    TCU_REGADDR_OLD_VPE      = TCU_REGADDR_START + 0x0000_2020
-
     #Rocket interrupt
     ROCKET_INT_COUNT = 2
 
@@ -98,40 +64,40 @@ class PM():
     
 
     def start(self):
-        self.mem[self.TCU_REGADDR_CORE_CFG_START] = 1
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START] = 1
     
     def stop(self):
-        self.mem[self.TCU_REGADDR_CORE_CFG_START] = 0
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START] = 0
 
     def getEnable(self):
-        return self.mem[self.TCU_REGADDR_CORE_CFG_START]
+        return self.mem[TCU.TCU_REGADDR_CORE_CFG_START]
     
     def tcu_status(self):
-        return self.mem[self.TCU_REGADDR_TCU_STATUS]
+        return self.mem[TCU.TCU_REGADDR_TCU_STATUS]
     
     #----------------------------------------------
     #special functions for PicoRV32 RISC-V core
 
     #interrupt val (32 bit)
     def pico_setIRQ(self, val32):
-        self.mem[self.TCU_REGADDR_CORE_CFG_START+0x10] = val32
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x10] = val32
     
     def pico_getIRQ(self):
-        return self.mem[self.TCU_REGADDR_CORE_CFG_START+0x10]
+        return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x10]
     
     
     def pico_getEOI(self):
-        return self.mem[self.TCU_REGADDR_CORE_CFG_START+0x18]
+        return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x18]
 
     def pico_getTrap(self):
-        return self.mem[self.TCU_REGADDR_CORE_CFG_START+0x8]
+        return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8]
 
     #set stack addr
     def pico_setStackAddr(self, val32):
-        self.mem[self.TCU_REGADDR_CORE_CFG_START+0x20] = val32
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x20] = val32
     
     def pico_getStackAddr(self):
-        return self.mem[self.TCU_REGADDR_CORE_CFG_START+0x20]
+        return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x20]
 
     #----------------------------------------------
     #special functions for Rocket RISC-V core
@@ -139,13 +105,13 @@ class PM():
     #interrupt val
     def rocket_setInt(self, int_num, val):
         if (int_num < self.ROCKET_INT_COUNT):
-            self.mem[self.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num] = val
+            self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num] = val
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
     
     def rocket_getInt(self, int_num):
         if (int_num < self.ROCKET_INT_COUNT):
-            return self.mem[self.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num]
+            return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num]
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
             return 0

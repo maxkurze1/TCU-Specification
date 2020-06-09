@@ -77,8 +77,8 @@ Rocket boots in BootROM after enable signal was set and waits for external inter
 ### TCU
 
 The current TCU version includes the following features:
-- Endpoint registers
-- Full unprivileged interface incl. registers and commands (except reg CUR_TIME)
+- 32 endpoint registers
+- Full unprivileged interface incl. registers and commands
 - TCU status info
 - Core-specific registers
 
@@ -108,7 +108,8 @@ Bit   | Description
 
 The core-specific registers (addr: `TCU_REGADDR_CORE_CFG_START`) provides access to the core, e.g. enable, interrupts, address settings, etc.
 
-> `fpga_tools/python/pm.py` provides available registers and access functions.
+> `fpga_tools/python/tcu.py` provides available TCU register addresses.
+> `fpga_tools/python/pm.py` provides available register access functions.
 
 
 ## Running a testcase

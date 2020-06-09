@@ -34,7 +34,7 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
-    def __init__(self, chipid=0):
+    def __init__(self, chipid=0, use_uart=False):
         self.fpga_ip_addr = str(IPv4Address(int(IPv4Address(self.FPGA_IP)) + chipid))
         print("Connect to FPGA at %s:%d" % (self.fpga_ip_addr, self.FPGA_PORT))
 
@@ -45,7 +45,8 @@ class FPGA_TOP(fpga):
         
         #periphery
         #self.fpgaif = fpgaif.FPGA_if(self.jtagcomm, self.noccomm)
-        self.uart = uart.UART('/dev/ttyUSB1')
+        if use_uart:
+            self.uart = uart.UART('/dev/ttyUSB1')
 
         #NOC
         self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT))
