@@ -54,7 +54,7 @@ The current Rocket Core was generated with the following features:
 - MMU with PTW, TLB
 - FPU
 - 2x external interrupt pin
-- External memory interface connected to 512kB local SPM (currently used as DRAM)
+- External memory interface connected to 2MB local SPM (currently used as DRAM)
 - MMIO interface to access TCU registers from core
 - Memory master interface for TCU to access memory (cache coherent)
 - JTAG interface for debugging (currently unconnected)
@@ -77,7 +77,7 @@ Rocket boots in BootROM after enable signal was set and waits for external inter
 ### TCU
 
 The current TCU version includes the following features:
-- 32 endpoint registers
+- 64 endpoint registers
 - Full unprivileged interface incl. registers and commands
 - TCU status info
 - Core-specific registers
