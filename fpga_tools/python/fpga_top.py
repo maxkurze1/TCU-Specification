@@ -42,7 +42,7 @@ class FPGA_TOP(fpga):
             os.mkdir("log")
         #self.jtagcomm = jtag.JTAGComm('th4')
 
-        
+
         #periphery
         #self.fpgaif = fpgaif.FPGA_if(self.jtagcomm, self.noccomm)
         if use_uart:
@@ -61,19 +61,19 @@ class FPGA_TOP(fpga):
         #DRAM
         self.dram1 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1))
         self.dram2 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2))
-        
+
         #PMs
         self.pm6 = pm.PM(self.nocif, (chipid, modids.MODID_PM6), 1)
         self.pm7 = pm.PM(self.nocif, (chipid, modids.MODID_PM7), 2)
         self.pm3 = pm.PM(self.nocif, (chipid, modids.MODID_PM3), 3)
         self.pm5 = pm.PM(self.nocif, (chipid, modids.MODID_PM5), 4)
-        
+
         #self.mods = [self.dram1, self.dram2] + self.pms
 
     def tear(self):
         self.noccomm.tear()
         self.uart.close()
-        
+
     def read_posted(self, num):
         for i in range(count):
             p = self.recv_packet()

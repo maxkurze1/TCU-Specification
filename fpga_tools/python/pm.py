@@ -6,7 +6,7 @@ from fpga_utils import Progress
 
 
 class PM():
-    
+
     #Rocket interrupt
     ROCKET_INT_COUNT = 2
 
@@ -17,10 +17,10 @@ class PM():
         self.name = "PM%d" % pm_num
         self.mem = memory.Memory(nocif, self.nocid)
         self.pm_num = pm_num
-    
+
     def __repr__(self):
         return self.name
-    
+
     def initMem(self, file, base_addr=0x0):
         """
         PE mem addr (8-byte addresses):
@@ -44,15 +44,15 @@ class PM():
         #self.mem.writes(self.pmdata, prgss=lambda x: proc.advance(x))
         self.mem.writes(self.pmdata, force_no_burst=True)
         #proc.clear()
-    
+
     def checkMem(self):
         #proc = Progress("check PM mem", sum([len(x) for x in self.pmdata]))
         #ret = self.mem.checks(self.pmdata, prgss=lambda x:proc.advance(x))
         #ret = self.mem.checks(self.pmdata)
-        
-        
+
+
         #for addr in range(self.pmdata.begin, len(self.pmdata)):
-        
+
         #read_mem = self.mem.read(self.pmdata[0].begin, len(self.pmdata)/8)
         #for idx in range(self.pmdata[0].begin, len(self.pmdata[0])/8):
         #    if read_mem.data[idx] != self.pmdata[0].data[idx]:
@@ -61,31 +61,31 @@ class PM():
         #
         #proc.clear()
         return ret
-    
+
 
     def start(self):
         self.mem[TCU.TCU_REGADDR_CORE_CFG_START] = 1
-    
+
     def stop(self):
         self.mem[TCU.TCU_REGADDR_CORE_CFG_START] = 0
 
     def getEnable(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START]
-    
+
     def tcu_status(self):
         return self.mem[TCU.TCU_REGADDR_TCU_STATUS]
-    
+
     #----------------------------------------------
     #special functions for PicoRV32 RISC-V core
 
     #interrupt val (32 bit)
     def pico_setIRQ(self, val32):
         self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x10] = val32
-    
+
     def pico_getIRQ(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x10]
-    
-    
+
+
     def pico_getEOI(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x18]
 
@@ -95,7 +95,7 @@ class PM():
     #set stack addr
     def pico_setStackAddr(self, val32):
         self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x20] = val32
-    
+
     def pico_getStackAddr(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x20]
 
@@ -108,7 +108,7 @@ class PM():
             self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num] = val
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
-    
+
     def rocket_getInt(self, int_num):
         if (int_num < self.ROCKET_INT_COUNT):
             return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8+8*int_num]

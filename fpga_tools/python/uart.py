@@ -22,7 +22,7 @@ config_eth_init = [
 
 #int PHY (addr 0x1): enable AN
 config_eth_intPHY_enAN = [
-    [0x508, 0x00001040, 2], 
+    [0x508, 0x00001040, 2],
     [0x504, 0x01004800, 2], #start MDIO transfer
     [0x504, 0x00000080, 0]  #check if MDIO ready (read bit 7)
 ]
@@ -137,7 +137,7 @@ class uart_noc_packet(object):
             print("  src_chipid: 0x%x" % self.src_chipid)
             print("  src_modid: 0x%x\n" % self.src_modid)
             print("  bsel: 0x%x\n\n" % self.bsel)
-    
+
 
     def prepare(self, modid, adr, data, mode=0x2, bsel=0xFF):
         self.data = data
@@ -173,12 +173,12 @@ class uart_noc_packet(object):
         self.bsel = buf[0]
         self.src_modid = buf[1]
         self.src_chipid = buf[2] >> 2
-        self.trg_modid = (buf[2] & 0x3) | (buf[3] >> 2) 
+        self.trg_modid = (buf[2] & 0x3) | (buf[3] >> 2)
         self.trg_chipid = (buf[3] & 0x3) | (buf[4] >> 4)
         self.mode = buf[4] & 0xF
         self.addr = (buf[5] << 24) | (buf[6] << 16) | (buf[7] << 8) | buf[8]
         self.data = (buf[9] << 56) | (buf[10] << 48) | (buf[11] << 40) | (buf[12] << 32) | (buf[13] << 24) | (buf[14] << 16) | (buf[15] << 8) | buf[16]
-    
+
 
 class UART(uart_noc_packet):
     def __init__(self, port):
@@ -218,7 +218,7 @@ class UART(uart_noc_packet):
 
     def recv(self, len=1):
         return self.ser.read(len)
-    
+
     def test_uart(self):
         sendpack = uart_noc_packet()
         recvpack = uart_noc_packet()
@@ -239,7 +239,7 @@ class UART(uart_noc_packet):
             return True
         else:
             return False
-    
+
 
     def set_config(self, config_list):
         sendpack = uart_noc_packet()
@@ -248,7 +248,7 @@ class UART(uart_noc_packet):
 
         for (addr, val, mode) in config_list:
             timeout_cnt = 0
-            
+
             #write
             if (mode == 2):
                 send_data = sendpack.prepare(modids.MODID_ETH, 0xFF000000+addr, val)
@@ -259,7 +259,7 @@ class UART(uart_noc_packet):
             elif (mode == 0):
                 send_data = sendpack.prepare(modids.MODID_ETH, 0xFF000000+addr, val, 0)
                 sendpack.dump("send")
-                
+
                 recv_ready = 0
                 while (recv_ready != 1 and timeout_cnt < TIMER_COUNT):
                     self.send(send_data)
@@ -272,14 +272,14 @@ class UART(uart_noc_packet):
                     if (recvpack.data & val):
                         recv_ready = 1
                         recvpack.dump("recv")
-                    
+
                     if (timeout_cnt >= TIMER_COUNT and recv_ready != 1):
                         recvpack.dump("recv")
                         print("Time out!")
-                    
+
                     time.sleep(0.1)
 
-            
+
             if (timeout_cnt >= TIMER_COUNT):
                 print("Cancel set-up!")
                 config_done = 1
@@ -288,7 +288,7 @@ class UART(uart_noc_packet):
                 config_done = 0
 
             time.sleep(0.1)
-        
+
         return config_done
 
 
@@ -346,7 +346,7 @@ class UART(uart_noc_packet):
         config_done_iter += 1
         #input("Press Enter to continue ...")
 
-        
+
 
         print("config_eth: ext. PHY - set cfg2 reg ... ", end='')
         config_done[config_done_iter] = self.set_config(config_eth_extPHY_cfg2)
@@ -372,8 +372,8 @@ class UART(uart_noc_packet):
         for i in range(0, config_done_iter):
             if (config_done[i]):
                 return False
-        
+
         return True
 
-    
+
 

@@ -85,13 +85,13 @@ class noc_packet:
         self.src_modid = src_adr[1]
         self.bsel = bsel
         self.burst = burst
-    
+
     def prepare_burst(self, data0, data1, burst, bsel=0xFF):
         self.data0 = data0
         self.data1 = data1
         self.bsel = bsel
         self.burst = burst
-        
+
 
 def check_adr(adr):
     if not isinstance(adr, tuple):
@@ -134,7 +134,7 @@ class NoCgateway(object):
         if isinstance(addr_range, int):
             addr_range = (addr_range, addr_range)
         #print("looking for packet @ (0x%08x,0x%08x) from %s - avail %d" % (addr_range[0], addr_range[1], src_id, len(self.recvbuf)))
-        
+
         #if there are no packets in receive buffer, poll socket
         if len(self.recvbuf) == 0:
             self.recv()
@@ -149,7 +149,7 @@ class NoCgateway(object):
                 #print("check with addr_range=%x:%x" % (addr_range[0], addr_range[1]))
                 #if src_id is not None:
                 #    print("check with modid=%x" % src_id[1])
-                
+
                 if pack.addr >= addr_range[0] and pack.addr <= addr_range[1] and (src_id is None or (pack.src_modid == src_id[1] and pack.src_chipid == src_id[0])):
                     #print("packet found")
                     ret = pack
@@ -161,7 +161,7 @@ class NoCgateway(object):
             self.recv()
             now = time.time()
         return None
-    
+
     def send_packet(self, packet, flush=False):
         """
         converts a packet to binary data pushing it to the send buffer.
@@ -196,12 +196,12 @@ class NoCgateway(object):
                     self.send_packet(pack)
                     data_list.pop(0)
                     data_list.pop(0)
-                    
+
 
                 #last packet of burst
                 pack.prepare_burst(data_list[len(data_list)-2], data_list[len(data_list)-1], 0)
                 self.send_packet(pack)
-                
+
                 data_list.pop(0)
                 data_list.pop(0)
 
@@ -271,7 +271,7 @@ class NoCgateway(object):
 
 
 
-class NoCethernet(NoCgateway): 
+class NoCethernet(NoCgateway):
     LOGFILE = "log/ethernet.log"
     UDP_PAYLOAD_LEN = 1472
     UDP_NOC_PACKET_LEN = 18 #single packet via UDP, burst or non-burst
@@ -343,7 +343,7 @@ class NoCethernet(NoCgateway):
         pack0.bsel = buf[1]
         pack0.src_modid = buf[2]
         pack0.src_chipid = buf[3] >> 2
-        pack0.trg_modid = (buf[3] & 0x3) | (buf[4] >> 2) 
+        pack0.trg_modid = (buf[3] & 0x3) | (buf[4] >> 2)
         pack0.trg_chipid = (buf[4] & 0x3) | (buf[5] >> 4)
         pack0.mode = buf[5] & 0xF
         pack0.addr = (buf[6] << 24) | (buf[7] << 16) | (buf[8] << 8) | buf[9]
@@ -398,10 +398,10 @@ class NoCethernet(NoCgateway):
 
             data += self.packet_pack(pack, last_flit_was_burst)
             last_flit_was_burst = True if pack.burst else False
-            
+
             if self.noclogging:
                 self.flog.write("--> %x:%x:%08x 0x%16x mode:%d\n" % (pack.trg_chipid, pack.trg_modid, pack.addr, pack.data0, pack.mode))
-        
+
         if send_to_socket:
             self.socks[0].sendto(data, self.send_ipaddr)
             self.sendbuf.clear()
@@ -486,7 +486,7 @@ class EthernetRegfile(memory.Memory):
     def writeDbgReg(self, reg, val):
         if reg >= 0 and reg < 4:
             self.rf[reg*4] = 0x0000000F_00000000 + val
-    
+
     def readDbgReg(self, reg):
         if reg >= 0 and reg < 4:
             return self.rf[reg*4]
@@ -495,25 +495,25 @@ class EthernetRegfile(memory.Memory):
 
     def setHomeChipid(self, val):
         self.rf[0x20] = val
-    
+
     def getStatusVector(self):
         return self.rf[0x10]
-    
+
     def getUDPstatus(self):
         return self.rf[0x14]
-    
+
     def getARPcount(self):
         return self.rf[0x18]
-    
+
     def getIPcount(self):
         return self.rf[0x1C]
-    
+
     def getHOSTIP(self):
         return self.rf[0x30]
-    
+
     def getFPGAIP(self):
         return self.rf[0x34]
-    
+
     def getFPGAMAC(self):
         mac0 = self.rf[0x38]
         mac1 = self.rf[0x3C]
@@ -529,12 +529,12 @@ class NoCmonitor(threading.Thread):
         super(NoCmonitor, self).__init__()
         self.daemon = True
         self.start()
-        
+
     def run(self):
         while True:
             self.checkdrops()
             time.sleep(self.check_udp_delay)
-        
+
     def checkdrops(self):
         fh = open("/proc/net/udp", "r")
         for l in fh:

@@ -36,7 +36,7 @@ class Progress(threading.Thread):
 
     def advance(self, amount):
         self.value += amount
-        
+
     def clear(self):
         self.running = False
         self.join()

@@ -17,10 +17,10 @@ class REGFILE(memory.Memory):
 
     def counter_start(self):
         self.mem_rf[self.RF_BASE_ADDR+self.COUNTER_START_ADDR] = 1
-    
+
     def counter_stop(self):
         self.mem_rf[self.RF_BASE_ADDR+self.COUNTER_START_ADDR] = 0
-    
+
     def counter_set(self, val):
         self.mem_rf[self.RF_BASE_ADDR+self.COUNTER_SETGET_ADDR] = val
 
