@@ -15,6 +15,14 @@ def memfilestream(fname):
             assert naddr >= addr + len(data)*8
             addr = naddr
             data = []
+        elif line[0] == 'z':
+            if data:
+                yield MemSlice(addr, data)
+            naddr = int(line[1:9], 16)*8
+            ndata = int(line[10:18], 16)
+            assert naddr >= addr + len(data)*8
+            addr = naddr
+            data = [0 for v in range(0, ndata)]
         else:
             data.append(int(line[0:16], 16))
     if data:
