@@ -38,7 +38,7 @@ class PM():
             #else:
             #    addr = slic.begin - 0x00008000 #dmem
             addr = slic.begin   #addr in hex file corresponds to pysical mem distribution
-            #print("addr: %x" % addr)
+            print("%s: loading %u bytes to %#x" % (self.name, len(slic.data) * 8, base_addr + addr))
             self.pmdata.append(memory.MemSlice(base_addr+addr, slic.data))
         #proc = Progress("load PM mem", sum([len(x) for x in self.pmdata]))
         #self.mem.writes(self.pmdata, prgss=lambda x: proc.advance(x))
