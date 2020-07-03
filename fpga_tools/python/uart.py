@@ -170,14 +170,15 @@ class uart_noc_packet(object):
         return buf
 
     def unpack(self, buf):
-        self.bsel = buf[0]
-        self.src_modid = buf[1]
-        self.src_chipid = buf[2] >> 2
-        self.trg_modid = (buf[2] & 0x3) | (buf[3] >> 2)
-        self.trg_chipid = (buf[3] & 0x3) | (buf[4] >> 4)
-        self.mode = buf[4] & 0xF
-        self.addr = (buf[5] << 24) | (buf[6] << 16) | (buf[7] << 8) | buf[8]
-        self.data = (buf[9] << 56) | (buf[10] << 48) | (buf[11] << 40) | (buf[12] << 32) | (buf[13] << 24) | (buf[14] << 16) | (buf[15] << 8) | buf[16]
+        if (len(buf) >= 17):
+            self.bsel = buf[0]
+            self.src_modid = buf[1]
+            self.src_chipid = buf[2] >> 2
+            self.trg_modid = (buf[2] & 0x3) | (buf[3] >> 2)
+            self.trg_chipid = (buf[3] & 0x3) | (buf[4] >> 4)
+            self.mode = buf[4] & 0xF
+            self.addr = (buf[5] << 24) | (buf[6] << 16) | (buf[7] << 8) | buf[8]
+            self.data = (buf[9] << 56) | (buf[10] << 48) | (buf[11] << 40) | (buf[12] << 32) | (buf[13] << 24) | (buf[14] << 16) | (buf[15] << 8) | buf[16]
 
 
 class UART(uart_noc_packet):
