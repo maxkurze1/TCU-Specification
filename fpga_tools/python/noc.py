@@ -277,7 +277,6 @@ class NoCethernet(NoCgateway):
     UDP_NOC_PACKET_LEN = 18 #single packet via UDP, burst or non-burst
     PACKETFREQ = 50000.0 #packets per second
     MINSLEEP = 0.02
-    RF_ETH_BASE_ADDR = 0xFF000000
     def __init__(self, send_ipaddr):
         super(NoCethernet, self).__init__()
         self.send_ipaddr = send_ipaddr
@@ -475,50 +474,6 @@ class NoCethernet(NoCgateway):
             if self.noclogging:
                 for pack in packs:
                     self.flog.write("<-- %x:%x:%08x 0x%16x\n" % (pack.src_chipid, pack.src_modid, pack.addr, pack.data0))
-
-
-class EthernetRegfile(memory.Memory):
-    RF_ETH_BASE_ADDR = 0xFF000000
-    def __init__(self, nocif, nocid):
-        self.rf = memory.Memory(nocif, nocid, self.RF_ETH_BASE_ADDR)
-
-    #write to debug register, reg 0-3, 32-bit value (val)
-    def writeDbgReg(self, reg, val):
-        if reg >= 0 and reg < 4:
-            self.rf[reg*4] = 0x0000000F_00000000 + val
-
-    def readDbgReg(self, reg):
-        if reg >= 0 and reg < 4:
-            return self.rf[reg*4]
-        else:
-            return -1
-
-    def setHomeChipid(self, val):
-        self.rf[0x20] = val
-
-    def getStatusVector(self):
-        return self.rf[0x10]
-
-    def getUDPstatus(self):
-        return self.rf[0x14]
-
-    def getARPcount(self):
-        return self.rf[0x18]
-
-    def getIPcount(self):
-        return self.rf[0x1C]
-
-    def getHOSTIP(self):
-        return self.rf[0x30]
-
-    def getFPGAIP(self):
-        return self.rf[0x34]
-
-    def getFPGAMAC(self):
-        mac0 = self.rf[0x38]
-        mac1 = self.rf[0x3C]
-        return ((mac1<<32) | mac0)
-
 
 
 class NoCmonitor(threading.Thread):

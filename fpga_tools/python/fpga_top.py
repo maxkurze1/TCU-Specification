@@ -1,6 +1,7 @@
 
 import modids
 import noc
+import ethernet
 import dram
 import pm
 import uart
@@ -50,7 +51,7 @@ class FPGA_TOP(fpga):
 
         #NOC
         self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT))
-        self.nocif_rf = noc.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
+        self.eth_rf = ethernet.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
 
         #regfile
         #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
