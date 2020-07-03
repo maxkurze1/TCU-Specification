@@ -73,7 +73,27 @@ class PM():
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START]
 
     def tcu_status(self):
-        return self.mem[TCU.TCU_REGADDR_TCU_STATUS]
+        status = self.mem[TCU.TCU_REGADDR_TCU_STATUS]
+        return (status & 0xFF, (status >> 8) & 0xFF, (status >> 16) & 0xFF)
+
+    def tcu_reset(self):
+        self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
+
+    def tcu_ctrl_flit_count(self):
+        flits = self.mem[TCU.TCU_REGADDR_TCU_CTRL_FLIT_COUNT]
+        flits_rx = flits & 0xFFFFFFFF
+        flits_tx = flits >> 32
+        return (flits_tx, flits_rx)
+
+    def tcu_io_flit_count(self):
+        flits = self.mem[TCU.TCU_REGADDR_TCU_IO_FLIT_COUNT]
+        flits_rx = flits & 0xFFFFFFFF
+        flits_tx = flits >> 32
+        return (flits_tx, flits_rx)
+
+    def tcu_drop_flit_count(self):
+        return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
+
 
     #----------------------------------------------
     #special functions for PicoRV32 RISC-V core
@@ -84,7 +104,6 @@ class PM():
 
     def pico_getIRQ(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x10]
-
 
     def pico_getEOI(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x18]
@@ -116,3 +135,7 @@ class PM():
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
             return 0
 
+    #start core via interrupt 0
+    def start_rocket(self):
+        self.rocket_setInt(0, 1)
+        self.rocket_setInt(0, 0)

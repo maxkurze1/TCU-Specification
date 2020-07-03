@@ -17,3 +17,9 @@ class DRAM(memory.Memory):
 
     def getInitCalibComplete(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x8]
+
+    def tcu_status(self):
+        return self.mem[TCU.TCU_REGADDR_TCU_STATUS]
+
+    def tcu_reset(self):
+        self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
