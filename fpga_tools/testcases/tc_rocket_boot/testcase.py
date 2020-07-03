@@ -41,10 +41,9 @@ def main():
         #init test addr with random value
         rocket.mem[TESTCASE_ADDR] = 0x456fff
 
-        #start core (via interrupt pin 0)
+        #start core
         print("Start core")
-        rocket.rocket_setInt(0, 1)
-        rocket.rocket_setInt(0, 0)
+        rocket.rocket_start()
 
 
         #wait for core to complete

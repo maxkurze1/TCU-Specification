@@ -37,9 +37,8 @@ def main():
     #init test addr
     fpga_inst.pm7.mem[TESTCASE_ADDR] = 0x456fff
 
-    #start core (via interrupt 0)
-    fpga_inst.pm7.rocket_setInt(0, 1)
-    fpga_inst.pm7.rocket_setInt(0, 0)
+    #start core
+    fpga_inst.pm7.rocket_start()
 
 
     #wait for core to complete
