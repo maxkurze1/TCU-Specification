@@ -54,7 +54,7 @@ The following sections use pseudo code to describe the behavior of the external 
 on the following building blocks:
 
 \begin{itemize}
-  \item \texttt{ext\_fail(error)}:\\
+  \item \texttt{ext\_stop(error)}:\\
   stop the execution of the external command by setting the opcode in \texttt{EXT\_CMD} to 0 and the
   error code to the given error.
 \end{itemize}
@@ -71,7 +71,7 @@ on the following building blocks:
     \BlankLine
     $ep \gets$ read\_ep(epid)\;
     \uIf{force == 0 and ep.type == SEND}{
-      \uIf{ep.cur\_crd != ep.max\_crd}{ext\_fail(MISS\_CREDITS)}
+      \uIf{ep.cur\_crd != ep.max\_crd}{ext\_stop(MISS\_CREDITS)}
     }
     \uIf{force == 0 and ep.type == RECEIVE}{
       $EXT\_CMD.arg \gets ep.unread$\;
