@@ -100,6 +100,7 @@ The commands behave as follows:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
+    \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(INV\_ARGS)}
     \BlankLine
     $data \gets read\_remote\_phys(ep.PE, DATA.size, ep.addr + ARG_1)$\;
@@ -115,6 +116,7 @@ The commands behave as follows:
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
     \uIf{ep.rw \& WRITE == 0}{unpriv\_stop(NO\_PERM)}
+    \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(INV\_ARGS)}
     \BlankLine
     $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
