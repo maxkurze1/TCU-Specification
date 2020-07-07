@@ -75,7 +75,7 @@ several building blocks:
   send \texttt{msg} to endpoint \texttt{ep} at given PE
   \item \texttt{send\_ack(error)}:\\
   send ACK to the sending TCU and report given error back
-  \item \texttt{wait\_for\_ack()}:\\
+  \item \texttt{wait\_for\_ack() -> Error}:\\
   wait for the ACK the receiving TCU sends upon successfully storing the message into the receive
   buffer or an error occurred
   \item \texttt{find\_slot(mask, pos, slots, val) -> idx}:\\
@@ -211,7 +211,8 @@ without payload.
     $\quad\quad\quad\quad\quad sep \gets sepid$\;
     $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
     $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
-    $wait\_for\_ack()$\;
+    $err \gets wait\_for\_ack()$\;
+    \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{SEND} command.}
@@ -288,17 +289,6 @@ without payload.
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
-    $header \gets$ \{ flags $\gets$ REPLY\;
-    $\quad\quad\quad\quad\quad label \gets sep.label$\;
-    $\quad\quad\quad\quad\quad length \gets DATA.size$\;
-    $\quad\quad\quad\quad\quad rsize \gets 0$\;
-    $\quad\quad\quad\quad\quad rlabel \gets 0$\;
-    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
-    $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
-    $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
-    $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
-    $wait\_for\_ack()$\;
-    \BlankLine
     \extstart{pemux}
     \uIf{ep.unread.is\_set(idx)}{
       CUR\_VPE.msgs -= 1\;
@@ -308,6 +298,18 @@ without payload.
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
+    \BlankLine
+    $header \gets$ \{ flags $\gets$ REPLY\;
+    $\quad\quad\quad\quad\quad label \gets sep.label$\;
+    $\quad\quad\quad\quad\quad length \gets DATA.size$\;
+    $\quad\quad\quad\quad\quad rsize \gets 0$\;
+    $\quad\quad\quad\quad\quad rlabel \gets 0$\;
+    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
+    $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
+    $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
+    $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
+    $err \gets wait\_for\_ack()$\;
+    \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{REPLY} command.}
