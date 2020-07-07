@@ -170,6 +170,9 @@ The header is defined as:
 
 \subsection{\texttt{SEND}}
 
+Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver
+without payload.
+
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != SEND or ep.reply != 0\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
@@ -265,6 +268,9 @@ and stores messages. Nevertheless, its behavior is described by the following al
 \end{algorithm}
 
 \subsection{\texttt{REPLY}}
+
+Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver
+without payload.
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
