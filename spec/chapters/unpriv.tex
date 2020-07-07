@@ -320,7 +320,7 @@ without payload.
     \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
     \uIf{ep.unread == 0\colorbox{pemux}{ or CUR\_VPE.msgs == 0}}{
       $ARG_1 \gets -1$\;
-      unpriv\_stop(0)\;
+      unpriv\_stop(NONE)\;
     }
     \BlankLine
     $idx \gets$ find\_slot(ep.unread, ep.rpos, ep.slots, 1)\;
