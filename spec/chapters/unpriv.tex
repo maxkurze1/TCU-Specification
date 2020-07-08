@@ -173,7 +173,12 @@ The header is defined as:
 \subsection{\texttt{SEND}}
 
 Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver
-without payload.
+without payload. Note also the placement of \texttt{read\_local}: this transfer can fail due to
+pagefaults or command abortions, but we haven't changed any state before. After this transfer, we
+reduce the credits and send the message. The latter can again fail, but only if the receive EP is
+invalid or full. If credits are not used and the receive EP is full, the state has not changed.
+Otherwise, the failure indicates a broken communication channel and we consider it acceptable to
+leave the send EP in a broken state, too (one credit is lost and we never get it back).
 
 \begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
@@ -205,7 +210,10 @@ without payload.
     \uElse{
         $sepid \gets 0xFFFF$\;
     }
-    \BlankLine
+    \caption{The TCU's \texttt{SEND} command.}
+\end{algorithm}
+
+\begin{algorithm}
     $header \gets$ \{ flags $\gets$ 0\;
     $\quad\quad\quad\quad\quad label \gets ep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
@@ -219,7 +227,7 @@ without payload.
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The TCU's \texttt{SEND} command.}
+    \caption{The TCU's \texttt{SEND} command (continued).}
 \end{algorithm}
 
 \subsection{\texttt{RECEIVE}}
@@ -275,7 +283,9 @@ and stores messages. Nevertheless, its behavior is described by the following al
 
 \subsection{\texttt{REPLY}}
 
-Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver without payload.
+Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver
+without payload. Like for \texttt{SEND}, note also the placement of \texttt{read\_local} and places
+where state is changed.
 
 \begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
