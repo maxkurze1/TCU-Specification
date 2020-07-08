@@ -98,10 +98,11 @@ The commands behave as follows:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
+    \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
-    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(INV\_ARGS)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     $data \gets read\_remote\_phys(ep.PE, DATA.size, ep.addr + ARG_1)$\;
     $err \gets write\_local(data, DATA.address, DATA.size)$\;
@@ -114,10 +115,11 @@ The commands behave as follows:
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != MEMORY\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
+    \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& WRITE == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
-    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(INV\_ARGS)}
+    \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     $(err, data) \gets read\_local(DATA.address, DATA.size)$\;
     \extstart{vm}\uIf{err != 0}{unpriv\_stop(err)}\extend{}
@@ -173,14 +175,16 @@ The header is defined as:
 Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver
 without payload.
 
-\begin{algorithm}[H]
+\begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != SEND or ep.reply != 0\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
-    \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_stop(INV\_ARGS)}
+    \uIf{ep.type != SEND}{unpriv\_stop(NO\_SEP)}
+    \uIf{ep.reply != 0}{unpriv\_stop(SEND\_REPLY\_EP)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
       $rep \gets read\_ep(COMMAND.arg_0$)\;
-      \uIf{rep.type != RECEIVE}{unpriv\_stop(INV\_EP)}
+      \uIf{rep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
       $repid \gets COMMAND.arg_0$\;
       $rsize \gets rep.slot\_size$\;
     }
@@ -193,7 +197,7 @@ without payload.
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
-        \uIf{ep.cur\_crd == 0}{unpriv\_stop(MISS\_CREDITS)}
+        \uIf{ep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
         ep.cur\_crd -= 1\;
         $write\_ep(COMMAND.ep, ep)$\;
         $sepid \gets COMMAND.ep$\;
@@ -225,10 +229,11 @@ and stores messages. Nevertheless, its behavior is described by the following al
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(rep)\;
-    \uIf{ep.type != RECEIVE or (ep.buffer \& 0x7) != 0}{send\_ack(INV\_EP) and drop message}
+    \uIf{ep.type != RECEIVE}{send\_ack(RECV\_GONE) and drop message}
+    \uIf{(ep.buffer \& 0x7) != 0}{send\_ack(RECV\_MISALIGN) and drop message}
     \BlankLine
     $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
-    \uIf{idx == -1}{send\_ack(NO\_RING\_SPACE) and drop message}
+    \uIf{idx == -1}{send\_ack(RECV\_NO\_SPACE) and drop message}
     $ep.occupied.set\_bit(idx)$\;
     $ep.wpos \gets idx + 1$\;
     \BlankLine
@@ -275,17 +280,20 @@ without payload.
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE or ep.rpl\_eps == 0xFFFF\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
+    \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
+    \uIf{ep.rpl\_eps == 0xFFFF}{unpriv\_stop(REPLIES\_DISABLED)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
-    \uIf{sep.type != SEND or sep.reply == 0}{unpriv\_stop(INV\_ARGS)}
-    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_stop(INV\_ARGS)}
+    \uIf{sep.type != SEND}{unpriv\_stop(NO\_SEP)}
+    \uIf{sep.reply == 0}{unpriv\_stop(SEND\_REPLY\_EP)}
+    \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
-    \uIf{sep.cur\_crd == 0}{unpriv\_stop(MISS\_CREDITS)}
+    \uIf{sep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
     sep.cur\_crd -= 1\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
@@ -319,7 +327,8 @@ without payload.
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
+    \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.unread == 0\colorbox{pemux}{ or CUR\_VPE.msgs == 0}}{
       $ARG_1 \gets -1$\;
       unpriv\_stop(NONE)\;
@@ -343,7 +352,8 @@ without payload.
 
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
-    \uIf{ep.type != RECEIVE\colorbox{pemux}{ or ep.vpe != $CUR\_VPE.id$}}{unpriv\_stop(INV\_EP)}
+    \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
+    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     \BlankLine

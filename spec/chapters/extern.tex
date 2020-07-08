@@ -71,7 +71,7 @@ on the following building blocks:
     \BlankLine
     $ep \gets$ read\_ep(epid)\;
     \uIf{force == 0 and ep.type == SEND}{
-      \uIf{ep.cur\_crd != ep.max\_crd}{ext\_stop(MISS\_CREDITS)}
+      \uIf{ep.cur\_crd != ep.max\_crd}{ext\_stop(NO\_CREDITS)}
     }
     \uIf{force == 0 and ep.type == RECEIVE}{
       $EXT\_CMD.arg \gets ep.unread$\;
