@@ -277,7 +277,7 @@ and stores messages. Nevertheless, its behavior is described by the following al
 
 Note that \texttt{DATA.size == 0} is allowed and sends only the message header to the receiver without payload.
 
-\begin{algorithm}[H]
+\begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
     \uIf{ep.rpl\_eps == 0xFFFF}{unpriv\_stop(REPLIES\_DISABLED)}
@@ -306,7 +306,11 @@ Note that \texttt{DATA.size == 0} is allowed and sends only the message header t
     $ep.occupied.clear\_bit(idx)$\;
     $ep.unread.clear\_bit(idx)$\;
     $write\_ep(COMMAND.ep, ep)$\;
-    \BlankLine
+    \caption{The TCU's \texttt{REPLY} command.}
+\end{algorithm}
+
+\begin{algorithm}
+    \setcounter{AlgoLine}{29}
     $header \gets$ \{ flags $\gets$ REPLY\;
     $\quad\quad\quad\quad\quad label \gets sep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
@@ -320,7 +324,7 @@ Note that \texttt{DATA.size == 0} is allowed and sends only the message header t
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     $COMMAND \gets 0$\;
-    \caption{The TCU's \texttt{REPLY} command.}
+    \caption{The TCU's \texttt{REPLY} command (continued).}
 \end{algorithm}
 
 \subsection{\texttt{FETCH}}
