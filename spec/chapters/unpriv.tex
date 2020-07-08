@@ -284,6 +284,7 @@ Note that \texttt{DATA.size == 0} is allowed and sends only the message header t
     \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
+    \uIf{idx >= $1 << ep.slots$}{unpriv\_stop(INV\_MSG\_OFF)}
     $sep = read\_ep(ep.rpl\_eps + idx)$\;
     \uIf{sep.type != SEND}{unpriv\_stop(NO\_SEP)}
     \uIf{sep.reply == 0}{unpriv\_stop(SEND\_REPLY\_EP)}
@@ -355,6 +356,7 @@ Note that \texttt{DATA.size == 0} is allowed and sends only the message header t
     \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
+    \uIf{idx >= $1 << ep.slots$}{unpriv\_stop(INV\_MSG\_OFF)}
     \BlankLine
     \extstart{pemux}
     \uIf{ep.unread.is\_set(idx)}{
