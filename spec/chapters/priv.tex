@@ -122,8 +122,7 @@ several building blocks:
 \subsection{\texttt{XCHG\_VPE}}
 
 \begin{algorithm}[H]
-    $old \gets CUR\_VPE$\;
-    $OLD\_VPE \gets old$\;
+    $PRIV\_CMD\_ARG1 \gets CUR\_VPE$\;
     $CUR\_VPE \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
     \BlankLine
     $PRIV\_CMD.op \gets 0$\;

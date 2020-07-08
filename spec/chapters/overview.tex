@@ -86,7 +86,7 @@ either extension as \extbox{vmpex}.
       regtbl/.style={draw=black,fill=gray!30,minimum width=3cm}
     ]
 
-    \node[draw=black,minimum width=7cm,minimum height=7.65cm,anchor=north west] (tcu) at(4,0) {};
+    \node[draw=black,minimum width=7cm,minimum height=7cm,anchor=north west] (tcu) at(4,0) {};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=north west] (cu) at (0,0) {CU};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=south west] (mem) at (0,-7) {SPM/Cache};
 
@@ -123,14 +123,13 @@ either extension as \extbox{vmpex}.
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
     \node[
-      regtbl,fill=vmpex,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
+      regtbl,fill=vmpex,below right=0cm and .38cm of cmdregs.north east,minimum height=3cm
     ] (prvregs) {};
     \node[below=.1cm of prvregs.north] {PrivRegs};
     \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CORE\_REQ}};
     \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CMD}};
     \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD\_ARG}};
     \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_VPE}};
-    \node[tcureg,below=0cm of prvreg3]        (prvreg4) {\texttt{OLD\_VPE}};
 
     \path
       let \p1=(cu.east), \p2=(tcu.west) in
@@ -207,8 +206,7 @@ as follows:
   \texttt{0xF000\_2000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmpex} \\
   \texttt{0xF000\_2008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
   \texttt{0xF000\_2010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
-  \texttt{0xF000\_2018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \\
-  \texttt{0xF000\_2020} & \texttt{OLD\_VPE} & PrivRegs & Old VPE when changing VPEs \extend{} \\
+  \texttt{0xF000\_2018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \extend{} \\
 \end{tabular}\\[1em]
 
 \section{Error List}
