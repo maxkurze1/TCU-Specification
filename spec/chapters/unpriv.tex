@@ -199,7 +199,7 @@ leave the send EP in a broken state, too (one credit is lost and we never get it
     }
     \BlankLine
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
-    \uIf{err != 0}{unpriv\_stop(err)}
+    \extstart{vm}\uIf{err != 0}{unpriv\_stop(err)}\extend{}
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
         \uIf{ep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
@@ -301,7 +301,7 @@ where state is changed.
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
-    \uIf{err != 0}{unpriv\_stop(err)}
+    \extstart{vm}\uIf{err != 0}{unpriv\_stop(err)}\extend{}
     \BlankLine
     \uIf{sep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
     sep.cur\_crd -= 1\;
