@@ -6,9 +6,9 @@ used to pass input arguments for a command to the TCU, start a command, and wait
 is finished. The following unprivileged registers are used:
 
 \begin{register}{H}{COMMAND}{\texttt{0xF000\_0010}}
-  \regfieldb[gray!20]{reserved}{8}{56}%
-  \regfieldb{arg0}{32}{24}%
-  \regfieldb{error}{4}{20}%
+  \regfieldb[gray!20]{reserved}{7}{57}%
+  \regfieldb{arg0}{32}{25}%
+  \regfieldb{error}{5}{20}%
   \regfieldb{ep}{16}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -101,6 +101,7 @@ The commands behave as follows:
     \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
     \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
+    \uIf{ep.PE == ownPE}{unpriv\_stop(SELF\_READ)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine

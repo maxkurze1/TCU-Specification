@@ -28,8 +28,8 @@ Additionally, the TCU supports \emph{external commands}, which are triggered by 
 register has the following format:
 
 \begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
-  \regfieldb{arg}{56}{8}%
-  \regfieldb{err}{4}{4}%
+  \regfieldb{arg}{55}{9}%
+  \regfieldb{err}{5}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[arg] an argument for the operation
