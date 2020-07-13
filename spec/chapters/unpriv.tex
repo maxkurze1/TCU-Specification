@@ -305,8 +305,7 @@ where state is changed.
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
     \extstart{vm}\uIf{err != 0}{unpriv\_stop(err)}\extend{}
     \BlankLine
-    \uIf{sep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
-    sep.cur\_crd -= 1\;
+    $sep \gets \{~type \gets INVALID~\}$\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
     \extstart{pemux}
