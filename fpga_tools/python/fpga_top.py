@@ -1,6 +1,7 @@
 
 import modids
 import noc
+import router
 import ethernet
 import dram
 import pm
@@ -56,8 +57,11 @@ class FPGA_TOP(fpga):
         #regfile
         #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
 
-        #routers
-        #self.routers = [jtag.JtagDev(self.jtagcomm, 'ROUTER%d' % x) for x in [0,1,2,3]]
+        #NoC router
+        self.r0 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER0), 0)
+        self.r1 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER1), 1)
+        self.r2 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER2), 2)
+        self.r3 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER3), 3)
 
         #DRAM
         self.dram1 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1))
@@ -69,7 +73,6 @@ class FPGA_TOP(fpga):
         self.pm3 = pm.PM(self.nocif, (chipid, modids.MODID_PM3), 3)
         self.pm5 = pm.PM(self.nocif, (chipid, modids.MODID_PM5), 4)
 
-        #self.mods = [self.dram1, self.dram2] + self.pms
 
     def tear(self):
         self.noccomm.tear()

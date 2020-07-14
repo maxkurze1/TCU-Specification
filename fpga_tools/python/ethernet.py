@@ -8,6 +8,8 @@ from tcu import TCU
 
 class EthernetRegfile(memory.Memory):
     def __init__(self, nocif, nocid):
+        self.shortname = "eth_rf"
+        self.name = "Ethernet Regfile"
         self.rf = memory.Memory(nocif, nocid)
 
     def tcu_status(self):
@@ -49,10 +51,9 @@ class EthernetRegfile(memory.Memory):
                 sleep(1)
             else:
                 link_check = -1
-        
+
         if link_check != -1:
             print("Could not reset FPGA!")
-            exit()
 
     def getStatusVector(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x8]

@@ -136,6 +136,6 @@ class PM():
             return 0
 
     #start core via interrupt 0
-    def start_rocket(self):
+    def rocket_start(self):
         self.rocket_setInt(0, 1)
         self.rocket_setInt(0, 0)
