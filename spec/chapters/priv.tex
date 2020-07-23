@@ -11,13 +11,18 @@ privileged software in the management of multiple VPEs or virtual memory, privil
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
 
 \begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2010}}
-  \regfieldb{arg}{60}{4}%
+  \regfieldb{arg}{55}{9}%
+  \regfieldb{err}{5}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[arg] the argument for the privileged command
+    \item[err] the result of the operation (output field)
     \item[op] the opcode of the privileged command
   \end{reglist}\end{regdesc}
 \end{register}
+
+\noindent Note that none of the privileged commands can currently fail. Thus, only unknown command
+opcodes lead to \texttt{err} being set to an a non-zero value.
 
 \extstart{pemux}
 \noindent The TCU stores the id of the current VPE including the number of unread messages in all
@@ -39,7 +44,8 @@ its receive EPs in the \texttt{CUR\_VPE} register:
 
 \section{Command List}
 
-The following privileged commands are supported with the opcodes in parentheses:
+The following privileged commands are supported with the opcodes in parentheses. Other opcodes lead
+to an \texttt{UNKNOWN\_CMD} error.
 
 \begin{itemize}
   \item \texttt{IDLE} (0): \extstart{vmpex} don't do anything, \extend{}
