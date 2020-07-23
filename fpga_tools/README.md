@@ -78,12 +78,12 @@ Rocket boots in BootROM after enable signal was set and waits for external inter
 The current TCU version includes the following features:
 - 64 endpoint registers
 - Full unprivileged interface incl. registers and commands
+- Full external interface incl. registers and commands
 - TCU status info
 - Core-specific registers
 
 The current TCU version does _not_ support:
 - Privileged interface incl. registers and commands
-- External interface incl. registers and commands
 - Virtual memory
 - PE sharing
 
@@ -144,6 +144,8 @@ make program-fpga BITFILE=path/to/bitfile
 
 
 ### Compile code for the target processor
+
+__NOTE - Deprecated section - Compile tool-flow migrated to M3-Repo__
 
 Currently, the compile scripts only support 32-bit RISC-V cores:
 
