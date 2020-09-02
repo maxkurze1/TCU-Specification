@@ -10,7 +10,7 @@ requests}, which are raised by the TCU and answered by the privileged software. 
 privileged software in the management of multiple VPEs or virtual memory, privileged commands are
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
 
-\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2010}}
+\begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2008}}
   \regfieldb{arg}{55}{9}%
   \regfieldb{err}{5}{4}%
   \regfieldb{op}{4}{0}\regnewline%
@@ -29,7 +29,7 @@ opcodes lead to \texttt{err} being set to an a non-zero value.
 its receive EPs in the \texttt{CUR\_VPE} register:
 
 \setlength{\regWidth}{.95\textwidth}
-\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_2020}}
+\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_2018}}
   \regfield[gray!20]{reserved}{32}{32}{{uninitialized}}%
   \regfield{msgs}{16}{16}{0}%
   \regfield{id}{16}{0}{1111111111111111}%
