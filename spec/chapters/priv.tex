@@ -184,22 +184,22 @@ Since multiple core requests might occur simultaneously, the TCU keeps a queue o
 requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
 \texttt{CORE\_REQ} and injects an interrupt to inform the core about the request. After the handling
 of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
-completion of the request. Upon receiving this signal (as described in \rref{code:corereqfinish}),
-the TCU issues the next core request, if there is any. New core requests, as described in
+completion of the request. Upon receiving this signal, as described in \rref{code:corereqfinish},
+the TCU starts the next core request, if there is any. New core requests, as described in
 \rref{code:corereqstart}, are appended to the queue via \texttt{queue\_foreign\_msg\_req()} (see
 \rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}) and started,
 if possible.
 
 \subsection{Pseudo Code}
 
-The following pseudo code describes the behavior in more detail:
+The following pseudo code describes the TCU's behavior regarding core requests in more detail.
 
 \begin{algorithm}[H]
     \SetKwFunction{FMain}{queue\_xlate\_req}
     \SetKwProg{Fn}{Function}{:}{}
     \Fn{\FMain{$vpe$, $virt$, $access$, $can\_pf$}}{
       $queue.enqueue(vpe\ |\ virt\ |\ access\ |\ can\_pf\ |\ 2)$\;
-      $queue\_try\_issue()$\;
+      $try\_start\_req()$\;
     }
     \textbf{End Function}
     \BlankLine
@@ -208,12 +208,12 @@ The following pseudo code describes the behavior in more detail:
     \SetKwProg{Fn}{Function}{:}{}
     \Fn{\FMain{$vpe$, $ep$}}{
       $queue.enqueue(vpe\ |\ ep\ |\ 3)$\;
-      $queue\_try\_issue()$\;
+      $try\_start\_req()$\;
     }
     \textbf{End Function}
     \BlankLine
 
-    \SetKwFunction{FMain}{queue\_try\_issue}
+    \SetKwFunction{FMain}{try\_start\_req}
     \SetKwProg{Fn}{Function}{:}{}
     \Fn{\FMain{}}{
       \uIf{CORE\_REQ.type == 0 and not queue.empty()}{
@@ -240,9 +240,9 @@ The following pseudo code describes the behavior in more detail:
       }
       $CORE\_REQ \gets 0$\;
       \BlankLine
-      $queue\_try\_issue()$\;
+      $try\_start\_req()$\;
     }
-    \caption{Dequeuing and finishing core requests.}
+    \caption{Dequeuing and finishing of core requests.}
     \label{code:corereqfinish}
 \end{algorithm}
 
