@@ -63,10 +63,10 @@ The following sections use pseudo code to describe the behavior of the privilege
 several building blocks:
 
 \begin{itemize}
-  \item \texttt{insert\_tlb\_entry(asid, virt, phys, flags)}: \extstart{vm}\\
-  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for address space \texttt{asid}
-  \item \texttt{remove\_tlb\_entry(asid, virt)}:\\
-  removes the entry with \texttt{virt} in address space \texttt{asid}
+  \item \texttt{insert\_tlb\_entry(vpe, virt, phys, flags)}: \extstart{vm}\\
+  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for given VPE
+  \item \texttt{remove\_tlb\_entry(vpe, virt)}:\\
+  removes the entry with \texttt{virt} for given VPE
   \item \texttt{clear\_tlb()}:\\
   removes all entries from the TLB \extend{}
   \item \texttt{set\_timer(timeout)}: \extstart{pemux}\\
@@ -96,10 +96,10 @@ several building blocks:
 \subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
-    $asid \gets PRIV\_CMD.arg0 >> 32$\;
+    $vpe \gets PRIV\_CMD.arg0 >> 32$\;
     $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
     \BlankLine
-    $remove\_tlb\_entry(asid, virt)$\;
+    $remove\_tlb\_entry(vpe, virt)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_PAGE} command.}
 \end{algorithm}
@@ -115,12 +115,12 @@ several building blocks:
 \subsection{\texttt{INS\_TLB}}
 
 \begin{algorithm}[H]
-    $asid \gets PRIV\_CMD.arg0 >> 32$\;
+    $vpe \gets PRIV\_CMD.arg0 >> 32$\;
     $virt \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     $phys \gets PRIV\_CMD\_ARG1$\;
     \BlankLine
-    $insert\_tlb\_entry(asid, virt, phys, flags)$\;
+    $insert\_tlb\_entry(vpe, virt, phys, flags)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
