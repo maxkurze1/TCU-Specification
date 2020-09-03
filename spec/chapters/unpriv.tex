@@ -103,7 +103,6 @@ The commands behave as follows:
     \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
     \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
-    \uIf{ep.PE == ownPE}{unpriv\_stop(SELF\_READ)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
