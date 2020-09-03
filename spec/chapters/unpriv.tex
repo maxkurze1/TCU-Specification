@@ -87,7 +87,8 @@ several building blocks:
   stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
   the error code to the given error.
   \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\extstart{pemux}\\
-  append a new foreign-message request to the queue of core requests. \extend{}
+  append a new foreign-message request to the queue of core requests (see
+  \rref{code:corereqstart} for more details). \extend{}
 \end{itemize}
 
 \section{Memory Access}

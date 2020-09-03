@@ -82,10 +82,12 @@ several building blocks:
   \item \texttt{abort\_remote\_xfer()}:\\
   lets the current remote transfer fail, so that \texttt{read\_remote\_phys()} or \texttt{write\_remote\_phys()}
   return the error ABORT (see \rref{sec:unprivcmdspseudo})
-  \item \texttt{abort\_local\_xfer() -> bool}:\\
+  \item \texttt{abort\_local\_xfer(err) -> bool}:\\
   checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,
-  so that \texttt{read\_local()} or \texttt{write\_local()} return the error ABORT (see
-  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted. \extend{}
+  so that \texttt{read\_local()} or \texttt{write\_local()} return the given error (see
+  \rref{sec:unprivcmdspseudo}). Returns true if it was aborted.
+  \item \texttt{resume\_local\_xfer()}:\\
+  resumes a previously paused local transfer (due to an address translation). \extend{}
 \end{itemize}
 
 \section{Command Description}
@@ -161,7 +163,7 @@ several building blocks:
         }
         $wait\_for\_resp()$\;
       }
-      \uElseIf{abort\_local\_xfer()}{
+      \uElseIf{abort\_local\_xfer(ABORT)}{
         $PRIV\_CMD.arg0 \gets 1$\;
       }
     }
@@ -182,15 +184,75 @@ Since multiple core requests might occur simultaneously, the TCU keeps a queue o
 requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
 \texttt{CORE\_REQ} and injects an interrupt to inform the core about the request. After the handling
 of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
-completion of the request. Upon receiving this signal, the TCU issues the next core request, if
-there is any. New core requests are appended to the queue via \texttt{queue\_foreign\_msg\_req()}
-(see \rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}).
+completion of the request. Upon receiving this signal (as described in \rref{code:corereqfinish}),
+the TCU issues the next core request, if there is any. New core requests, as described in
+\rref{code:corereqstart}, are appended to the queue via \texttt{queue\_foreign\_msg\_req()} (see
+\rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}) and started,
+if possible.
+
+\subsection{Pseudo Code}
+
+The following pseudo code describes the behavior in more detail:
+
+\begin{algorithm}[H]
+    \SetKwFunction{FMain}{queue\_xlate\_req}
+    \SetKwProg{Fn}{Function}{:}{}
+    \Fn{\FMain{$vpe$, $virt$, $access$, $can\_pf$}}{
+      $queue.enqueue(vpe\ |\ virt\ |\ access\ |\ can\_pf\ |\ 2)$\;
+      $queue\_try\_issue()$\;
+    }
+    \textbf{End Function}
+    \BlankLine
+
+    \SetKwFunction{FMain}{queue\_foreign\_msg\_req}
+    \SetKwProg{Fn}{Function}{:}{}
+    \Fn{\FMain{$vpe$, $ep$}}{
+      $queue.enqueue(vpe\ |\ ep\ |\ 3)$\;
+      $queue\_try\_issue()$\;
+    }
+    \textbf{End Function}
+    \BlankLine
+
+    \SetKwFunction{FMain}{queue\_try\_issue}
+    \SetKwProg{Fn}{Function}{:}{}
+    \Fn{\FMain{}}{
+      \uIf{CORE\_REQ.type == 0 and not queue.empty()}{
+        $CORE\_REQ \gets queue.front()$\;
+      }
+    }
+    \textbf{End Function}
+    \caption{Enqueuing and starting of core requests.}
+    \label{code:corereqstart}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \uIf{CORE\_REQ.type == 1 and not queue.empty()}{
+      $cur = queue.dequeue()$\;
+      \uIf{cur.type == 2}{
+        $flags \gets CORE\_REQ.flags$\;
+        \uIf{flags == 0}{
+          $abort\_local\_xfer(PAGEFAULT)$\;
+        }
+        \uElse{
+          $insert\_tlb\_entry(CORE\_REQ.vpe, cur.virt, CORE\_REQ.phys, flags)$\;
+          $resume\_local\_xfer()$\;
+        }
+      }
+      $CORE\_REQ \gets 0$\;
+      \BlankLine
+      $queue\_try\_issue()$\;
+    }
+    \caption{Dequeuing and finishing core requests.}
+    \label{code:corereqfinish}
+\end{algorithm}
+
+\subsection{Registers}
 
 \begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_2000}}
-  \regfieldb[gray!60]{}{63}{1}%
-  \regfieldb{type}{1}{0}\regnewline%
+  \regfieldb[gray!60]{}{62}{2}%
+  \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[type] the type of CU request (0 = translation, 1 = foreign message)
+    \item[type] the type (0 = idle, 1 = response, 2 = translation, 3 = foreign message)
   \end{reglist}\end{regdesc}
 \end{register}
 
@@ -201,10 +263,10 @@ most of the bits depend on the type of request/response, defined in the followin
 \begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb{virt}{36}{12}%
-  \regfieldb[gray!20]{reserved}{8}{4}%
-  \regfieldb{access}{2}{2}%
-  \regfieldb{pf}{1}{1}%
-  \regfieldb{type}{1}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{7}{5}%
+  \regfieldb{access}{2}{3}%
+  \regfieldb{pf}{1}{2}%
+  \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[pf] whether the translation may page fault or should fail in this case
     \item[access] the requested access permissions (see \rref{sec:tlb})
@@ -215,8 +277,9 @@ most of the bits depend on the type of request/response, defined in the followin
 
 \begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_2000}}
   \regfieldb{phys}{52}{12}%
-  \regfieldb[gray!20]{reserved}{7}{5}%
-  \regfieldb{flags}{5}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{5}{7}%
+  \regfieldb{flags}{5}{2}%
+  \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[flags] the flags for the TLB entry (see \rref{sec:tlb})
     \item[phys] the physical address for the TLB entry
@@ -227,9 +290,9 @@ most of the bits depend on the type of request/response, defined in the followin
 \extstart{pemux}
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
-  \regfieldb[gray!20]{reserved}{31}{17}%
-  \regfieldb{ep}{16}{1}%
-  \regfieldb{type}{1}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{30}{18}%
+  \regfieldb{ep}{16}{2}%
+  \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[ep] the receive EP which received a message
     \item[vpe] the VPE that received the message
@@ -237,6 +300,7 @@ most of the bits depend on the type of request/response, defined in the followin
 \end{register}
 
 \begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_2000}}
-  \regfieldb[gray!20]{reserved}{64}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{62}{2}%
+  \regfieldb{type}{2}{0}\regnewline%
 \end{register}
 \extend{}
