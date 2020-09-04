@@ -7,6 +7,7 @@ class REGFILE(memory.Memory):
     RF_BASE_ADDR = 0x00000000
     COUNTER_SETGET_ADDR = 0x10
     COUNTER_START_ADDR = 0x14
+
     def __init__(self, nocif, nocid):
         self.nocid = nocid
         self.mem = self

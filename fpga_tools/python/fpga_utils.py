@@ -12,6 +12,7 @@ class FPGA_Error(Exception):
 class Progress(threading.Thread):
     MIN_UPD_INVL =  0.1
     EST_UPD_INVL =  1.0
+
     def __init__(self, label="status", max=1000, format="iec", wait=1.0):
         self.label = label
         self.max = max

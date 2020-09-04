@@ -4,7 +4,6 @@ import traceback
 from time import sleep
 
 import modids
-from noc import noc_packet
 import fpga_top
 from fpga_utils import FPGA_Error
 
@@ -17,7 +16,7 @@ memfile = "targets/rocket_boot.hex"
 
 def main():
     print("init!")
-    
+
     #get connection to FPGA, SW12=0000b -> chipid=0
     fpga_inst = fpga_top.FPGA_TOP(0)
     test_result = 0
@@ -34,7 +33,7 @@ def main():
         print("Enable core")
         rocket.start()
         print("Core enabled: %d" % rocket.getEnable())
-        
+
         #init mem (Rocket DRAM starts at 0x10000000)
         rocket.initMem(memfile, 0x10000000)
 
@@ -56,13 +55,13 @@ def main():
 
         if (core_result & 0xF) != TESTCASE_RESULT_DATA:
             test_result += 1
-        
+
         print("Disable core")
         rocket.stop()
 
         print("Core enabled: %d" % rocket.getEnable())
         print("")
-    
+
 
 
     if (test_result == 0):

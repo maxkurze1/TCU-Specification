@@ -1,38 +1,4 @@
-"""
-accessing memory modules on the chip
-"""
-def memfilestream(fname):
-    """reads the contend of the file and returns a stream of datablocks.
-    this stream can be passed to Memory_Slice.writememdata()"""
-    fhand = open(fname, 'r')
-    addr = 0
-    data = []
-    for line in fhand:
-        if line[0] == '@':
-            if data:
-                yield MemSlice(addr, data)
-            naddr = int(line[1:9], 16)*8
-            assert naddr >= addr + len(data)*8
-            addr = naddr
-            data = []
-        elif line[0] == 'z':
-            if data:
-                yield MemSlice(addr, data)
-            naddr = int(line[1:9], 16)*8
-            ndata = int(line[10:18], 16)
-            assert naddr >= addr + len(data)*8
-            addr = naddr
-            data = [0 for v in range(0, ndata)]
-        else:
-            data.append(int(line[0:16], 16))
-    if data:
-        yield MemSlice(addr, data)
-
-def memusage(fname):
-    """prints the sizes of each memory block in the file"""
-    for slic in memfilestream(fname):
-        print("%08x - %08x (%i B)" % (slic.begin, slic.end(), len(slic)))
-
+from elftools.elf.elffile import ELFFile
 
 class Memory(object):
     """
@@ -44,84 +10,82 @@ class Memory(object):
         self.ispe = ispe
         self.offset = offset
 
-    def read(self, start, amount):
+    def read_word(self, addr):
         """
-        read values from the memory returning a MemSlice object
+        read a single 64-bit integer from memory at given address
         """
-        #assert start % 8 == 0
-        if amount == 1:
-            data = [x.data0 for x in self.nocif.read(self.nocid, start + self.offset, amount)]
-        else:
-            data = []
-            for x in self.nocif.read(self.nocid, start + self.offset, amount):
-                data.append(x.data0)
-                data.append(x.data1)
-        return MemSlice(start, data)
+        return self.read_words(addr, 1)[0]
 
-    def write(self, slic, force_no_burst=False):
+    def read_words(self, addr, count):
         """
-        write MemSlice object to memory
+        read <count> 64-bit integers from memory at given address
         """
-        assert isinstance(slic, MemSlice)
-        self.nocif.write(self.nocid, slic.begin + self.offset, slic.data, force_no_burst)
+        data = self.read_bytes(addr, count * 8)
+        res = []
+        for off in range(0, count * 8, 8):
+            res.append(int.from_bytes(data[off:off + 8], byteorder='little'))
+        return res
 
-    def writes(self, slics, force_no_burst=False):
+    def read_bytes(self, addr, len):
         """
-        writes multiple MemSlice objects to memory
+        read bytes from memory at given address
         """
-        for slic in slics:
-            self.write(slic, force_no_burst)
+        assert isinstance(addr, int), "address must be an integer"
+        return self.nocif.read_bytes(self.nocid, addr + self.offset, len)
 
-    def check(self, slic):
+    def write_word(self, addr, word):
         """
-        check if the data from a MemSlice is present in the memory
+        writes a 64-bit integer into memory at given address
         """
-        curr = self.read(slic.begin, len(slic) / 8)
-        if curr != slic:
-            return False
-        else:
-            return True
+        return self.write_words(addr, [word], False)
 
-    def checks(self, slics):
+    def write_words(self, addr, words, burst=True):
         """
-        checks multiple MemSlices for live consistency
+        writes a list of 64-bit integers into memory at given address
         """
-        for slic in slics:
-            if not self.check(slic):
-                return False
-        return True
+        assert isinstance(words, list), "words must be a list of integers"
+        data = bytearray()
+        for word in words:
+            assert isinstance(word, int), "words must be a list of integers"
+            data += word.to_bytes(8, byteorder='little')
+        return self.write_bytes(addr, bytes(data), burst)
 
-    def set32(self, start, val):
+    def write_elf(self, file):
         """
-        writes a list of 32bit vales to a memory address
+        Writes the LOAD segments of the given ELF binary into memory
         """
-        assert isinstance(start, int), "address must be a integer"
-        if isinstance(val, int):
-            return self.set32(start, [val])
-        assert isinstance(val, list), "values must be an integer or a list"
-        assert start & 0x3 == 0, "bad start address for 32bit set"
-        lst = []
-        vals = val[:]
-        if start & 0x4:
-            start &= 0xfffffff8
-            data = self[start]
-            lst.append((data & 0xffffffff) | (vals.pop(0) << 32))
-        for i in range(len(vals)/2):
-            lst.append((vals[i*2+1] << 32) | vals[i*2])
-        if len(vals) % 2:
-            data = self[start + len(lst) * 8]
-            lst.append((data & 0xffffffff00000000) | vals[-1])
-        self.write(MemSlice(start, lst))
+        with open(file, 'rb') as f:
+            elf = ELFFile(f)
+            for seg in elf.iter_segments():
+                if seg['p_type'] != 'PT_LOAD':
+                    continue
 
-    def set64(self, start, val):
+                if seg['p_filesz'] > 0:
+                    print("Loading {} bytes at {:#x}".format(seg['p_filesz'], seg['p_vaddr']))
+                    self.write_bytes_checked(seg['p_vaddr'], seg.data())
+
+                zero_num = seg['p_memsz'] - seg['p_filesz']
+                if zero_num > 0:
+                    addr = seg['p_vaddr'] + seg['p_filesz']
+                    print("Zeroing {} bytes at {:#x}".format(zero_num, addr))
+                    self.write_bytes_checked(addr, bytes([0] * zero_num))
+
+    def write_bytes(self, addr, data, burst=True):
         """
-        writes a list of 64bit vales to a memory address
+        write bytes into memory at given address
         """
-        assert isinstance(start, int), "address must be a integer"
-        if isinstance(val, (int, int)):
-            return self.set64(start, [val])
-        assert isinstance(val, list), "values must be an integer or a list"
-        self.write(MemSlice(start, val))
+        assert isinstance(addr, int), "address must be an integer"
+        assert isinstance(data, bytes), "data must be a byte-like object"
+        return self.nocif.write_bytes(self.nocid, self.offset + addr, data, burst)
+
+    def write_bytes_checked(self, addr, data, burst=True):
+        """
+        writes bytes into memory at given address and checks whether the data has been written
+        correctly by reading it afterwards.
+        """
+        self.write_bytes(addr, data)
+        written = self.read_bytes(addr, len(data))
+        assert written == data
 
     def __repr__(self):
         return '<Memory Module:%d:%d>' % self.nocid
@@ -135,17 +99,11 @@ class Memory(object):
             if isinstance(val, int):
                 val = [val] * size
             assert isinstance(val, list)
-            if len(val) < size:
-                val = val * (size / len(val) + 1)
-                val = val[:int(size)]
-            elif len(val) > size:
-                val = val[:int(size)]    #only send 'size' values, not length of val
-            self.write(MemSlice(idx.start, val))
-
+            assert len(val) == size
+            self.write_words(idx.start, val)
         elif isinstance(idx, int):
             assert isinstance(val, int)
-            self.write(MemSlice(idx, [val]))
-
+            self.write_word(idx, val)
         else:
             assert False, "setitem: index type:%s (%s)" % (type(idx), idx)
 
@@ -155,115 +113,9 @@ class Memory(object):
             assert idx.start % 8 == 0 and idx.stop % 8 == 0, \
                 "range is not 8-byte aligned: 0x%x:0x%x" % (idx.start, idx.stop)
             size = (idx.stop - idx.start) / 8
-            return self.read(idx.start, size)
+            return self.read_words(idx.start, size)
         elif isinstance(idx, int):
             assert idx % 8 == 0, "index must be 8-byte aligned 0x%x" % idx
-            slic = self.read(idx, 1)
-            return slic.data[0]
+            return self.read_word(idx)
         else:
             assert False, "getitem: index type: %s (%s)" % (type(idx), idx)
-
-
-class MemSlice(object):
-    """
-    represents a data piece of a memory
-    """
-    def __init__(self, begin, data):
-        assert isinstance(data, list)
-        for val in data:
-            assert isinstance(val, int), "data entries should be int not %s (%s)" % (type(val), val)
-        self.begin = int(begin)
-        self.data = data
-
-    def end(self):
-        """
-        returns the end address of the mem slice
-        """
-        return self.begin + len(self)
-
-    def __len__(self):
-        return len(self.data) * 8
-
-    def __cmp__(self, other):
-        #no cmp function in Python3
-        ret = (self.begin > other.begin) - (self.begin < other.begin)
-        if ret:
-            return ret
-        ret = (len(self) > len(other)) - (len(self) < len(other))
-        if ret:
-            return ret
-        for val1, val2 in zip(self.data, other.data):
-            #ret = cmp(val1, val2)
-            ret = (val1 > val2) - (val1 < val2)
-            if ret:
-                return ret
-        return 0
-
-    def __getitem__(self, idx):
-        return self.get64(idx)
-
-    def get64(self, addr):
-        """
-        get a 64bit data word from a specified address
-        """
-        assert addr >= self.begin and addr < self.end() and addr % 8 == 0, \
-            "cannot get item %x from [%x,%x]" % (addr, self.begin, self.end())
-        return self.data[int((addr - self.begin) / 8)]
-
-    def get32(self, addr):
-        """
-        get a 32bit data word from a specified address
-        """
-        assert (addr & 0x3) == 0, "addr is not 4 byte aligned 0x%x" % addr
-        data = self[addr & 0xfffffff8]
-        if addr & 0x7 == 0:
-            return data & 0xffffffff
-        else:
-            return data >> 32
-
-    def dump(self, rev=False, do32=False, offset=0):
-        """
-        prints the mem slice to the console. Each value in one line with its
-        address. The list can be printed in reversed order (high -> low address)
-        with rev=True. 32bit values can be used by specifieing do32=True. The
-        printed can be offsetted by setting offset=[value]
-        """
-        dat = [(offset + self.begin + 8 * idx, data) \
-            for idx, data in enumerate(self.data)]
-        if do32:
-            datt = []
-            for addr, data in dat:
-                datt.append((addr, data & 0xffffffff))
-                datt.append((addr + 4, data >> 32))
-            dat = datt
-            fmt = "0x%8x: 0x%8x (%10d)"
-        else:
-            fmt = "0x%8x: 0x%16x (%20d)"
-        if rev:
-            dat.reverse()
-        for addr, data in dat:
-            print(fmt % (addr, data, data))
-
-    def getdict(self, b32=False):
-        """
-        returns a dictionary assigning address -> data
-        """
-        if b32:
-            ret = {}
-            for adr in range(self.begin, self.begin + len(self), 4):
-                ret[adr] = self.get32(adr)
-            return ret
-        else:
-            return {self.begin + i*8 : data for i, data in enumerate(self.data)}
-
-    def __iter__(self):
-        for i, data in enumerate(self.data):
-            yield self.begin + i * 8, data
-
-    def iter32(self):
-        """
-        iterator for 32bit values
-        """
-        for i, data in enumerate(self.data):
-            yield self.begin + i * 8, data & 0xffffffff
-            yield self.begin + i * 8 + 4, data >> 32
