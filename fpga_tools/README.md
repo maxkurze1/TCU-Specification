@@ -92,14 +92,14 @@ The TCU status register (addr: `TCU_REGADDR_TCU_STATUS`) provides information ab
 ```
 Bit   | Description
 -------------------
-0     | WRITE or READ (send request packet)
+0     | WRITE
 1     | READ
-2     | SEND
-3     | RECEIVE
-4     | REPLY
-5     | FETCH
-6     | ACK_MSG
-7     | -
+2     | READ (send read request)
+3     | SEND
+4     | RECEIVE
+5     | REPLY
+6     | FETCH
+7     | ACK_MSG
 8-15  | State of NoC FSM
 16-23 | State of Ctrl FSM
 24-31 | -
