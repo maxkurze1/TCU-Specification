@@ -254,7 +254,8 @@ impl Communicator {
             assert!(addr % 16 == 0); // TODO support other alignments
             if burst_pos >= MAX_BURST_LEN {
                 // write initial NoC packet that defines the burst length
-                let word_count = ((data.len() - pos) / BYTES_PER_BURST_PACKET) as u64;
+                let byte_count = cmp::min(MAX_BURST_LEN, data.len() - pos);
+                let word_count = (byte_count / BYTES_PER_BURST_PACKET) as u64;
                 let word_count_bytes = word_count.to_le_bytes();
                 let noc_packet = encode_packet(
                     target,
