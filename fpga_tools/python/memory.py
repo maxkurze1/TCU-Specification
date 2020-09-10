@@ -1,5 +1,15 @@
 from elftools.elf.elffile import ELFFile
 
+import difflib
+
+def bindiff(bin1, bin2):
+    assert len(bin1) == len(bin2)
+    for i in range(0, len(bin1), 16):
+        r1 = bin1[i:i + 16]
+        r2 = bin2[i:i + 16]
+        if r1 != r2:
+            print("{:#x}: {} vs. {}".format(i, r1.hex(), r2.hex()))
+
 class Memory(object):
     """
     represents a memory module on the chip
@@ -85,6 +95,8 @@ class Memory(object):
         """
         self.write_bytes(addr, data)
         written = self.read_bytes(addr, len(data))
+        if written != data:
+            bindiff(data, written)
         assert written == data
 
     def __repr__(self):
