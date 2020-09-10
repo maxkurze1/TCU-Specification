@@ -12,9 +12,11 @@ const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
 const NOC_PACKET_LEN: usize = 18;
 const UDP_PAYLOAD_LEN: usize = 1472;
 
-const MAX_BURST_LEN: usize = 512;
 const BYTES_PER_BURST_PACKET: usize = 16;
 const BYTES_PER_PACKET: usize = 8;
+
+const MAX_READ_BURST_LEN: usize = 32 * BYTES_PER_BURST_PACKET;
+const MAX_WRITE_BURST_LEN: usize = 2047 * BYTES_PER_BURST_PACKET;
 
 const READ_TIMEOUT: Duration = Duration::from_secs(1);
 const MAX_READ_RETRIES: usize = 3;
@@ -142,7 +144,7 @@ impl Communicator {
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
-        let byte_count = cmp::min(MAX_BURST_LEN, len);
+        let byte_count = cmp::min(MAX_READ_BURST_LEN, len);
         let byte_count_bytes = ((byte_count as u64) << 32).to_le_bytes();
         let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
         self.append_packet(&noc_packet)?;
@@ -249,12 +251,12 @@ impl Communicator {
         data: &[u8],
     ) -> std::io::Result<usize> {
         let mut pos = 0;
-        let mut burst_pos = MAX_BURST_LEN;
+        let mut burst_pos = MAX_WRITE_BURST_LEN;
         while pos + BYTES_PER_BURST_PACKET <= data.len() {
             assert!(addr % 16 == 0); // TODO support other alignments
-            if burst_pos >= MAX_BURST_LEN {
+            if burst_pos >= MAX_WRITE_BURST_LEN {
                 // write initial NoC packet that defines the burst length
-                let byte_count = cmp::min(MAX_BURST_LEN, data.len() - pos);
+                let byte_count = cmp::min(MAX_WRITE_BURST_LEN, data.len() - pos);
                 let word_count = (byte_count / BYTES_PER_BURST_PACKET) as u64;
                 let word_count_bytes = word_count.to_le_bytes();
                 let noc_packet = encode_packet(
@@ -270,7 +272,7 @@ impl Communicator {
                 burst_pos = 0;
             }
 
-            let not_last = burst_pos + (BYTES_PER_BURST_PACKET * 2) <= MAX_BURST_LEN
+            let not_last = burst_pos + (BYTES_PER_BURST_PACKET * 2) <= MAX_WRITE_BURST_LEN
                 && (pos + BYTES_PER_BURST_PACKET * 2) <= data.len();
             let noc_packet = encode_packet_burst(not_last, &data[pos..]);
             self.append_packet(&noc_packet)?;
