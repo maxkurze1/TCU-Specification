@@ -144,7 +144,11 @@ impl Communicator {
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
-        let byte_count = cmp::min(MAX_READ_BURST_LEN, len);
+        let mut byte_count = cmp::min(MAX_READ_BURST_LEN, len);
+        // TODO workaround for TCU bug
+        if byte_count == MAX_READ_BURST_LEN && addr as usize % BYTES_PER_BURST_PACKET > BYTES_PER_PACKET {
+            byte_count -= addr as usize % BYTES_PER_BURST_PACKET;
+        }
         let byte_count_bytes = ((byte_count as u64) << 32).to_le_bytes();
         let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
         self.append_packet(&noc_packet)?;
