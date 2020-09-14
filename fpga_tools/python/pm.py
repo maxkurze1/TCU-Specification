@@ -35,6 +35,9 @@ class PM():
     def tcu_reset(self):
         self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
 
+    def tcu_set_privileged(self, priv):
+        self.mem[TCU.TCU_REGADDR_FEATURES] = priv
+
     def tcu_ctrl_flit_count(self):
         flits = self.mem[TCU.TCU_REGADDR_TCU_CTRL_FLIT_COUNT]
         flits_rx = flits & 0xFFFFFFFF
