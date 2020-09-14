@@ -1,7 +1,7 @@
 
 import noc
 import memory
-from tcu import TCU
+from tcu import TCU, EP
 from fpga_utils import Progress
 
 
@@ -37,6 +37,12 @@ class PM():
 
     def tcu_set_privileged(self, priv):
         self.mem[TCU.TCU_REGADDR_FEATURES] = priv
+
+    def tcu_get_ep(self, ep_id):
+        r0 = self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 0]
+        r1 = self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 8]
+        r2 = self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 16]
+        return EP.from_regs([r0, r1, r2])
 
     def tcu_ctrl_flit_count(self):
         flits = self.mem[TCU.TCU_REGADDR_TCU_CTRL_FLIT_COUNT]
