@@ -160,7 +160,6 @@ impl Communicator {
                 NocPacket::Normal((src, mode, off, data)) => {
                     // TODO if the mode is not ReadResp, keep it for later
                     assert!(mode == Mode::ReadResp);
-                    assert!(off == 0);
 
                     if self.burst.is_some() {
                         debug!("Received burst-start from {} at offset {:#x}", src, off);
