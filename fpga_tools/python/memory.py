@@ -93,7 +93,7 @@ class Memory(object):
         writes bytes into memory at given address and checks whether the data has been written
         correctly by reading it afterwards.
         """
-        self.write_bytes(addr, data)
+        self.write_bytes(addr, data, burst)
         written = self.read_bytes(addr, len(data))
         if written != data:
             bindiff(data, written)
