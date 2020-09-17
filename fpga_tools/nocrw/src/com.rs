@@ -144,48 +144,45 @@ impl Communicator {
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
-        let mut byte_count = cmp::min(MAX_READ_BURST_LEN, len);
-        // TODO workaround for TCU bug
-        if byte_count == MAX_READ_BURST_LEN && addr as usize % BYTES_PER_BURST_PACKET > BYTES_PER_PACKET {
-            byte_count -= addr as usize % BYTES_PER_BURST_PACKET;
-        }
+        let byte_count = cmp::min(MAX_READ_BURST_LEN, len);
         let byte_count_bytes = ((byte_count as u64) << 32).to_le_bytes();
         let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
         self.append_packet(&noc_packet)?;
         self.flush_packets()?;
 
-        let (size, _) = self.sock.recv_from(buf)?;
-
         let org_len = res.len();
-        let mut pos = 0;
-        while pos + NOC_PACKET_LEN <= size {
-            let noc_packet = self.decode_packet(&buf[pos..]);
-            match noc_packet {
-                NocPacket::Normal((src, mode, off, data)) => {
-                    // TODO if the mode is not ReadResp, keep it for later
-                    assert!(mode == Mode::ReadResp);
+        while res.len() - org_len < byte_count {
+            let (size, _) = self.sock.recv_from(buf)?;
 
-                    if self.burst.is_some() {
-                        debug!("Received burst-start from {} at offset {:#x}", src, off);
-                    }
-                    else {
-                        debug!(
-                            "Received packet from {} at offset {:#x}: {:02x?}",
-                            src, off, data
-                        );
+            let mut pos = 0;
+            while pos + NOC_PACKET_LEN <= size {
+                let noc_packet = self.decode_packet(&buf[pos..]);
+                match noc_packet {
+                    NocPacket::Normal((src, mode, off, data)) => {
+                        // TODO if the mode is not ReadResp, keep it for later
+                        assert!(mode == Mode::ReadResp);
+
+                        if self.burst.is_some() {
+                            debug!("Received burst-start from {} at offset {:#x}", src, off);
+                        }
+                        else {
+                            debug!(
+                                "Received packet from {} at offset {:#x}: {:02x?}",
+                                src, off, data
+                            );
+                            res.extend(data.iter().rev());
+                        }
+                    },
+                    NocPacket::Burst(data) => {
                         res.extend(data.iter().rev());
-                    }
-                },
-                NocPacket::Burst(data) => {
-                    res.extend(data.iter().rev());
-                },
+                    },
+                }
+                pos += NOC_PACKET_LEN;
             }
-            pos += NOC_PACKET_LEN;
+            assert!(pos == size);
         }
 
-        assert!(pos == size);
-        assert!(res.len() - org_len <= len);
-
+        assert!(res.len() - org_len == byte_count);
         Ok(res.len() - org_len)
     }
 
