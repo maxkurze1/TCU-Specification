@@ -15,7 +15,9 @@ const UDP_PAYLOAD_LEN: usize = 1472;
 const BYTES_PER_BURST_PACKET: usize = 16;
 const BYTES_PER_PACKET: usize = 8;
 
-const MAX_READ_BURST_LEN: usize = 32 * BYTES_PER_BURST_PACKET;
+// TODO using 2047 leads to an EAGAIN error for recv_from after about 50KB. using 1024+512 seems to
+// work fine and reaches a sufficiently high data rate.
+const MAX_READ_REQ_LEN: usize = (1024 + 512) * BYTES_PER_BURST_PACKET;
 const MAX_WRITE_BURST_LEN: usize = 2047 * BYTES_PER_BURST_PACKET;
 
 const READ_TIMEOUT: Duration = Duration::from_secs(1);
@@ -144,7 +146,7 @@ impl Communicator {
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
-        let byte_count = cmp::min(MAX_READ_BURST_LEN, len);
+        let byte_count = cmp::min(MAX_READ_REQ_LEN, len);
         let byte_count_bytes = ((byte_count as u64) << 32).to_le_bytes();
         let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
         self.append_packet(&noc_packet)?;
