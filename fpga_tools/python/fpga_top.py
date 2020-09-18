@@ -35,14 +35,18 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
+    def __init__(self, fpga_sw=0, use_uart=False):
+        if fpga_sw >= 15:
+            print("Invalid FPGA IP address selected! Only use 192.168.42.240-254")
+            raise ValueError
 
-    def __init__(self, chipid=0, use_uart=False):
-        self.fpga_ip_addr = str(IPv4Address(int(IPv4Address(self.FPGA_IP)) + chipid))
+        self.fpga_ip_addr = str(IPv4Address(int(IPv4Address(self.FPGA_IP)) + fpga_sw))
 
-        #self.jtagcomm = jtag.JTAGComm('th4')
+        #DIP switch determines Chip-ID - currently disabled
+        #chipid = fpga_sw
+        chipid = 0
 
         #periphery
-        #self.fpgaif = fpgaif.FPGA_if(self.jtagcomm, self.noccomm)
         if use_uart:
             self.uart = uart.UART('/dev/ttyUSB1')
 
