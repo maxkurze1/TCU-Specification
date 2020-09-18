@@ -48,7 +48,7 @@ class MemEP(EP):
         return (self.regs[0] >> 19) & 0xF
 
     def __repr__(self):
-        return "MemEP[pe={}, addr={:#x}, size={:#x}, flags={}]".format(
+        return "Mem [pe={}, addr={:#x}, size={:#x}, flags={}]".format(
             MODID_TO_PMID[self.pe()], self.addr(), self.size(), self.flags()
         )
 
@@ -74,7 +74,7 @@ class SendEP(EP):
         return (self.regs[0] >> 19) & 0x3F
 
     def __repr__(self):
-        return "SendEP[dst={}:{}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
+        return "Send[dst={}:{}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
             MODID_TO_PMID[self.pe()], self.ep(), self.label(), self.msg_size(), self.cur_crd(),
             self.max_crd(), self.is_reply()
         )
@@ -101,7 +101,7 @@ class RecvEP(EP):
         return (self.regs[0] >> 19) & 0xFFFF
 
     def __repr__(self):
-        return "RecvEP[buffer={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
+        return "Recv[buffer={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
             self.buffer(), self.slots(), self.slot_size(), self.unread(), self.occupied(),
             self.reply_eps(), self.rpos(), self.wpos()
         )
