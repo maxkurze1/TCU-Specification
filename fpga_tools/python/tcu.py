@@ -108,7 +108,7 @@ class RecvEP(EP):
 
 class TCU():
 
-    TCU_EP_REG_COUNT = 32
+    TCU_EP_REG_COUNT = 64
     TCU_CFG_REG_COUNT = 8
     TCU_STATUS_REG_COUNT = 5
 
