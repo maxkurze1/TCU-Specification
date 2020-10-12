@@ -118,8 +118,7 @@ impl Communicator {
 
         let mut retries = 0;
         while len > 0 {
-            let res = self.read_single(&mut buf, &mut res, target, addr, len);
-            match res {
+            match self.read_single(&mut buf, &mut res, target, addr, len) {
                 Err(e) => {
                     error!("read request failed: {}", e);
                     // try a few times if it failed for a different reason
