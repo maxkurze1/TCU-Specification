@@ -307,6 +307,28 @@ impl Communicator {
     fn decode_packet<'b>(&mut self, bytes: &'b [u8]) -> NocPacket<'b> {
         debug!("<- NoC packet: {:02x?}", &bytes[0..18]);
         if let Some((bsel, ref mut first)) = self.burst {
+            // bsel[3:0] = addr of first valid byte in first 128-bit burst flit
+            // bsel[7:4] = addr of last valid byte in last 128-bit burst flit
+            //
+            // bsel  | first | last
+            // --------------------
+            // 0xF   | 0     |  15
+            // 0xE   | 1     |  14
+            // 0xD   | 2     |  13
+            // 0xC   | 3     |  12
+            // 0xB   | 4     |  11
+            // 0xA   | 5     |  10
+            // 0x9   | 6     |  9
+            // 0x8   | 7     |  8
+            // 0x7   | 8     |  7
+            // 0x6   | 9     |  6
+            // 0x5   | 10    |  5
+            // 0x4   | 11    |  4
+            // 0x3   | 12    |  3
+            // 0x2   | 13    |  2
+            // 0x1   | 14    |  1
+            // 0x0   | 15    |  0
+
             let begin = if bytes[0] == 0 {
                 (0xF - (bsel >> 4)) as usize
             }
