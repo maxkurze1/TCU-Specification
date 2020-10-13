@@ -11,7 +11,11 @@ TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)/bin/riscv64-unknown-elf
 endif
 endif
 
-
+ifeq (, $(shell which vivado 2>/dev/null))
+	VIVADO=vivado_lab
+else
+	VIVADO=vivado
+endif
 
 TCU_TEST_PATH = ../../../test/
 TC_SOURCE_PATH = src/
@@ -106,5 +110,5 @@ BITFILE ?= $(BITFILES_PATH)fpga_top.bit
 
 .PHONY: program-fpga
 program-fpga:
-	vivado -mode batch -source $(SCRIPTS_PATH)program_fpga.tcl -tclargs $(BITFILE)
+	$(VIVADO) -mode batch -source $(SCRIPTS_PATH)program_fpga.tcl -tclargs $(BITFILE)
 
