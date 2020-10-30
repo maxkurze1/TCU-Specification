@@ -21,3 +21,6 @@ class DRAM(memory.Memory):
 
     def tcu_reset(self):
         self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
+
+    def tcu_drop_flit_count(self):
+        return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
