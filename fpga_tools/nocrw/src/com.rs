@@ -52,6 +52,7 @@ impl fmt::Display for FPGAModule {
 pub struct Communicator {
     addr: SockAddr,
     sock: Socket,
+    next_req_id: u32,
     send_buf: Vec<u8>,
     burst: Option<(u8, bool)>,
 }
@@ -79,6 +80,7 @@ impl Communicator {
                 fpga_port,
             )),
             sock,
+            next_req_id: 0,
             send_buf: Vec::with_capacity(UDP_PAYLOAD_LEN),
             burst: None,
         })
@@ -145,8 +147,11 @@ impl Communicator {
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
+        let mut req_id = self.next_req_id;
+        self.next_req_id = self.next_req_id.wrapping_add(1);
+
         let byte_count = cmp::min(MAX_READ_REQ_LEN, len);
-        let byte_count_bytes = ((byte_count as u64) << 32).to_le_bytes();
+        let byte_count_bytes = ((byte_count as u64) << 32 | req_id as u64).to_le_bytes();
         let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
         self.append_packet(&noc_packet)?;
         self.flush_packets()?;
@@ -163,7 +168,15 @@ impl Communicator {
                         // TODO if the mode is not ReadResp, keep it for later
                         assert!(mode == Mode::ReadResp);
 
-                        if self.burst.is_some() {
+                        // sometimes we get a delayed response for an earlier request; just ignore
+                        // these and continue.
+                        if off != req_id {
+                            debug!(
+                                "Received packet with unexpected offset {:#x} (expected {:#x})",
+                                off, req_id
+                            );
+                        }
+                        else if self.burst.is_some() {
                             debug!("Received burst-start from {} at offset {:#x}", src, off);
                         }
                         else {
@@ -172,10 +185,12 @@ impl Communicator {
                                 src, off, data
                             );
                             res.extend(data.iter().rev());
+                            req_id = req_id.wrapping_add(data.len() as u32);
                         }
                     },
                     NocPacket::Burst(data) => {
                         res.extend(data.iter().rev());
+                        req_id = req_id.wrapping_add(data.len() as u32);
                     },
                 }
                 pos += NOC_PACKET_LEN;
