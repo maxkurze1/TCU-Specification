@@ -162,6 +162,7 @@ impl Communicator {
 
             let mut pos = 0;
             while pos + NOC_PACKET_LEN <= size {
+                let old_burst = self.burst;
                 let noc_packet = self.decode_packet(&buf[pos..]);
                 match noc_packet {
                     NocPacket::Normal((src, mode, off, data)) => {
@@ -175,6 +176,7 @@ impl Communicator {
                                 "Received packet with unexpected offset {:#x} (expected {:#x})",
                                 off, req_id
                             );
+                            self.burst = old_burst;
                         }
                         else if self.burst.is_some() {
                             debug!("Received burst-start from {} at offset {:#x}", src, off);
