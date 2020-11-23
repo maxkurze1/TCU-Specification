@@ -2,6 +2,7 @@ use log::{debug, error};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use socket2::{self, Domain, Protocol, SockAddr, Socket};
 use std::cmp;
+use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::fmt;
 use std::net::{IpAddr, SocketAddr};
@@ -29,6 +30,9 @@ enum Mode {
     ReadReq     = 0,
     ReadResp    = 1,
     WritePosted = 2,
+    MsgHeader   = 3,
+    MsgPayload  = 4,
+    MsgAck      = 5,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -55,6 +59,7 @@ pub struct Communicator {
     next_req_id: u32,
     send_buf: Vec<u8>,
     burst: Option<(u8, bool)>,
+    received_pkts: VecDeque<Vec<u8>>,
 }
 
 enum NocPacket<'b> {
@@ -83,6 +88,7 @@ impl Communicator {
             next_req_id: 0,
             send_buf: Vec::with_capacity(UDP_PAYLOAD_LEN),
             burst: None,
+            received_pkts: VecDeque::new(),
         })
     }
 
@@ -107,6 +113,58 @@ impl Communicator {
         }
 
         Ok(())
+    }
+
+    pub fn receive(&mut self) -> std::io::Result<Vec<u8>> {
+        // disable timeouts here, because we want to block until data has been received
+        self.sock.set_read_timeout(None)?;
+        let res = self.do_receive();
+        // restore timeout
+        self.sock.set_read_timeout(Some(READ_TIMEOUT)).ok();
+        res
+    }
+
+    fn do_receive(&mut self) -> std::io::Result<Vec<u8>> {
+        // either take a packet from our receive queue
+        let (buf, size) = if let Some(pkt) = self.received_pkts.pop_front() {
+            let size = pkt.len();
+            (pkt, size)
+        }
+        // or receive a new one
+        else {
+            let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
+            let (size, _) = self.sock.recv_from(&mut buf)?;
+            assert!(size >= NOC_PACKET_LEN);
+            (buf, size)
+        };
+
+        let mut pos = 0;
+        let mut res = vec![];
+        while pos + NOC_PACKET_LEN <= size {
+            let noc_packet = self.decode_packet(&buf[pos..]);
+            match noc_packet {
+                NocPacket::Normal((src, mode, off, data)) => {
+                    assert!(mode == Mode::WritePosted);
+
+                    if self.burst.is_some() {
+                        debug!("Received burst-start from {} at offset {:#x}", src, off);
+                    }
+                    else {
+                        debug!(
+                            "Received packet from {} at offset {:#x}: {:02x?}",
+                            src, off, data
+                        );
+                        res.extend(data.iter().rev());
+                    }
+                },
+                NocPacket::Burst(data) => {
+                    res.extend(data.iter().rev());
+                },
+            }
+            pos += NOC_PACKET_LEN;
+        }
+
+        Ok(res)
     }
 
     pub fn read(
@@ -161,12 +219,21 @@ impl Communicator {
             let (size, _) = self.sock.recv_from(buf)?;
 
             let mut pos = 0;
-            while pos + NOC_PACKET_LEN <= size {
+            'pkt_loop: while pos + NOC_PACKET_LEN <= size {
                 let old_burst = self.burst;
                 let noc_packet = self.decode_packet(&buf[pos..]);
                 match noc_packet {
                     NocPacket::Normal((src, mode, off, data)) => {
-                        // TODO if the mode is not ReadResp, keep it for later
+                        if mode == Mode::WritePosted {
+                            debug!("Keeping packet with mode {:?} for later", mode);
+                            // keep the packet for later and go to the next UDP packet
+                            self.received_pkts.push_back(buf[0..size].to_vec());
+                            self.burst = old_burst;
+                            pos = size;
+                            break 'pkt_loop;
+                        }
+
+                        // TODO support messages
                         assert!(mode == Mode::ReadResp);
 
                         // sometimes we get a delayed response for an earlier request; just ignore

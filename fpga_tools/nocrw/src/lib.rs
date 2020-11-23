@@ -35,6 +35,8 @@ py_module_initializer!(nocrw, |py, m| {
             write_bytes(chip_id: u8, mod_id: u8, addr: u32, b: &PyBytes, burst: bool)
         ),
     )?;
+
+    m.add(py, "receive_bytes", py_fn!(py, receive_bytes()))?;
     Ok(())
 });
 
@@ -124,4 +126,14 @@ fn write_bytes(
 
     res.map(|_| 0)
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write_bytes failed: {}", e)))
+}
+
+fn receive_bytes(py: Python) -> PyResult<PyBytes> {
+    info!("receive_bytes()",);
+
+    let mut guard = COM.lock().unwrap();
+    let com = guard.as_mut().unwrap();
+    com.receive()
+        .map(|payload| PyBytes::new(py, &payload))
+        .map_err(|e| PyErr::new::<TypeError, _>(py, format!("receive_bytes failed: {}", e)))
 }
