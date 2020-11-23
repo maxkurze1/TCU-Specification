@@ -1,10 +1,14 @@
 mod com;
 
 use com::{Communicator, FPGAModule};
+use cpython::exc::TypeError;
+use cpython::PyErr;
 use cpython::{py_fn, py_module_initializer, PyBytes, PyResult, Python};
 use lazy_static::lazy_static;
 use log::info;
-use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{
+    CombinedLogger, Config, LevelFilter, SharedLogger, TermLogger, TerminalMode, WriteLogger,
+};
 use std::env;
 use std::fs::{create_dir, File};
 use std::str::FromStr;
@@ -45,32 +49,38 @@ fn log_level(env_var: &str, def: LevelFilter) -> LevelFilter {
     }
 }
 
-fn connect(_py: Python, fpga_ip: &str, fpga_port: u16) -> PyResult<u64> {
-    assert!(COM.lock().unwrap().is_none());
-
+fn do_connect(fpga_ip: &str, fpga_port: u16) -> std::io::Result<()> {
     // ensure that the log directory exists
     create_dir("log").ok();
 
     // log to stderr and to file, controlled via env variables RUST_LOG and RUST_FILE_LOG
     let term_level = log_level("RUST_LOG", LevelFilter::Warn);
     let file_level = log_level("RUST_FILE_LOG", LevelFilter::Info);
-    CombinedLogger::init(vec![
-        TermLogger::new(term_level, Config::default(), TerminalMode::Stderr).unwrap(),
-        WriteLogger::new(
-            file_level,
-            Config::default(),
-            File::create("log/ethernet.log").unwrap(),
-        ),
-    ])
-    .unwrap();
+    let mut loggers: Vec<Box<(dyn SharedLogger + 'static)>> = vec![];
+    loggers.push(WriteLogger::new(
+        file_level,
+        Config::default(),
+        File::create("log/ethernet.log")?,
+    ));
+    if let Some(tl) = TermLogger::new(term_level, Config::default(), TerminalMode::Stderr) {
+        loggers.push(tl);
+    }
+    CombinedLogger::init(loggers).unwrap();
 
-    info!("connect(fpga_ip={}, fpga_port={})", fpga_ip, fpga_port,);
+    info!("connect(fpga_ip={}, fpga_port={})", fpga_ip, fpga_port);
 
-    let mut com = Communicator::new(fpga_ip, fpga_port).unwrap();
-    com.self_test().unwrap();
+    let mut com = Communicator::new(fpga_ip, fpga_port)?;
+    com.self_test()?;
     *COM.lock().unwrap() = Some(com);
+    Ok(())
+}
 
-    Ok(0)
+fn connect(py: Python, fpga_ip: &str, fpga_port: u16) -> PyResult<u64> {
+    assert!(COM.lock().unwrap().is_none());
+
+    do_connect(fpga_ip, fpga_port)
+        .map(|_| 0)
+        .map_err(|e| PyErr::new::<TypeError, _>(py, format!("connect failed: {}", e)))
 }
 
 fn read_bytes(py: Python, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> PyResult<PyBytes> {
@@ -81,10 +91,9 @@ fn read_bytes(py: Python, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> PyRes
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
-    let bytes = com
-        .read(FPGAModule::new(chip_id, mod_id), addr, len as usize)
-        .unwrap();
-    Ok(PyBytes::new(py, &bytes))
+    com.read(FPGAModule::new(chip_id, mod_id), addr, len as usize)
+        .map(|bytes| PyBytes::new(py, &bytes))
+        .map_err(|e| PyErr::new::<TypeError, _>(py, format!("read_bytes failed: {}", e)))
 }
 
 fn write_bytes(
@@ -106,14 +115,13 @@ fn write_bytes(
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
-    if burst {
+    let res = if burst {
         com.write_burst(FPGAModule::new(chip_id, mod_id), addr, b.data(py))
-            .unwrap();
     }
     else {
         com.write_noburst(FPGAModule::new(chip_id, mod_id), addr, b.data(py))
-            .unwrap();
-    }
+    };
 
-    Ok(0)
+    res.map(|_| 0)
+        .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write_bytes failed: {}", e)))
 }
