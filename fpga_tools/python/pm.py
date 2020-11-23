@@ -44,6 +44,11 @@ class PM():
         r2 = self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 16]
         return EP.from_regs([r0, r1, r2])
 
+    def tcu_set_ep(self, ep_id, ep):
+        self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 0] = ep.regs[0]
+        self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 8] = ep.regs[1]
+        self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 16] = ep.regs[2]
+
     def tcu_ctrl_flit_count(self):
         flits = self.mem[TCU.TCU_REGADDR_TCU_CTRL_FLIT_COUNT]
         flits_rx = flits & 0xFFFFFFFF

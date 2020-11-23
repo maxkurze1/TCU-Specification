@@ -7,7 +7,13 @@ MODID_TO_PMID = {
     modids.MODID_PM3 : "PM3",
     modids.MODID_PM5 : "PM4",
     modids.MODID_PM2 : "DRAM1",
+    modids.MODID_PM1 : "ETH",
 }
+
+class Flags():
+    READ = 1
+    WRITE = 2
+    RDWR = 3
 
 class EP():
     INVALID = 0
@@ -35,17 +41,30 @@ class EP():
         return "Inv [type={}]".format(self.type())
 
 class MemEP(EP):
-    def __init__(self, regs):
+    def __init__(self, regs = [EP.MEMORY, 0, 0]):
         super(MemEP, self).__init__(regs)
 
     def pe(self):
         return (self.regs[0] >> 23) & 0xFF
+    def set_pe(self, pe):
+        self.regs[0] &= ~(0xFF << 23)
+        self.regs[0] |= (pe & 0xFF) << 23;
+
     def addr(self):
         return self.regs[1]
+    def set_addr(self, addr):
+        self.regs[1] = addr
+
     def size(self):
         return self.regs[2]
+    def set_size(self, size):
+        self.regs[2] = size
+
     def flags(self):
         return (self.regs[0] >> 19) & 0xF
+    def set_flags(self, flags):
+        self.regs[0] &= ~(0xF << 19)
+        self.regs[0] |= (flags & 0xF) << 19
 
     def __repr__(self):
         return "Mem [pe={}, addr={:#x}, size={:#x}, flags={}]".format(
@@ -53,25 +72,48 @@ class MemEP(EP):
         )
 
 class SendEP(EP):
-    def __init__(self, regs):
+    UNLIMITED_CRD = 0x3F
+
+    def __init__(self, regs = [EP.SEND, 0, 0]):
         super(SendEP, self).__init__(regs)
 
     def pe(self):
         return (self.regs[1] >> 16) & 0xFF
+    def set_pe(self, pe):
+        self.regs[1] &= ~(0xFF << 16)
+        self.regs[1] |= (pe & 0xFF) << 16
+
     def ep(self):
         return self.regs[1] & 0xFFFF
+    def set_ep(self, ep):
+        self.regs[1] &= ~0xFFFF
+        self.regs[1] |= ep & 0xFFFF
+
     def label(self):
         return self.regs[2] & 0xFFFFFFFF
-    def is_reply(self):
-        return (self.regs[0] >> 53) & 0x1
-    def crd_ep(self):
-        return (self.regs[0] >> 37) & 0xFFFF
+    def set_label(self, label):
+        self.regs[2] &= ~0xFFFFFFFF
+        self.regs[2] |= label & 0xFFFFFFFF
+
     def msg_size(self):
         return (self.regs[0] >> 31) & 0x3F
+    def set_msg_size(self, size):
+        self.regs[0] &= ~(0x3F << 31)
+        self.regs[0] |= (size & 0x3F) << 31
+
     def max_crd(self):
         return (self.regs[0] >> 25) & 0x3F
     def cur_crd(self):
         return (self.regs[0] >> 19) & 0x3F
+    def set_crd(self, crd):
+        self.regs[0] &= ~((0x3F << 25) | (0x3F << 19))
+        self.regs[0] |= (crd & 0x3F) << 25
+        self.regs[0] |= (crd & 0x3F) << 19
+
+    def is_reply(self):
+        return (self.regs[0] >> 53) & 0x1
+    def crd_ep(self):
+        return (self.regs[0] >> 37) & 0xFFFF
 
     def __repr__(self):
         return "Send[dst={}:{}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
@@ -80,11 +122,32 @@ class SendEP(EP):
         )
 
 class RecvEP(EP):
-    def __init__(self, regs):
+    def __init__(self, regs = [EP.RECEIVE, 0, 0]):
         super(RecvEP, self).__init__(regs)
 
     def buffer(self):
         return self.regs[1]
+    def set_buffer(self, buffer):
+        self.regs[1] = buffer
+
+    def slot_size(self):
+        return (self.regs[0] >> 41) & 0x3F
+    def set_slot_size(self, size):
+        self.regs[0] &= ~(0x3F << 41)
+        self.regs[0] |= (size & 0x3F) << 41
+
+    def slots(self):
+        return (self.regs[0] >> 35) & 0x3F
+    def set_slots(self, slots):
+        self.regs[0] &= ~(0x3F << 35)
+        self.regs[0] |= (slots & 0x3F) << 35
+
+    def reply_eps(self):
+        return (self.regs[0] >> 19) & 0xFFFF
+    def set_reply_eps(self, eps):
+        self.regs[0] &= ~(0xFFFF << 19)
+        self.regs[0] |= (eps & 0xFFFF) << 19
+
     def unread(self):
         return self.regs[2] >> 32
     def occupied(self):
@@ -93,12 +156,6 @@ class RecvEP(EP):
         return (self.regs[0] >> 53) & 0x3F
     def wpos(self):
         return (self.regs[0] >> 47) & 0x3F
-    def slot_size(self):
-        return (self.regs[0] >> 41) & 0x3F
-    def slots(self):
-        return (self.regs[0] >> 35) & 0x3F
-    def reply_eps(self):
-        return (self.regs[0] >> 19) & 0xFFFF
 
     def __repr__(self):
         return "Recv[buffer={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
