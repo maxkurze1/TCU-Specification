@@ -163,11 +163,134 @@ class RecvEP(EP):
             self.reply_eps(), self.rpos(), self.wpos()
         )
 
+class LOG():
+
+    #Log IDs
+    LOG_ID = ["NONE",
+
+              "CMD_SEND",
+              "CMD_REPLY",
+              "CMD_READ",
+              "CMD_WRITE",
+              "CMD_FETCH",
+              "CMD_ACK_MSG",
+              "CMD_FINISH",
+
+              "CMD_EXT_INVEP",
+              "CMD_EXT_FINISH",
+
+              "NOC_REG_WRITE_ERR",
+              "NOC_REG_WRITE",
+              "NOC_RRSP",
+              "NOC_RRSP_ERR",
+              "NOC_WRITE",
+              "NOC_READ_ERR",
+              "NOC_READ",
+              "NOC_SEND_HD_SECMSG",
+              "NOC_SEND_HD",
+              "NOC_SEND_HD_INV",
+              "NOC_SEND_PL_CONT",
+              "NOC_SEND_PL_UNEXP",
+              "NOC_SEND_PL_ERR",
+              "NOC_ACK",
+              "NOC_ACK_ERR",
+              "NOC_ERROR",
+              "NOC_ERROR_UNEXP",
+              "NOC_INVMODE",
+              "NOC_INVFLIT",
+              "NOC_RSP_RECV"]
+
+    def split_tcu_log(upper_data64, lower_data64):
+        tcu_log = LOG()
+        log_id = (lower_data64 >> 32) & 0xFF
+        log_time = lower_data64 & 0xFFFFFFFF
+        id_string = tcu_log.get_tcu_log(log_id)
+        time_string = "Time: {:12}".format(log_time)
+        ret_string = time_string + ", " + id_string + ", "
+
+        if (log_id == 0):
+            return ret_string
+
+        #unpriv cmd
+        if (log_id <= 6):
+            log_ep = (lower_data64 >> 40) & 0xFFFF
+            log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
+            log_size = upper_data64 >> 24
+            return ret_string + "ep: {:d}, addr: {:#08x} size: {:d}".format(log_ep, log_addr, log_size)
+
+        #unpriv finish
+        if (log_id == 7):
+            log_error = (lower_data64 >> 40) & 0x1F
+            return ret_string + "error: {:#x}".format(log_error)
+
+        #ext cmd
+        if (log_id <= 8):
+            log_ep = (lower_data64 >> 40) & 0xFF
+            log_force = (lower_data64 >> 48) & 0x1
+            return ret_string + "ep: {:d}, force: {:d}".format(log_ep, log_force)
+
+        #ext finish
+        if (log_id <= 9):
+            log_error = (lower_data64 >> 40) & 0x1F
+            return ret_string + "error: {:#x}".format(log_error)
+
+        #NoC logs
+        if (log_id <= 16):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_mode = (lower_data64 >> 48) & 0xF
+            log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
+            log_size = upper_data64 >> 20
+            return ret_string + "modid: {:#x}, mode: {:d}, addr: {:#08x} size: {:d}".format(log_modid, log_mode, log_addr, log_size)
+
+        #NoC send
+        if (log_id <= 22):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_ep = (lower_data64 >> 48) & 0xFFFF
+            return ret_string + "modid: {:#x}, ep: {:d}".format(log_modid, log_ep)
+
+        #NoC ack
+        if (log_id <= 24):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_ep = (lower_data64 >> 48) & 0xFFFF
+            log_error = upper_data64 & 0x1F
+            return ret_string + "modid: {:#x}, ep: {:d}, error: {:#x}".format(log_modid, log_ep, log_error)
+
+        #NoC error
+        if (log_id <= 26):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48) & 0xFFFF
+            log_error = (upper_data64 >> 16) & 0x1F
+            return ret_string + "modid: {:#x}, addr: {:#08x}, error: {:#x}".format(log_modid, log_addr, log_error)
+
+        #NoC invalid data
+        if (log_id <= 28):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_mode = (lower_data64 >> 48) & 0xF
+            return ret_string + "modid: {:#x}, mode: {:d}".format(log_modid, log_mode)
+
+        #NoC rsp recveived
+        if (log_id <= 29):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_error = (lower_data64 >> 48) & 0x1F
+            return ret_string + "modid: {:#x}, error: {:#x}".format(log_modid, log_error)
+
+        return ret_string
+
+    def __init__(self):
+        pass
+
+    def get_tcu_log(self, log_id):
+        if (log_id >= len(self.LOG_ID)):
+            return "UNDEFINED"
+        return self.LOG_ID[log_id]
+
+
 class TCU():
 
     TCU_EP_REG_COUNT = 64
     TCU_CFG_REG_COUNT = 8
     TCU_STATUS_REG_COUNT = 5
+    TCU_LOG_REG_COUNT = 1024
 
     TCU_EP_REG_SIZE = 0x18
     TCU_CFG_REG_SIZE = 0x8
@@ -205,3 +328,5 @@ class TCU():
     #config regs for core
     TCU_REGADDR_CORE_CFG_START = TCU_REGADDR_TCU_STATUS + TCU_STATUS_REG_COUNT*TCU_STATUS_REG_SIZE
 
+    #addr of log mem
+    TCU_REGADDR_TCU_LOG = TCU_REGADDR_START + 0x0100_0000

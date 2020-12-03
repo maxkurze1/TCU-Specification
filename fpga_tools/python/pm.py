@@ -1,7 +1,7 @@
 
 import noc
 import memory
-from tcu import TCU, EP
+from tcu import TCU, EP, LOG
 from fpga_utils import Progress
 
 
@@ -63,6 +63,20 @@ class PM():
 
     def tcu_drop_flit_count(self):
         return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
+
+    def tcu_print_log(self, filename):
+        log_count = self.mem[TCU.TCU_REGADDR_TCU_LOG]
+        print("%s: Number of TCU log messages: %d" % (self.name, log_count))
+
+        fh = open(filename, 'w')
+        fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
+
+        if log_count > 0:
+            for i in range(log_count):
+                lower = self.mem[TCU.TCU_REGADDR_TCU_LOG+8+i*16]
+                upper = self.mem[TCU.TCU_REGADDR_TCU_LOG+16+i*16]
+                fh.write("%5d: %s\n" % (i, LOG.split_tcu_log(upper, lower)))
+        fh.close()
 
 
     #----------------------------------------------
