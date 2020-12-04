@@ -21,6 +21,9 @@ class EP():
     RECEIVE = 2
     MEMORY = 3
 
+    def invalid():
+        return EP([0, 0, 0])
+
     def from_regs(regs):
         ep = EP(regs)
         if ep.type() == EP.SEND:
