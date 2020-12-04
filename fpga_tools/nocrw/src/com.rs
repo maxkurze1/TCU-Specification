@@ -16,6 +16,8 @@ const UDP_PAYLOAD_LEN: usize = 1472;
 const BYTES_PER_BURST_PACKET: usize = 16;
 const BYTES_PER_PACKET: usize = 8;
 
+const MAX_SELF_TEST_RETRIES: usize = 100;
+
 // TODO using 2047 leads to an EAGAIN error for recv_from after about 50KB. using 1024+512 seems to
 // work fine and reaches a sufficiently high data rate.
 const MAX_READ_REQ_LEN: usize = (1024 + 512) * BYTES_PER_BURST_PACKET;
@@ -94,25 +96,43 @@ impl Communicator {
 
     pub fn self_test(&mut self) -> std::io::Result<()> {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF];
-        self.write_noburst(ETH_MOD, 0, &test_data)?;
+        // use an offset that nobody else should use; notice the alignment
+        self.write_noburst(ETH_MOD, 0xDEAD_BEE0, &test_data)?;
 
         let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
-        let (size, _) = self.sock.recv_from(&mut buf)?;
-        assert!(size >= NOC_PACKET_LEN);
 
-        let noc_packet = self.decode_packet(&buf);
-        match noc_packet {
-            NocPacket::Normal((src, mode, off, data)) => {
-                assert!(mode == Mode::WritePosted);
-                assert!(off == 0);
-                assert!(self.burst.is_none());
-                assert!(src == ETH_MOD);
-                assert!(data.iter().rev().eq(test_data.iter()));
-            },
-            _ => assert!(false),
+        // try multiple times, because PEs might still be busy with sending prints to the ETH
+        let mut retries = 0;
+        while retries < MAX_SELF_TEST_RETRIES {
+            let (size, _) = self.sock.recv_from(&mut buf)?;
+            if size < NOC_PACKET_LEN {
+                continue;
+            }
+
+            let old_burst = self.burst;
+            let noc_packet = self.decode_packet(&buf);
+            match noc_packet {
+                NocPacket::Normal((src, mode, off, data)) => {
+                    // we assume that nobody is writing to this offset, except for the self test
+                    if off == 0xDEAD_BEE0 {
+                        assert!(mode == Mode::WritePosted);
+                        assert!(self.burst.is_none());
+                        assert!(src == ETH_MOD);
+                        assert!(data.iter().rev().eq(test_data.iter()));
+                        return Ok(());
+                    }
+                },
+                _ => {},
+            }
+
+            self.burst = old_burst;
+            retries += 1;
         }
 
-        Ok(())
+        Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "no self test response",
+        ))
     }
 
     pub fn receive(&mut self) -> std::io::Result<Vec<u8>> {
@@ -233,8 +253,11 @@ impl Communicator {
                             break 'pkt_loop;
                         }
 
-                        // TODO support messages
-                        assert!(mode == Mode::ReadResp);
+                        // ignore other packets; TODO support messages
+                        if mode != Mode::ReadResp {
+                            debug!("Ignoring packet with mode {:?}", mode);
+                            continue;
+                        }
 
                         // sometimes we get a delayed response for an earlier request; just ignore
                         // these and continue.
