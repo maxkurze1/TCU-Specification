@@ -58,20 +58,17 @@ class FPGA_TOP(fpga):
         #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
 
         #NoC router
-        self.r0 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER0), 0)
-        self.r1 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER1), 1)
-        self.r2 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER2), 2)
-        self.r3 = router.Router(self.nocif, (chipid, modids.MODID_ROUTER3), 3)
+        self.router_count = router.Router.ROUTER_CNT
+        self.router = [router.Router(self.nocif, (chipid, modids.MODID_ROUTER[x]), x) for x in range(self.router_count)]
 
         #DRAM
         self.dram1 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1))
         self.dram2 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2))
 
         #PMs
-        self.pm6 = pm.PM(self.nocif, (chipid, modids.MODID_PM6), 1)
-        self.pm7 = pm.PM(self.nocif, (chipid, modids.MODID_PM7), 2)
-        self.pm3 = pm.PM(self.nocif, (chipid, modids.MODID_PM3), 3)
-        self.pm5 = pm.PM(self.nocif, (chipid, modids.MODID_PM5), 4)
+        self.pm_count = len(modids.MODID_PMS)
+        self.pms = [pm.PM(self.nocif, (chipid, modids.MODID_PMS[x]), x) for x in range(self.pm_count)]
+
 
     def tear(self):
         self.noccomm.tear()

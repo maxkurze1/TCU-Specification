@@ -8,11 +8,8 @@ class Router(memory.Memory):
     #2x2 star-mesh NoC
     ROUTER_CNT = 4
 
-    #each router has 2 modules, 2 inter-router links, 1 internal link
-    ROUTER_LINKCNT = [(modids.MODID_ROUTER0, 5),
-                      (modids.MODID_ROUTER1, 5),
-                      (modids.MODID_ROUTER2, 5),
-                      (modids.MODID_ROUTER3, 5)]
+    #each router has 3 modules, 2 inter-router links, 1 internal link
+    ROUTER_LINKCNT = [(modids.MODID_ROUTER[x], 6) for x in range(ROUTER_CNT)]
 
     def __init__(self, nocif, nocid, router_num):
         self.nocid = nocid
