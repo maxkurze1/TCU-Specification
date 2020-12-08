@@ -10,7 +10,7 @@ from fpga_utils import FPGA_Error
 TESTCASE_ADDR = 0x10071000
 TESTCASE_RESULT_DATA = 0xE
 
-memfile = "targets/rocket_boot.hex"
+binfile = "targets/rocket_boot"
 
 
 
@@ -21,11 +21,12 @@ def main():
     fpga_inst = fpga_top.FPGA_TOP(0)
     test_result = 0
 
-    rocket_cores = [fpga_inst.pm6, fpga_inst.pm7, fpga_inst.pm3, fpga_inst.pm5]
+    rocket_cores = fpga_inst.pms
 
-    #test all 4 Rockets
+
+    #test all Rockets
     for rocket in rocket_cores:
-        print("Test Rocket Core ", rocket.pm_num)
+        print("Test Rocket Core %d" % rocket.pm_num)
 
         #first disable core to start from initial state
         rocket.stop()
@@ -34,8 +35,8 @@ def main():
         rocket.start()
         print("Core enabled: %d" % rocket.getEnable())
 
-        #init mem (Rocket DRAM starts at 0x10000000)
-        rocket.initMem(memfile, 0x10000000)
+        #init mem
+        rocket.mem.write_elf(binfile)
 
         #init test addr with random value
         rocket.mem[TESTCASE_ADDR] = 0x456fff

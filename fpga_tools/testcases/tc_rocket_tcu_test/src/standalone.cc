@@ -1,1 +1,0 @@
-../../../../test/standalone.cc
