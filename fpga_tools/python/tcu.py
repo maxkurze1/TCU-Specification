@@ -1,13 +1,18 @@
 
 import modids
 
-MODID_TO_PMID = {
-    modids.MODID_PM6 : "PM1",
-    modids.MODID_PM7 : "PM2",
+MODID_TO_TILE = {
+    modids.MODID_PM0 : "PM0",
+    modids.MODID_PM1 : "PM1",
+    modids.MODID_PM2 : "PM2",
     modids.MODID_PM3 : "PM3",
-    modids.MODID_PM5 : "PM4",
-    modids.MODID_PM2 : "DRAM1",
-    modids.MODID_PM1 : "ETH",
+    modids.MODID_PM4 : "PM4",
+    modids.MODID_PM5 : "PM5",
+    modids.MODID_PM6 : "PM6",
+    modids.MODID_PM7 : "PM7",
+    modids.MODID_DRAM1 : "DRAM1",
+    modids.MODID_DRAM2 : "DRAM2",
+    modids.MODID_ETH : "ETH",
 }
 
 class Flags():
@@ -71,7 +76,7 @@ class MemEP(EP):
 
     def __repr__(self):
         return "Mem [pe={}, addr={:#x}, size={:#x}, flags={}]".format(
-            MODID_TO_PMID[self.pe()], self.addr(), self.size(), self.flags()
+            MODID_TO_TILE[self.pe()], self.addr(), self.size(), self.flags()
         )
 
 class SendEP(EP):
@@ -120,7 +125,7 @@ class SendEP(EP):
 
     def __repr__(self):
         return "Send[dst={}:{}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
-            MODID_TO_PMID[self.pe()], self.ep(), self.label(), self.msg_size(), self.cur_crd(),
+            MODID_TO_TILE[self.pe()], self.ep(), self.label(), self.msg_size(), self.cur_crd(),
             self.max_crd(), self.is_reply()
         )
 
@@ -243,39 +248,39 @@ class LOG():
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
             log_size = upper_data64 >> 20
-            return ret_string + "modid: {:#x}, mode: {:d}, addr: {:#08x} size: {:d}".format(log_modid, log_mode, log_addr, log_size)
+            return ret_string + "tile: {}, mode: {:d}, addr: {:#08x} size: {:d}".format(MODID_TO_TILE[log_modid], log_mode, log_addr, log_size)
 
         #NoC send
         if (log_id <= 22):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_ep = (lower_data64 >> 48) & 0xFFFF
-            return ret_string + "modid: {:#x}, ep: {:d}".format(log_modid, log_ep)
+            return ret_string + "tile: {}, ep: {:d}".format(MODID_TO_TILE[log_modid], log_ep)
 
         #NoC ack
         if (log_id <= 24):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_ep = (lower_data64 >> 48) & 0xFFFF
             log_error = upper_data64 & 0x1F
-            return ret_string + "modid: {:#x}, ep: {:d}, error: {:#x}".format(log_modid, log_ep, log_error)
+            return ret_string + "tile: {}, ep: {:d}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_ep, log_error)
 
         #NoC error
         if (log_id <= 26):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48) & 0xFFFF
             log_error = (upper_data64 >> 16) & 0x1F
-            return ret_string + "modid: {:#x}, addr: {:#08x}, error: {:#x}".format(log_modid, log_addr, log_error)
+            return ret_string + "tile: {}, addr: {:#08x}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_addr, log_error)
 
         #NoC invalid data
         if (log_id <= 28):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
-            return ret_string + "modid: {:#x}, mode: {:d}".format(log_modid, log_mode)
+            return ret_string + "tile: {}, mode: {:d}".format(MODID_TO_TILE[log_modid], log_mode)
 
         #NoC rsp recveived
         if (log_id <= 29):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
-            return ret_string + "modid: {:#x}, error: {:#x}".format(log_modid, log_error)
+            return ret_string + "tile: {}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_error)
 
         return ret_string
 
