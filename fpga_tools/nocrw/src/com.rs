@@ -135,11 +135,11 @@ impl Communicator {
         ))
     }
 
-    pub fn receive(&mut self) -> std::io::Result<Vec<u8>> {
-        // disable timeouts here, because we want to block until data has been received
-        self.sock.set_read_timeout(None)?;
+    pub fn receive(&mut self, timeout: Duration) -> std::io::Result<Vec<u8>> {
+        // set custom timeout
+        self.sock.set_read_timeout(Some(timeout))?;
         let res = self.do_receive();
-        // restore timeout
+        // restore default timeout
         self.sock.set_read_timeout(Some(READ_TIMEOUT)).ok();
         res
     }

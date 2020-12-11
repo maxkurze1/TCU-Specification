@@ -13,6 +13,7 @@ use std::env;
 use std::fs::{create_dir, File};
 use std::str::FromStr;
 use std::sync::Mutex;
+use std::time::Duration;
 
 py_module_initializer!(nocrw, |py, m| {
     m.add(
@@ -36,7 +37,7 @@ py_module_initializer!(nocrw, |py, m| {
         ),
     )?;
 
-    m.add(py, "receive_bytes", py_fn!(py, receive_bytes()))?;
+    m.add(py, "receive_bytes", py_fn!(py, receive_bytes(timeout_ns: u64)))?;
     Ok(())
 });
 
@@ -128,12 +129,12 @@ fn write_bytes(
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write_bytes failed: {}", e)))
 }
 
-fn receive_bytes(py: Python) -> PyResult<PyBytes> {
-    info!("receive_bytes()",);
+fn receive_bytes(py: Python, timeout_ns: u64) -> PyResult<PyBytes> {
+    info!("receive_bytes(timeout={}ns)", timeout_ns);
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
-    com.receive()
+    com.receive(Duration::from_nanos(timeout_ns))
         .map(|payload| PyBytes::new(py, &payload))
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("receive_bytes failed: {}", e)))
 }

@@ -19,8 +19,8 @@ class NoCethernet(object):
     def write_bytes(self, trg_id, addr, bytes, burst=False):
         return nocrw.write_bytes(trg_id[0], trg_id[1], addr, bytes, burst)
 
-    def receive_bytes(self):
-        return nocrw.receive_bytes()
+    def receive_bytes(self, timeout_ns=1000_000_000):
+        return nocrw.receive_bytes(timeout_ns)
 
 class NoCmonitor(threading.Thread):
     regex_udp = r'\s+\d+:\s(\w+):(\w+)(\s+[\w:]+){10}\s(\d+)'
