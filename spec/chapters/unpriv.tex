@@ -242,6 +242,7 @@ and stores messages. Nevertheless, its behavior is described by the following al
     $ep \gets$ read\_ep(rep)\;
     \uIf{ep.type != RECEIVE}{send\_ack(RECV\_GONE) and drop message}
     \uIf{(ep.buffer \& 0x7) != 0}{send\_ack(RECV\_MISALIGN) and drop message}
+    \uIf{$sizeof(header) + header.length > (1 << ep.slot\_size)$}{send\_ack(RECV\_OUT\_OF\_BOUNDS) and drop message}
     \BlankLine
     $idx \gets$ find\_slot(ep.occupied, ep.wpos, ep.slots, 0)\;
     \uIf{idx == -1}{send\_ack(RECV\_NO\_SPACE) and drop message}
