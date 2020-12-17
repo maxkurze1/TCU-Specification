@@ -224,7 +224,7 @@ class LOG():
             log_ep = (lower_data64 >> 40) & 0xFFFF
             log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
             log_size = upper_data64 >> 24
-            return ret_string + "ep: {:d}, addr: {:#08x} size: {:d}".format(log_ep, log_addr, log_size)
+            return ret_string + "ep: {:d}, addr: {:#010x} size: {:d}".format(log_ep, log_addr, log_size)
 
         #unpriv finish
         if (log_id == 7):
@@ -248,7 +248,7 @@ class LOG():
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
             log_size = upper_data64 >> 20
-            return ret_string + "tile: {}, mode: {:d}, addr: {:#08x} size: {:d}".format(MODID_TO_TILE[log_modid], log_mode, log_addr, log_size)
+            return ret_string + "tile: {}, mode: {:d}, addr: {:#010x} size: {:d}".format(MODID_TO_TILE[log_modid], log_mode, log_addr, log_size)
 
         #NoC send
         if (log_id <= 22):
@@ -268,7 +268,7 @@ class LOG():
             log_modid = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48) & 0xFFFF
             log_error = (upper_data64 >> 16) & 0x1F
-            return ret_string + "tile: {}, addr: {:#08x}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_addr, log_error)
+            return ret_string + "tile: {}, addr: {:#010x}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_addr, log_error)
 
         #NoC invalid data
         if (log_id <= 28):
