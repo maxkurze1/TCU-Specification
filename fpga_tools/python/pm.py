@@ -65,10 +65,12 @@ class PM():
         return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
 
     def tcu_print_log(self, filename):
+        # open and truncate file first (reads below might fail)
+        fh = open(filename, 'w')
+
         log_count = self.mem[TCU.TCU_REGADDR_TCU_LOG]
         print("%s: Number of TCU log messages: %d" % (self.name, log_count))
 
-        fh = open(filename, 'w')
         fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
 
         if log_count > 0:
