@@ -36,7 +36,8 @@ address, so that no translation is required, in contrast to \texttt{write\_local
 \section{Translation Look-aside Buffer}
 \label{sec:tlb}
 
-The TLB contains a 32-bit virtual address, 16-bit VPE id, 64-bit physical address, and 5 bits for
+The TLB contains a 20-bit virtual page number (virtual address shifted right by 12 bits), 16-bit VPE
+id, 20-bit physical page number (physical address shifted right by 12 bits), and 5 bits for
 permissions. Small pages are 4~KiB and large pages 2~MiB. The virtual and physical address are
 always page-size aligned. The permissions are defined as follows:
 
