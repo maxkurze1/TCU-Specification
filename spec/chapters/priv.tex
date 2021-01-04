@@ -265,7 +265,8 @@ most of the bits depend on the type of request/response, defined in the followin
 \extstart{vm}
 \begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
-  \regfieldb{virt}{36}{12}%
+  \regfieldb[gray!20]{reserved}{16}{32}%
+  \regfieldb{virt}{20}{12}%
   \regfieldb[gray!20]{reserved}{7}{5}%
   \regfieldb{access}{2}{3}%
   \regfieldb{pf}{1}{2}%
@@ -279,13 +280,14 @@ most of the bits depend on the type of request/response, defined in the followin
 \end{register}
 
 \begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_2000}}
-  \regfieldb{phys}{52}{12}%
+  \regfieldb[gray!20]{reserved}{32}{32}%
+  \regfieldb{phys}{20}{12}%
   \regfieldb[gray!20]{reserved}{5}{7}%
   \regfieldb{flags}{5}{2}%
   \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[flags] the flags for the TLB entry (see \rref{sec:tlb})
-    \item[phys] the physical address for the TLB entry
+    \item[phys] the physical address for the TLB entry (shifted right by 12 bits)
   \end{reglist}\end{regdesc}
 \end{register}
 \extend{}
