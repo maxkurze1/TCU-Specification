@@ -182,6 +182,9 @@ invalid or full. If credits are not used and the receive EP is full, the state h
 Otherwise, the failure indicates a broken communication channel and we consider it acceptable to
 leave the send EP in a broken state, too (one credit is lost and we never get it back).
 
+If the TCU reports the error \texttt{RECV\_BUSY}, the receiver is currently busy with another
+message reception and the command should be retried.
+
 \begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != SEND}{unpriv\_stop(NO\_SEP)}
@@ -206,8 +209,6 @@ leave the send EP in a broken state, too (one credit is lost and we never get it
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
         \uIf{ep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
-        ep.cur\_crd -= 1\;
-        $write\_ep(COMMAND.ep, ep)$\;
         $sepid \gets COMMAND.ep$\;
     }
     \uElse{
@@ -229,6 +230,11 @@ leave the send EP in a broken state, too (one credit is lost and we never get it
     $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
+    \BlankLine
+    \uIf{ep.cur\_crd != 0x3F}{
+        ep.cur\_crd -= 1\;
+        $write\_ep(COMMAND.ep, ep)$\;
+    }
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{SEND} command (continued).}
@@ -293,6 +299,9 @@ Note that \texttt{DATA.size == 0} is allowed and sends only the message header t
 without payload. Like for \texttt{SEND}, note also the placement of \texttt{read\_local} and places
 where state is changed.
 
+If the TCU reports the error \texttt{RECV\_BUSY}, the receiver is currently busy with another
+message reception and the command should be retried.
+
 \begin{algorithm}
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
@@ -311,19 +320,6 @@ where state is changed.
     \BlankLine
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
     \extstart{vm}\uIf{err != 0}{unpriv\_stop(err)}\extend{}
-    \BlankLine
-    $sep \gets \{~type \gets INVALID~\}$\;
-    $write\_ep(ep.rpl\_eps + idx, sep)$\;
-    \BlankLine
-    \extstart{pemux}
-    \uIf{ep.unread.is\_set(idx)}{
-      CUR\_VPE.msgs -= 1\;
-    }
-    \extend{}
-    \BlankLine
-    $ep.occupied.clear\_bit(idx)$\;
-    $ep.unread.clear\_bit(idx)$\;
-    $write\_ep(COMMAND.ep, ep)$\;
     \caption{The TCU's \texttt{REPLY} command.}
 \end{algorithm}
 
@@ -340,6 +336,19 @@ where state is changed.
     $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
+    \BlankLine
+    $sep \gets \{~type \gets INVALID~\}$\;
+    $write\_ep(ep.rpl\_eps + idx, sep)$\;
+    \BlankLine
+    \extstart{pemux}
+    \uIf{ep.unread.is\_set(idx)}{
+      CUR\_VPE.msgs -= 1\;
+    }
+    \extend{}
+    \BlankLine
+    $ep.occupied.clear\_bit(idx)$\;
+    $ep.unread.clear\_bit(idx)$\;
+    $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{REPLY} command (continued).}
