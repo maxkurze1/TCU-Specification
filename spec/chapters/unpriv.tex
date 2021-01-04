@@ -187,6 +187,7 @@ leave the send EP in a broken state, too (one credit is lost and we never get it
     \uIf{ep.type != SEND}{unpriv\_stop(NO\_SEP)}
     \uIf{ep.reply != 0}{unpriv\_stop(SEND\_REPLY\_EP)}
     \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \uIf{$ep.msg\_sz > 11$}{unpriv\_stop(SEND\_INV\_MSG\_SZ)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
@@ -305,6 +306,7 @@ where state is changed.
     \uIf{sep.type != SEND}{unpriv\_stop(NO\_SEP)}
     \uIf{sep.reply == 0}{unpriv\_stop(SEND\_REPLY\_EP)}
     \uIf{sep.crd\_ep != 0xFFFF and $sep.crd\_ep >= EP\_COUNT$}{unpriv\_stop(SEND\_INV\_CRD\_EP)}
+    \uIf{$sep.msg\_sz > 11$}{unpriv\_stop(SEND\_INV\_MSG\_SZ)}
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \BlankLine
     $(err, payload) \gets read\_local(DATA.address, DATA.size)$\;
