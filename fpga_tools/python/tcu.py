@@ -189,24 +189,24 @@ class LOG():
 
               "NOC_REG_WRITE_ERR",
               "NOC_REG_WRITE",
-              "NOC_RRSP",
-              "NOC_RRSP_ERR",
+              "NOC_READ_RSP",
+              "NOC_READ_RSP_ERR",
+              "NOC_READ_RSP_DONE",
               "NOC_WRITE",
               "NOC_READ_ERR",
               "NOC_READ",
-              "NOC_SEND_HD_SECMSG",
-              "NOC_SEND_HD",
-              "NOC_SEND_HD_INV",
-              "NOC_SEND_PL_CONT",
-              "NOC_SEND_PL_UNEXP",
-              "NOC_SEND_PL_ERR",
-              "NOC_ACK",
-              "NOC_ACK_ERR",
+              "NOC_MSG_HD_SECMSG",
+              "NOC_MSG_HD",
+              "NOC_MSG_HD_INV",
+              "NOC_MSG_PL_CONT",
+              "NOC_MSG_PL_UNEXP",
+              "NOC_MSG_PL_ERR",
+              "NOC_MSG_ACK",
+              "NOC_MSG_ACK_ERR",
               "NOC_ERROR",
               "NOC_ERROR_UNEXP",
               "NOC_INVMODE",
-              "NOC_INVFLIT",
-              "NOC_RSP_RECV"]
+              "NOC_INVFLIT"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -220,67 +220,82 @@ class LOG():
             return ret_string
 
         #unpriv cmd
-        if (log_id <= 6):
+        if (log_id <= 4):
             log_ep = (lower_data64 >> 40) & 0xFFFF
             log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
-            log_size = upper_data64 >> 24
-            return ret_string + "ep: {:d}, addr: {:#010x} size: {:d}".format(log_ep, log_addr, log_size)
+            log_size = (upper_data64 >> 24) & 0xFFFFFFFF
+            log_modid = upper_data64 >> 56
+            return ret_string + "to tile: {}, send-ep: {:d}, local addr: {:#010x} size: {:d}".format(MODID_TO_TILE[log_modid], log_ep, log_addr, log_size)
+
+        if (log_id <= 6):
+            log_ep = (lower_data64 >> 40) & 0xFFFF
+            return ret_string + "ep: {:d}".format(log_ep)
 
         #unpriv finish
         if (log_id == 7):
             log_error = (lower_data64 >> 40) & 0x1F
-            return ret_string + "error: {:#x}".format(log_error)
+            return ret_string + "error: {:d}".format(log_error)
 
         #ext cmd
-        if (log_id <= 8):
+        if (log_id == 8):
             log_ep = (lower_data64 >> 40) & 0xFF
             log_force = (lower_data64 >> 48) & 0x1
             return ret_string + "ep: {:d}, force: {:d}".format(log_ep, log_force)
 
         #ext finish
-        if (log_id <= 9):
+        if (log_id == 9):
             log_error = (lower_data64 >> 40) & 0x1F
-            return ret_string + "error: {:#x}".format(log_error)
+            return ret_string + "error: {:d}".format(log_error)
 
-        #NoC logs
-        if (log_id <= 16):
+        #NoC received write or read
+        if (log_id <= 13):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_mode = (lower_data64 >> 48) & 0xF
+            log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
+            return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x}".format(MODID_TO_TILE[log_modid], log_mode, log_addr)
+
+        if (log_id == 14):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_error = (lower_data64 >> 48) & 0x1F
+            return ret_string + "from tile: {}, error: {:d}".format(MODID_TO_TILE[log_modid], log_error)
+
+        if (log_id == 15):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_mode = (lower_data64 >> 48) & 0xF
+            log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
+            return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x}".format(MODID_TO_TILE[log_modid], log_mode, log_addr)
+
+        if (log_id <= 17):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
             log_size = upper_data64 >> 20
-            return ret_string + "tile: {}, mode: {:d}, addr: {:#010x} size: {:d}".format(MODID_TO_TILE[log_modid], log_mode, log_addr, log_size)
+            return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x} size: {:d}".format(MODID_TO_TILE[log_modid], log_mode, log_addr, log_size)
 
-        #NoC send
-        if (log_id <= 22):
+        #NoC received msg
+        if (log_id <= 23):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_ep = (lower_data64 >> 48) & 0xFFFF
-            return ret_string + "tile: {}, ep: {:d}".format(MODID_TO_TILE[log_modid], log_ep)
+            return ret_string + "from tile: {}, recv-ep: {:d}".format(MODID_TO_TILE[log_modid], log_ep)
 
-        #NoC ack
-        if (log_id <= 24):
+        #NoC received msg-ack
+        if (log_id <= 25):
             log_modid = (lower_data64 >> 40) & 0xFF
-            log_ep = (lower_data64 >> 48) & 0xFFFF
-            log_error = upper_data64 & 0x1F
-            return ret_string + "tile: {}, ep: {:d}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_ep, log_error)
+            log_error = (lower_data64 >> 48) & 0x1F
+            return ret_string + "from tile: {}, error: {:d}".format(MODID_TO_TILE[log_modid], log_error)
 
-        #NoC error
-        if (log_id <= 26):
+        #NoC received error packet
+        if (log_id <= 27):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48) & 0xFFFF
             log_error = (upper_data64 >> 16) & 0x1F
-            return ret_string + "tile: {}, addr: {:#010x}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_addr, log_error)
+            return ret_string + "from tile: {}, local addr: {:#010x}, error: {:d}".format(MODID_TO_TILE[log_modid], log_addr, log_error)
 
-        #NoC invalid data
-        if (log_id <= 28):
-            log_modid = (lower_data64 >> 40) & 0xFF
-            log_mode = (lower_data64 >> 48) & 0xF
-            return ret_string + "tile: {}, mode: {:d}".format(MODID_TO_TILE[log_modid], log_mode)
-
-        #NoC rsp recveived
+        #NoC received packet with invalid data
         if (log_id <= 29):
             log_modid = (lower_data64 >> 40) & 0xFF
-            log_error = (lower_data64 >> 48) & 0x1F
-            return ret_string + "tile: {}, error: {:#x}".format(MODID_TO_TILE[log_modid], log_error)
+            log_mode = (lower_data64 >> 48) & 0xF
+            return ret_string + "from tile: {}, mode: {:d}".format(MODID_TO_TILE[log_modid], log_mode)
 
         return ret_string
 
