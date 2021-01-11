@@ -301,7 +301,9 @@ class LOG():
         if (log_id <= 29):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
-            return ret_string + "from tile: {}, mode: {:d}".format(modid_to_tile(log_modid), log_mode)
+            log_burst_flag_prev = (lower_data64 >> 52) & 0x1
+            log_burst_flag_curr = (lower_data64 >> 53) & 0x1
+            return ret_string + "from tile: {}, mode: {:d}, burst flags (prev./current): {}-{}".format(modid_to_tile(log_modid), log_mode, log_burst_flag_prev, log_burst_flag_curr)
 
         return ret_string
 
