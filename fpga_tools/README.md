@@ -67,6 +67,7 @@ The Rocket memory mapping is as follows:
 Debug Controller: 0x00000000 - 0x00001000
 Error Device:     0x00003000 - 0x00004000
 BootROM:          0x00010000 - 0x00020000
+Trace Mem:        0x00100000 - 0x00108000
 CLINT:            0x02000000 - 0x02010000
 Cache Controller: 0x02010000 - 0x02011000
 PLIC:             0x0C000000 - 0x10000000
