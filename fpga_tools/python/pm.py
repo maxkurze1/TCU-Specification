@@ -129,7 +129,6 @@ class PM():
     #start core via interrupt 0
     def rocket_start(self):
         self.rocket_setInt(0, 1)
-        self.rocket_setInt(0, 0)
 
     def rocket_getTCUAXIBridgeError(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x30]
