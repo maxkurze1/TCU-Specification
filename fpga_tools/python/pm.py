@@ -8,6 +8,8 @@ from fpga_utils import Progress
 class PM():
     #Rocket interrupt
     ROCKET_INT_COUNT = 2
+    ROCKET_TRACEMEM_BASE = 0x00100000
+    ROCKET_TRACEMEM_SIZE = 1024
 
     def __init__(self, nocif, nocid, pm_num):
         self.nocid = nocid
@@ -134,3 +136,61 @@ class PM():
 
     def rocket_getAXISPMBridgeError(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x38]
+
+    def rocket_enableTrace(self):
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x40] = 1
+
+    def rocket_disableTrace(self):
+        self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x40] = 0
+
+    def rocket_printTrace(self, filename, all=False):
+        #make sure trace is stopped before reading it
+        self.rocket_disableTrace()
+
+        #open file first (reads below might fail)
+        fh = open(filename, 'w')
+
+        #read trace count
+        trace_count = self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x50]
+        if all:
+            trace_count = self.ROCKET_TRACEMEM_SIZE
+
+        print("%s: Number of Rocket instruction traces: %d" % (self.name, trace_count))
+        fh.write("%s: Number of Rocket instruction traces: %d\n" % (self.name, trace_count))
+
+        if trace_count > 0:
+            fh.write("columns: addr opcode priv.-level exception interrupt cause tval\n")
+
+            #read current idx to calculate address of first trace
+            trace_current_idx = self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x48]
+            if trace_current_idx >= trace_count:
+                trace_start_idx = trace_current_idx - trace_count
+            else:
+                trace_start_idx = self.ROCKET_TRACEMEM_SIZE + trace_current_idx - trace_count
+            trace_start_addr = self.ROCKET_TRACEMEM_BASE + 32*trace_start_idx
+
+            tmp_count = trace_count
+            #reduce tmp_count if traces wrap around
+            if (trace_start_idx+trace_count) > self.ROCKET_TRACEMEM_SIZE:
+                tmp_count = self.ROCKET_TRACEMEM_SIZE - trace_start_idx
+
+            #read traces, one trace occupies 32 byte
+            trace_data = self.mem.read_words(trace_start_addr, tmp_count*4)
+
+            #read the rest from start of trace memory
+            if tmp_count < trace_count:
+                trace_data_rest = self.mem.read_words(self.ROCKET_TRACEMEM_BASE, (trace_count-tmp_count)*4)
+                trace_data.extend(trace_data_rest)
+
+            #print to file
+            for i in range(0, trace_count*4, 4):
+                trace_addr = trace_data[i] & 0xFFFFFFFF
+                trace_opcode = trace_data[i] >> 32
+                trace_priv = trace_data[i+1] & 0x7
+                trace_except = (trace_data[i+1] >> 3) & 0x1
+                trace_int = (trace_data[i+1] >> 4) & 0x1
+                trace_cause = ((trace_data[i+2] & 0x1F) << 59) |  (trace_data[i+1] >> 5)
+                trace_tval = trace_data[i+2] >> 5
+                fh.write("{:4d}: {:#010x} {:#010x} {:d} {:d} {:d} {:#018x} {:#010x}\n".format(i>>2, trace_addr, trace_opcode, trace_priv, trace_except, trace_int, trace_cause, trace_tval))
+
+        fh.close()
