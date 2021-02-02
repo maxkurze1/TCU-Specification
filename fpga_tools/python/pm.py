@@ -64,7 +64,10 @@ class PM():
         return (flits_tx, flits_rx)
 
     def tcu_drop_flit_count(self):
-        return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
+        return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] & 0xFFFFFFFF
+
+    def tcu_error_flit_count(self):
+        return self.mem[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] >> 32
 
     def tcu_print_log(self, filename, all=False):
         # open and truncate file first (reads below might fail)
