@@ -64,6 +64,12 @@ class MemEP(EP):
         self.regs[0] &= ~(0xFF << 23)
         self.regs[0] |= (pe & 0xFF) << 23;
 
+    def vpe(self):
+        return (self.regs[0] >> 3) & 0xFFFF
+    def set_vpe(self, vpe):
+        self.regs[0] &= ~(0xFFFF << 3)
+        self.regs[0] |= (vpe & 0xFFFF) << 3;
+
     def addr(self):
         return self.regs[1]
     def set_addr(self, addr):
@@ -81,8 +87,8 @@ class MemEP(EP):
         self.regs[0] |= (flags & 0xF) << 19
 
     def __repr__(self):
-        return "Mem [pe={}, addr={:#x}, size={:#x}, flags={}]".format(
-            modid_to_tile(self.pe()), self.addr(), self.size(), self.flags()
+        return "Mem [pe={}, vpe={:#x}, addr={:#x}, size={:#x}, flags={}]".format(
+            modid_to_tile(self.pe()), self.vpe(), self.addr(), self.size(), self.flags()
         )
 
 class SendEP(EP):
@@ -102,6 +108,12 @@ class SendEP(EP):
     def set_ep(self, ep):
         self.regs[1] &= ~0xFFFF
         self.regs[1] |= ep & 0xFFFF
+
+    def vpe(self):
+        return (self.regs[0] >> 3) & 0xFFFF
+    def set_vpe(self, vpe):
+        self.regs[0] &= ~(0xFFFF << 3)
+        self.regs[0] |= (vpe & 0xFFFF) << 3;
 
     def label(self):
         return self.regs[2] & 0xFFFFFFFF
@@ -130,8 +142,8 @@ class SendEP(EP):
         return (self.regs[0] >> 37) & 0xFFFF
 
     def __repr__(self):
-        return "Send[dst={}:{}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
-            modid_to_tile(self.pe()), self.ep(), self.label(), self.msg_size(), self.cur_crd(),
+        return "Send[dst={}:{}, vpe={:#x}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
+            modid_to_tile(self.pe()), self.ep(), self.vpe(), self.label(), self.msg_size(), self.cur_crd(),
             self.max_crd(), self.is_reply()
         )
 
@@ -143,6 +155,12 @@ class RecvEP(EP):
         return self.regs[1]
     def set_buffer(self, buffer):
         self.regs[1] = buffer
+
+    def vpe(self):
+        return (self.regs[0] >> 3) & 0xFFFF
+    def set_vpe(self, vpe):
+        self.regs[0] &= ~(0xFFFF << 3)
+        self.regs[0] |= (vpe & 0xFFFF) << 3;
 
     def slot_size(self):
         return (self.regs[0] >> 41) & 0x3F
@@ -172,8 +190,8 @@ class RecvEP(EP):
         return (self.regs[0] >> 47) & 0x3F
 
     def __repr__(self):
-        return "Recv[buffer={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
-            self.buffer(), self.slots(), self.slot_size(), self.unread(), self.occupied(),
+        return "Recv[buffer={:#x}, vpe={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
+            self.buffer(), self.vpe(), self.slots(), self.slot_size(), self.unread(), self.occupied(),
             self.reply_eps(), self.rpos(), self.wpos()
         )
 
