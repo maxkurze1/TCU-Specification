@@ -51,8 +51,14 @@ class EP():
     def type(self):
         return self.regs[0] & 0x7
 
+    def vpe(self):
+        return (self.regs[0] >> 3) & 0xFFFF
+    def set_vpe(self, vpe):
+        self.regs[0] &= ~(0xFFFF << 3)
+        self.regs[0] |= (vpe & 0xFFFF) << 3;
+
     def __repr__(self):
-        return "Inv [type={}]".format(self.type())
+        return "Inv [type={}, vpe={}]".format(self.type(), self.vpe())
 
 class MemEP(EP):
     def __init__(self, regs = [EP.MEMORY, 0, 0]):
@@ -63,12 +69,6 @@ class MemEP(EP):
     def set_pe(self, pe):
         self.regs[0] &= ~(0xFF << 23)
         self.regs[0] |= (pe & 0xFF) << 23;
-
-    def vpe(self):
-        return (self.regs[0] >> 3) & 0xFFFF
-    def set_vpe(self, vpe):
-        self.regs[0] &= ~(0xFFFF << 3)
-        self.regs[0] |= (vpe & 0xFFFF) << 3;
 
     def addr(self):
         return self.regs[1]
@@ -108,12 +108,6 @@ class SendEP(EP):
     def set_ep(self, ep):
         self.regs[1] &= ~0xFFFF
         self.regs[1] |= ep & 0xFFFF
-
-    def vpe(self):
-        return (self.regs[0] >> 3) & 0xFFFF
-    def set_vpe(self, vpe):
-        self.regs[0] &= ~(0xFFFF << 3)
-        self.regs[0] |= (vpe & 0xFFFF) << 3;
 
     def label(self):
         return self.regs[2] & 0xFFFFFFFF
@@ -155,12 +149,6 @@ class RecvEP(EP):
         return self.regs[1]
     def set_buffer(self, buffer):
         self.regs[1] = buffer
-
-    def vpe(self):
-        return (self.regs[0] >> 3) & 0xFFFF
-    def set_vpe(self, vpe):
-        self.regs[0] &= ~(0xFFFF << 3)
-        self.regs[0] |= (vpe & 0xFFFF) << 3;
 
     def slot_size(self):
         return (self.regs[0] >> 41) & 0x3F
