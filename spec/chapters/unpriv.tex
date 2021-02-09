@@ -264,6 +264,9 @@ and stores messages. Nevertheless, its behavior is described by the following al
     \BlankLine
     \uIf{(header.flags \& REPLY) == 0 and ep.rpl\_eps != 0xFFFF and header.rep != 0xFFFF}{
       $sep \gets \{\ type \gets SEND$\;
+      \extstart{pemux}
+      $\quad\quad\quad\ \ \  vpe \gets ep.vpe$\;
+      \extend{}
       $\quad\quad\quad\ \ \  reply \gets 1$\;
       $\quad\quad\quad\ \ \  tgt\_pe \gets header.spe$\;
       $\quad\quad\quad\ \ \  tgt\_ep \gets header.rep$\;
