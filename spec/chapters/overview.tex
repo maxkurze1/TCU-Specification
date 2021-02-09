@@ -235,5 +235,7 @@ The TCU uses the following error codes to provide feedback to the software for f
   \item \texttt{RECV\_INV\_RPL\_EPS} (18): invalid reply EPs in receive EP,
   \item \texttt{SEND\_INV\_CRD\_EP} (19): invalid credit EP in send EP,
   \item \texttt{SEND\_INV\_MSG\_SZ} (20): invalid value in msg\_sz field ($> 11$),
-  \item \texttt{RECV\_BUSY} (21): receiver is busy, sender should retry the command.
+  \item \texttt{RECV\_BUSY} (21): receiver is busy, sender should retry the command,
+  \item \texttt{TIMEOUT\_MEM} (22): timeout while waiting for memory response,
+  \item \texttt{TIMEOUT\_NOC} (23): timeout while waiting for NoC response.
 \end{itemize}
