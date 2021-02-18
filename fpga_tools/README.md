@@ -84,14 +84,12 @@ The current TCU version includes the following features:
 - 64 endpoint registers
 - Full unprivileged interface incl. registers and commands
 - Full external interface incl. registers and commands
-- TCU status info
-- TCU logging
-- Core-specific registers
-
-The current TCU version does _not_ support:
 - Privileged interface incl. registers and commands
 - Virtual memory
 - PE sharing
+- TCU status info
+- TCU logging
+- Core-specific registers
 
 
 The TCU status register (addr: `TCU_REGADDR_TCU_STATUS`) provides information about ongoing TCU commands:
