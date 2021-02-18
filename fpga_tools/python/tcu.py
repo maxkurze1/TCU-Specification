@@ -218,7 +218,15 @@ class LOG():
               "NOC_ERROR",
               "NOC_ERROR_UNEXP",
               "NOC_INVMODE",
-              "NOC_INVFLIT"]
+              "NOC_INVFLIT",
+
+              "CMD_PRIV_INV_PAGE",
+              "CMD_PRIV_INV_TLB",
+              "CMD_PRIV_INS_TLB",
+              "CMD_PRIV_XCHG_VPE",
+              "CMD_PRIV_TIMER",
+              "CMD_PRIV_ABORT",
+              "CMD_PRIV_FINISH"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -310,6 +318,42 @@ class LOG():
             log_burst_flag_prev = (lower_data64 >> 52) & 0x1
             log_burst_flag_curr = (lower_data64 >> 53) & 0x1
             return ret_string + "from tile: {}, mode: {:d}, burst flags (prev./current): {}-{}".format(modid_to_tile(log_modid), log_mode, log_burst_flag_prev, log_burst_flag_curr)
+
+        #priv. cmds
+        #invalidate page
+        if (log_id == 30):
+            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
+
+        #insert TLB
+        if (log_id == 32):
+            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_phys = (upper_data64 >> 12) & 0xFFFFF
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_vpeid, log_virt, log_phys)
+
+        #xchg_vpe (vpe=id+msgs)
+        if (log_id == 33):
+            log_curvpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            log_xchgvpe = (upper_data64 >> 8) & 0xFFFFFFFF
+            return ret_string + "cur_vpe: {:#x}, xchg_vpe: {:#x}".format(log_curvpe, log_xchgvpe)
+
+        #timer
+        if (log_id == 34):
+            log_nanos = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            return ret_string + "nanos: {:d}".format(log_nanos)
+
+        #abort
+        if (log_id == 35):
+            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_virt = (upper_data64 & 0xFFF) | (lower_data64 >> 56)
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
+
+        #finish
+        if (log_id == 36):
+            log_error = (lower_data64 >> 40) & 0x1F
+            return ret_string + "error: {:d}".format(log_error)
 
         return ret_string
 
