@@ -307,3 +307,53 @@ most of the bits depend on the type of request/response, defined in the followin
   \regfieldb{type}{2}{0}\regnewline%
 \end{register}
 \extend{}
+
+\section{Physical Memory Protection}
+
+\extstart{vm}
+\noindent With virtual memory support, PEs get access to a shared physical memory. The mapping from
+virtual to physical memory is performed by privileged software on each PE. To prevent that this
+privileged software and the CU within the PE is part of the trusted computing base (as it can access
+all physical memory without further measures), the TCU supports physical memory protection.
+
+The physical memory of each PE is split into multiple fixed-sized regions, whereas each region is
+protected by a memory EP. The current implementation uses four regions of 1~GiB each and thus uses
+the upper two bits of the physical address to determine the memory EP. In other words, the first
+four EPs define to which parts of external memories the PE has access and also defines the access
+permissions (read and/or write).
+
+Instead of connecting the last-level cache~(LLC) directly to the NoC, the LLC is connected to the
+TCU's physical memory protection, which validates and translates the address before passing it to
+the NoC. The following pseudo code describes this process:\\[.2em]
+
+\begin{algorithm}[H]
+    \SetKwFunction{FMain}{llc\_miss}
+    \SetKwProg{Fn}{Function}{:}{}
+    \Fn{\FMain{$phys$, $size$, $access$}}{
+      $addr \gets phys - 0x10000000$\;
+      $epid \gets addr >> 30$\;
+      $off \gets addr\ \&\ 0x3FFFFFFF$\;
+      $ep \gets$ read\_ep(epid)\;
+      \uIf{ep.type != MEMORY}{ignore access}
+      \uIf{ep.rw \& access == 0}{ignore access}
+      \uIf{off + size > ep.size}{ignore access}
+      \BlankLine
+      \uIf{access == READ}{
+        $read\_remote\_phys(ep.PE, size, ep.addr + off)$\;
+      }
+      \uElse{
+        $write\_remote\_phys(ep.PE, size, ep.addr + off)$\;
+      }
+    }
+    \textbf{End Function}
+    \caption{The validation and translation of physical addresses.}
+    \label{code:pmp}
+\end{algorithm}
+
+\noindent The function \texttt{llc\_miss} above is called for each LLC miss and validates whether
+the memory access is allowed before performing the memory access. The first parameter specifies the
+physical address, the second parameter specifies the cache-line size, and the third parameter
+specifies whether the access reads from memory or writes to memory. Note that the current
+implementation substracts \texttt{0x10000000} from the physical access, because the Rocket Core maps
+the DRAM to that address.
+\extend{}
