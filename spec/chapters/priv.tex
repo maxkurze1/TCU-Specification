@@ -200,8 +200,8 @@ The following pseudo code describes the TCU's behavior regarding core requests i
 \begin{algorithm}[H]
     \SetKwFunction{FMain}{queue\_xlate\_req}
     \SetKwProg{Fn}{Function}{:}{}
-    \Fn{\FMain{$vpe$, $virt$, $access$, $can\_pf$}}{
-      $queue.enqueue(vpe\ |\ virt\ |\ access\ |\ can\_pf\ |\ 2)$\;
+    \Fn{\FMain{$vpe$, $virt$, $access$}}{
+      $queue.enqueue(vpe\ |\ virt\ |\ access\ |\ 2)$\;
       $try\_start\_req()$\;
     }
     \textbf{End Function}
@@ -268,11 +268,9 @@ most of the bits depend on the type of request/response, defined in the followin
   \regfieldb[gray!20]{reserved}{16}{32}%
   \regfieldb{virt}{20}{12}%
   \regfieldb[gray!20]{reserved}{7}{5}%
-  \regfieldb{access}{2}{3}%
-  \regfieldb{pf}{1}{2}%
+  \regfieldb{access}{2}{2}%
   \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[pf] whether the translation may page fault or should fail in this case
     \item[access] the requested access permissions (see \rref{sec:tlb})
     \item[virt] the virtual address to translate (shifted right by 12 bits)
     \item[vpe] the id of the VPE for whom to perform the translation
