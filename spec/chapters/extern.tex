@@ -1,27 +1,35 @@
 \chapter{External Interface}
 
-The external interface of the TCU allows remote PEs to manipulate its state. First of all, the TCU
-can be made privileged or unprivileged through the \texttt{FEATURES} register, which has the
+The external interface of the TCU allows remote PEs to manipulate its state. First of all, the
+available TCU features can be configured through the \texttt{FEATURES} register, which has the
 following format:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
-  \regfield[gray!20]{reserved}{63}{1}{{uninitialized}}%
+  \regfield[gray!20]{reserved}{61}{3}{{uninitialized}}%
+  \regfield{ctxsw}{1}{2}{0}%
+  \regfield{vm}{1}{1}{0}%
   \regfield{kernel}{1}{0}{1}%
   \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
+    \item[ctxsw] whether the context-switching extension is available
+    \item[vm] whether the virtual-memory extension is available
     \item[kernel] whether the TCU belongs to a kernel PE
   \end{reglist}\end{regdesc}
 \end{register}
 \setlength{\regWidth}{\textwidth}
 
-\noindent In other words, the \texttt{FEATURES} register currently only defines whether the TCU
-belongs to a kernel PE. At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel
-PEs. The software starting on one PE can afterwards downgrade the other PEs to user PEs.
-
-If \texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create
-a communication channel to the TCU's MMIO region in another PE, which allows to establish other
+\noindent At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel PEs. The
+software starting on one PE can afterwards downgrade the other PEs to user PEs. If
+\texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create a
+communication channel to the TCU's MMIO region in another PE, which allows to establish other
 communication channels by writing to the endpoint registers within the MMIO region.
+
+The bits \texttt{FEATURES.ctxsw} and \texttt{FEATURES.vm} control whether the context-switching and
+virtual-memory extension is enabled, respectively. If the former is disabled, foreign message
+receptions do not raise a core request. If the latter is disabled, no address translation is
+performed and thus no translation core request is raised. The behavior of privileged commands is
+undefined if the associated extension is disabled.
 
 Additionally, the TCU supports \emph{external commands}, which are triggered by writing to the
 \texttt{EXT\_CMD} register and feedback is given via this register as well. The \texttt{EXT\_CMD}
