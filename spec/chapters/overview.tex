@@ -237,5 +237,8 @@ The TCU uses the following error codes to provide feedback to the software for f
   \item \texttt{SEND\_INV\_MSG\_SZ} (20): invalid value in msg\_sz field ($> 11$),
   \item \texttt{RECV\_BUSY} (21): receiver is busy, sender should retry the command,
   \item \texttt{TIMEOUT\_MEM} (22): timeout while waiting for memory response,
-  \item \texttt{TIMEOUT\_NOC} (23): timeout while waiting for NoC response.
+  \item \texttt{TIMEOUT\_NOC} (23): timeout while waiting for NoC response,
+  \item \texttt{PAGE\_BOUNDARY} (24): data to transfer contains a page boundary,
+  \item \texttt{MSG\_UNALIGNED} (25): message to send is not 16-byte aligned,
+  \item \texttt{TLB\_MISS} (26): data to transfer lead to a TLB miss or missing permissions.
 \end{itemize}

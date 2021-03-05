@@ -80,11 +80,11 @@ several building blocks:
   waits until a remote TCU responds (to \texttt{SEND}, \texttt{REPLY}, \texttt{READ}, or
   \texttt{WRITE})
   \item \texttt{abort\_remote\_xfer()}:\\
-  lets the current remote transfer fail, so that \texttt{read\_remote\_phys()} or \texttt{write\_remote\_phys()}
-  return the error ABORT (see \rref{sec:unprivcmdspseudo})
-  \item \texttt{abort\_local\_xfer(err) -> bool}:\\
+  lets the current remote transfer fail, so that \texttt{read\_remote} or \texttt{write\_remote}
+  return the \texttt{ABORT} error (see \rref{sec:unprivcmdspseudo})
+  \item \texttt{abort\_local\_xfer() -> bool}:\\
   checks if there is a local transfer (for the current unprivileged command) and if so, aborts it,
-  so that \texttt{read\_local()} or \texttt{write\_local()} return the given error (see
+  so that \texttt{read\_local()} or \texttt{write\_local()} return the \texttt{ABORT} error (see
   \rref{sec:unprivcmdspseudo}). Returns true if it was aborted.
   \item \texttt{resume\_local\_xfer()}:\\
   resumes a previously paused local transfer (due to an address translation). \extend{}
@@ -166,7 +166,7 @@ several building blocks:
         }
         $wait\_for\_resp()$\;
       }
-      \uElseIf{abort\_local\_xfer(ABORT)}{
+      \uElseIf{abort\_local\_xfer()}{
         $PRIV\_CMD.arg0 \gets 1$\;
       }
     }
@@ -189,28 +189,18 @@ requests and handles them in FIFO order. To handle the first in the queue, the T
 of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
 completion of the request. Upon receiving this signal, as described in \rref{code:corereqfinish},
 the TCU starts the next core request, if there is any. New core requests, as described in
-\rref{code:corereqstart}, are appended to the queue via \texttt{queue\_foreign\_msg\_req()} (see
-\rref{sec:unprivcmdspseudo}) and \texttt{queue\_xlate\_req()} (see \rref{sec:xlates}) and started,
-if possible.
+\rref{code:corereqstart}, are appended to the queue via \texttt{queue\_foreign\_msg\_req()} and
+started, if possible.
 
 \subsection{Pseudo Code}
 
 The following pseudo code describes the TCU's behavior regarding core requests in more detail.
 
 \begin{algorithm}[H]
-    \SetKwFunction{FMain}{queue\_xlate\_req}
-    \SetKwProg{Fn}{Function}{:}{}
-    \Fn{\FMain{$vpe$, $virt$, $access$}}{
-      $queue.enqueue(vpe\ |\ virt\ |\ access\ |\ 2)$\;
-      $try\_start\_req()$\;
-    }
-    \textbf{End Function}
-    \BlankLine
-
     \SetKwFunction{FMain}{queue\_foreign\_msg\_req}
     \SetKwProg{Fn}{Function}{:}{}
     \Fn{\FMain{$vpe$, $ep$}}{
-      $queue.enqueue(vpe\ |\ ep\ |\ 3)$\;
+      $queue.enqueue(vpe\ |\ ep\ |\ 2)$\;
       $try\_start\_req()$\;
     }
     \textbf{End Function}
@@ -231,16 +221,6 @@ The following pseudo code describes the TCU's behavior regarding core requests i
 \begin{algorithm}[H]
     \uIf{CORE\_REQ.type == 1 and not queue.empty()}{
       $cur = queue.dequeue()$\;
-      \uIf{cur.type == 2}{
-        $flags \gets CORE\_REQ.flags$\;
-        \uIf{flags == 0}{
-          $abort\_local\_xfer(PAGEFAULT)$\;
-        }
-        \uElse{
-          $insert\_tlb\_entry(CORE\_REQ.vpe, cur.virt, CORE\_REQ.phys, flags)$\;
-          $resume\_local\_xfer()$\;
-        }
-      }
       $CORE\_REQ \gets 0$\;
       \BlankLine
       $try\_start\_req()$\;
@@ -255,40 +235,12 @@ The following pseudo code describes the TCU's behavior regarding core requests i
   \regfieldb[gray!60]{}{62}{2}%
   \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[type] the type (0 = idle, 1 = response, 2 = translation, 3 = foreign message)
+    \item[type] the type (0 = idle, 1 = response, 2 = foreign message)
   \end{reglist}\end{regdesc}
 \end{register}
 
 \noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
 most of the bits depend on the type of request/response, defined in the following.
-
-\extstart{vm}
-\begin{register}{H}{CORE\_REQ for translation requests}{\texttt{0xF000\_2000}}
-  \regfieldb{vpe}{16}{48}%
-  \regfieldb[gray!20]{reserved}{16}{32}%
-  \regfieldb{virt}{20}{12}%
-  \regfieldb[gray!20]{reserved}{8}{4}%
-  \regfieldb{access}{2}{2}%
-  \regfieldb{type}{2}{0}\regnewline%
-  \begin{regdesc}\begin{reglist}
-    \item[access] the requested access permissions (see \rref{sec:tlb})
-    \item[virt] the virtual address to translate (shifted right by 12 bits)
-    \item[vpe] the id of the VPE for whom to perform the translation
-  \end{reglist}\end{regdesc}
-\end{register}
-
-\begin{register}{H}{CORE\_REQ for translation responses}{\texttt{0xF000\_2000}}
-  \regfieldb[gray!20]{reserved}{32}{32}%
-  \regfieldb{phys}{20}{12}%
-  \regfieldb[gray!20]{reserved}{5}{7}%
-  \regfieldb{flags}{5}{2}%
-  \regfieldb{type}{2}{0}\regnewline%
-  \begin{regdesc}\begin{reglist}
-    \item[flags] the flags for the TLB entry (see \rref{sec:tlb})
-    \item[phys] the physical address for the TLB entry (shifted right by 12 bits)
-  \end{reglist}\end{regdesc}
-\end{register}
-\extend{}
 
 \extstart{pemux}
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
@@ -308,9 +260,26 @@ most of the bits depend on the type of request/response, defined in the followin
 \end{register}
 \extend{}
 
+\extstart{vm}
+\section{Translation Look-aside Buffer}
+\label{sec:tlb}
+
+With virtual memory support, the TCU maintains a TLB to cache recent address translations. The TLB
+contains a 20-bit virtual page number (virtual address shifted right by 12 bits), 16-bit VPE id,
+20-bit physical page number (physical address shifted right by 12 bits), and 5 bits for permissions.
+Small pages are 4~KiB and large pages 2~MiB. The virtual and physical address are always page-size
+aligned. The permissions are defined as follows:
+
+\begin{itemize}
+  \item \texttt{READ} (1): read permission,
+  \item \texttt{WRITE} (2): write permission,
+  \item \texttt{EXEC} (4): execute permission \todo{remove that?},
+  \item \texttt{LARGE} (8): large page mapping,
+  \item \texttt{FIXED} (16): fixed entry, will not be evicted.
+\end{itemize}
+
 \section{Physical Memory Protection}
 
-\extstart{vm}
 \noindent With virtual memory support, PEs get access to a shared physical memory. The mapping from
 virtual to physical memory is performed by privileged software on each PE. To prevent that this
 privileged software and the CU within the PE is part of the trusted computing base (as it can access
@@ -339,10 +308,10 @@ the NoC. The following pseudo code describes this process:\\[.2em]
       \uIf{off + size > ep.size}{ignore access}
       \BlankLine
       \uIf{access == READ}{
-        $read\_remote\_phys(ep.PE, size, ep.addr + off)$\;
+        $read\_remote(ep.PE, ep.addr + off, size)$\;
       }
       \uElse{
-        $write\_remote\_phys(ep.PE, size, ep.addr + off)$\;
+        $write\_remote(data, ep.PE, ep.addr + off, size)$\;
       }
     }
     \textbf{End Function}
