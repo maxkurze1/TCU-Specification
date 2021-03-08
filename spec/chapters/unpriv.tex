@@ -119,9 +119,9 @@ The commands behave as follows:
     \extend{}
     \BlankLine
     $(data, err) \gets read\_remote(ep.PE, ep.addr + ARG_1, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     $err \gets write\_local(data, phys, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{READ} command.}
@@ -145,9 +145,9 @@ The commands behave as follows:
     \extend{}
     \BlankLine
     $(data, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{WRITE} command.}
@@ -235,7 +235,7 @@ message reception and the command should be retried.
     }
     \BlankLine
     $(payload, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
         \uIf{ep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
@@ -364,7 +364,7 @@ message reception and the command should be retried.
     \extend{}
     \BlankLine
     $(payload, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{vmpex}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $header \gets$ \{ flags $\gets$ REPLY\;
     $\quad\quad\quad\quad\quad label \gets sep.label$\;
