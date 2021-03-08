@@ -89,11 +89,11 @@ several building blocks:
   \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\extstart{pemux}\\
   append a new foreign-message request to the queue of core requests (see
   \rref{code:corereqstart} for more details).\extend{}
-  \item \texttt{lookup\_tlb(virt, perm) -> (Phys, Error)}:\extstart{vm}\\
-  lookup the given virtual address in the TLB and return the physical address. On misses or missing
-  permissions, an error is returned. Note that the virtual address is not page aligned and the page
-  offset should be added to the resulting physical address, depending on the page size set in the
-  TLB entry.\extend{}
+  \item \texttt{lookup\_tlb(\colorbox{pemux}{vpe, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
+  lookup the given virtual address in the TLB \colorbox{pemux}{for given VPE} and return the
+  physical address. On misses or missing permissions, an error is returned. Note that the virtual
+  address is not page aligned and the page offset should be added to the resulting physical address,
+  depending on the page size set in the TLB entry.\extend{}
 \end{itemize}
 
 \section{Memory Access}
@@ -114,7 +114,7 @@ The commands behave as follows:
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(DATA.address, WRITE)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, WRITE)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
@@ -140,7 +140,7 @@ The commands behave as follows:
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
@@ -219,7 +219,7 @@ message reception and the command should be retried.
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
@@ -359,7 +359,7 @@ message reception and the command should be retried.
     \setcounter{AlgoLine}{27}
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
