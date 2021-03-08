@@ -174,14 +174,12 @@ several building blocks:
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{ABORT\_CMD} command.}
 \end{algorithm}
-\extend{}
 
 \section{Core Requests}
 
-With the privileged interface to support virtual memory and PE sharing, the TCU needs assistance of
-the CU in some cases. Since we assume in this case that the CU is a general-purpose core, these
-requests for assistance are called \emph{core requests}. Core requests are needed, for example, if a
-message for another VPE than the currently running VPE (\texttt{CUR\_VPE}) is received.
+With PE sharing, the TCU needs assistance of the CU if a message for another VPE than the currently
+running VPE (\texttt{CUR\_VPE}) is received. Since we assume in this case that the CU is a
+general-purpose core, these requests for assistance are called \emph{core requests}.
 
 Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
 requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
@@ -242,7 +240,6 @@ The following pseudo code describes the TCU's behavior regarding core requests i
 \noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
 most of the bits depend on the type of request/response, defined in the following.
 
-\extstart{pemux}
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
   \regfieldb{vpe}{16}{48}%
   \regfieldb[gray!20]{reserved}{30}{18}%
