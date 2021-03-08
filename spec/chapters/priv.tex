@@ -96,10 +96,10 @@ several building blocks:
 \subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
-    $vpe \gets PRIV\_CMD.arg0 >> 32$\;
+    \colorbox{pemux}{$vpe \gets PRIV\_CMD.arg0 >> 32$}\;
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
     \BlankLine
-    $remove\_tlb\_entry(vpe, virt\_page\_no)$\;
+    $remove\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_PAGE} command.}
 \end{algorithm}
@@ -118,12 +118,12 @@ several building blocks:
 \subsection{\texttt{INS\_TLB}}
 
 \begin{algorithm}[H]
-    $vpe \gets PRIV\_CMD.arg0 >> 32$\;
+    \colorbox{pemux}{$vpe \gets PRIV\_CMD.arg0 >> 32$}\;
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     $phys\_page\_no \gets (PRIV\_CMD\_ARG1\ \&\ 0xFFFF\_F000) >> 12$\;
     \BlankLine
-    $insert\_tlb\_entry(vpe, virt\_page\_no, phys\_page\_no, flags)$\;
+    $insert\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no, phys\_page\_no, flags)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
@@ -270,10 +270,10 @@ execution of a command. In other words, the privileged software is responsible t
 potentially running command when removing entries from the TLB to ensure that it is not used
 anymore.
 
-The TLB contains a 20-bit virtual page number (virtual address shifted right by 12 bits), 16-bit VPE
-id, 20-bit physical page number (physical address shifted right by 12 bits), and 5 bits for
-permissions. Small pages are 4~KiB and large pages 2~MiB. The virtual and physical address are
-always page-size aligned. The permissions are defined as follows:
+The TLB contains a 20-bit virtual page number (virtual address shifted right by 12 bits),
+\colorbox{pemux}{16-bit VPE id, }20-bit physical page number (physical address shifted right by 12
+bits), and 5 bits for permissions. Small pages are 4~KiB and large pages 2~MiB. The virtual and
+physical address are always page-size aligned. The permissions are defined as follows:
 
 \begin{itemize}
   \item \texttt{READ} (1): read permission,
