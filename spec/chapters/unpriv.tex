@@ -91,9 +91,10 @@ several building blocks:
   \rref{code:corereqstart} for more details).\extend{}
   \item \texttt{lookup\_tlb(\colorbox{pemux}{vpe, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
   lookup the given virtual address in the TLB \colorbox{pemux}{for given VPE} and return the
-  physical address. On misses or missing permissions, an error is returned. Note that the virtual
-  address is not page aligned and the page offset should be added to the resulting physical address,
-  depending on the page size set in the TLB entry.\extend{}
+  physical address. On misses or missing permissions, the \texttt{TLB\_MISS} or \texttt{NO\_PERM}
+  error is returned, respectively. Note that the virtual address is not page aligned and the page
+  offset should be added to the resulting physical address, depending on the page size set in the
+  TLB entry.\extend{}
 \end{itemize}
 
 \section{Memory Access}

@@ -88,6 +88,9 @@ several building blocks:
   \rref{sec:unprivcmdspseudo}). Returns true if it was aborted.
   \item \texttt{resume\_local\_xfer()}:\\
   resumes a previously paused local transfer (due to an address translation). \extend{}
+  \item \texttt{priv\_stop(error)}: \extstart{vm}\\
+  stop the execution of the privileged command by setting the opcode in \texttt{PRIV\_CMD} to 0 and
+  the error code to the given error. \extend{}
 \end{itemize}
 
 \section{Command Description}
@@ -98,6 +101,9 @@ several building blocks:
 \begin{algorithm}[H]
     \colorbox{pemux}{$vpe \gets PRIV\_CMD.arg0 >> 32$}\;
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
+    \BlankLine
+    $(\_, err) \gets lookup\_tlb(\colorbox{pemux}{vpe, }virt\_page\_no << 12, READ)$\;
+    \uIf{err == TLB\_MISS}{priv\_stop(TLB\_MISS)}
     \BlankLine
     $remove\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no)$\;
     $PRIV\_CMD.op \gets 0$\;
@@ -122,6 +128,8 @@ several building blocks:
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     $phys\_page\_no \gets (PRIV\_CMD\_ARG1\ \&\ 0xFFFF\_F000) >> 12$\;
+    \BlankLine
+    \uIf{all entries are FIXED}{priv\_stop(TLB\_FULL)}
     \BlankLine
     $insert\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no, phys\_page\_no, flags)$\;
     $PRIV\_CMD.op \gets 0$\;
