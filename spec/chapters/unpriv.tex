@@ -115,7 +115,7 @@ The commands behave as follows:
     $phys \gets$ DATA.address\;
     \extstart{vm}
     $(phys, err) \gets$ lookup\_tlb(DATA.address, WRITE)\;
-    \uIf{err != 0}{unpriv\_stop(TLB\_MISS)}
+    \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     $(data, err) \gets read\_remote(ep.PE, ep.addr + ARG_1, DATA.size)$\;
@@ -141,7 +141,7 @@ The commands behave as follows:
     $phys \gets$ DATA.address\;
     \extstart{vm}
     $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
-    \uIf{err != 0}{unpriv\_stop(TLB\_MISS)}
+    \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     $(data, err) \gets read\_local(phys, DATA.size)$\;
@@ -220,7 +220,7 @@ message reception and the command should be retried.
     $phys \gets$ DATA.address\;
     \extstart{vm}
     $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
-    \uIf{err != 0}{unpriv\_stop(TLB\_MISS)}
+    \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     \uIf{COMMAND.arg\_0 != 0xFFFF}{
@@ -360,7 +360,7 @@ message reception and the command should be retried.
     $phys \gets$ DATA.address\;
     \extstart{vm}
     $(phys, err) \gets$ lookup\_tlb(DATA.address, READ)\;
-    \uIf{err != 0}{unpriv\_stop(TLB\_MISS)}
+    \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     $(payload, err) \gets read\_local(phys, DATA.size)$\;
