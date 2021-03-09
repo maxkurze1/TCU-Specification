@@ -111,7 +111,7 @@ The commands behave as follows:
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
-    \uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}
+    \extstart{vm}\uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}\extend{}
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
@@ -137,7 +137,7 @@ The commands behave as follows:
     \uIf{ep.rw \& WRITE == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
-    \uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}
+    \extstart{vm}\uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}\extend{}
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
@@ -216,7 +216,7 @@ message reception and the command should be retried.
     \uIf{$ep.msg\_sz > 11$}{unpriv\_stop(SEND\_INV\_MSG\_SZ)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \uIf{(DATA.address \& 0xF) != 0}{unpriv\_stop(MSG\_UNALIGNED)}
-    \uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}
+    \extstart{vm}\uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}\extend{}
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
@@ -352,7 +352,7 @@ message reception and the command should be retried.
     \uIf{$sep.msg\_sz > 11$}{unpriv\_stop(SEND\_INV\_MSG\_SZ)}
     \uIf{DATA.size + sizeof(header) > ($1 << sep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \uIf{(DATA.address \& 0xF) != 0}{unpriv\_stop(MSG\_UNALIGNED)}
-    \uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}
+    \extstart{vm}\uIf{(DATA.address \& 0xFFF) + DATA.size > 0xFFF}{unpriv\_stop(PAGE\_BOUNDARY)}\extend{}
     \caption{The TCU's \texttt{REPLY} command.}
 \end{algorithm}
 
