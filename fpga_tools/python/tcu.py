@@ -194,12 +194,8 @@ class LOG():
               "NOC_WRITE",
               "NOC_READ_ERR",
               "NOC_READ",
-              "NOC_MSG_HD_SECMSG",
-              "NOC_MSG_HD",
-              "NOC_MSG_HD_INV",
-              "NOC_MSG_PL_CONT",
-              "NOC_MSG_PL_UNEXP",
-              "NOC_MSG_PL_ERR",
+              "NOC_MSG",
+              "NOC_MSG_INV",
               "NOC_MSG_ACK",
               "NOC_MSG_ACK_ERR",
               "NOC_ERROR",
@@ -280,65 +276,59 @@ class LOG():
             return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_mode, log_addr, log_size)
 
         #NoC received msg
-        if (log_id <= 23):
+        if (log_id <= 19):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_ep = (lower_data64 >> 48) & 0xFFFF
             return ret_string + "from tile: {}, recv-ep: {:d}".format(modid_to_tile(log_modid), log_ep)
 
-        #NoC received msg-ack
-        if (log_id <= 25):
+        #NoC received msg-ack or error packet
+        if (log_id <= 23):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
             return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
 
-        #NoC received error packet
-        if (log_id <= 27):
-            log_modid = (lower_data64 >> 40) & 0xFF
-            log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48) & 0xFFFF
-            log_error = (upper_data64 >> 16) & 0x1F
-            return ret_string + "from tile: {}, local addr: {:#010x}, error: {:d}".format(modid_to_tile(log_modid), log_addr, log_error)
-
         #NoC received packet with invalid data
-        if (log_id <= 29):
+        if (log_id <= 25):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
-            log_burst_flag_prev = (lower_data64 >> 52) & 0x1
-            log_burst_flag_curr = (lower_data64 >> 53) & 0x1
-            return ret_string + "from tile: {}, mode: {:d}, burst flags (prev./current): {}-{}".format(modid_to_tile(log_modid), log_mode, log_burst_flag_prev, log_burst_flag_curr)
+            log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
+            log_burst_flag = (upper_data64 >> 20) & 0x1
+            log_burst_length = (lower_data64 >> 21) & 0xFFFF
+            return ret_string + "from tile: {}, mode: {:d}, addr: {:#010x}, burst flag: {}, burst length: {:d}".format(modid_to_tile(log_modid), log_mode, log_addr, log_burst_flag, log_burst_length)
 
         #priv. cmds
         #invalidate page
-        if (log_id == 30):
+        if (log_id == 26):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
 
         #insert TLB
-        if (log_id == 32):
+        if (log_id == 28):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_phys = (upper_data64 >> 12) & 0xFFFFF
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_vpeid, log_virt, log_phys)
 
         #xchg_vpe (vpe=id+msgs)
-        if (log_id == 33):
+        if (log_id == 29):
             log_curvpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             log_xchgvpe = (upper_data64 >> 8) & 0xFFFFFFFF
             return ret_string + "cur_vpe: {:#x}, xchg_vpe: {:#x}".format(log_curvpe, log_xchgvpe)
 
         #timer
-        if (log_id == 34):
+        if (log_id == 30):
             log_nanos = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             return ret_string + "nanos: {:d}".format(log_nanos)
 
         #abort
-        if (log_id == 35):
+        if (log_id == 31):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_virt = (upper_data64 & 0xFFF) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
 
         #finish
-        if (log_id == 36):
+        if (log_id == 32):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
 
