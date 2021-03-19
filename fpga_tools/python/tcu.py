@@ -1,23 +1,10 @@
 
 import modids
 
-MODID_TO_TILE = {
-    modids.MODID_PM0 : "PM0",
-    modids.MODID_PM1 : "PM1",
-    modids.MODID_PM2 : "PM2",
-    modids.MODID_PM3 : "PM3",
-    modids.MODID_PM4 : "PM4",
-    modids.MODID_PM5 : "PM5",
-    modids.MODID_PM6 : "PM6",
-    modids.MODID_PM7 : "PM7",
-    modids.MODID_DRAM1 : "DRAM1",
-    modids.MODID_DRAM2 : "DRAM2",
-    modids.MODID_ETH : "ETH",
-}
 
 def modid_to_tile(modid):
     try:
-        return MODID_TO_TILE[modid]
+        return modids.MODID_TO_TILE[modid]
     except:
         return "Unknown({:#x})".format(modid)
 

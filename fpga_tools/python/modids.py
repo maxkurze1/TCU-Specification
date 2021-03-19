@@ -44,3 +44,17 @@ MODID_ROUTER = [MODID_ROUTER0,
                 MODID_ROUTER1,
                 MODID_ROUTER2,
                 MODID_ROUTER3]
+
+MODID_TO_TILE = {
+    MODID_PM0 : "PM0",
+    MODID_PM1 : "PM1",
+    MODID_PM2 : "PM2",
+    MODID_PM3 : "PM3",
+    MODID_PM4 : "PM4",
+    MODID_PM5 : "PM5",
+    MODID_PM6 : "PM6",
+    MODID_PM7 : "PM7",
+    MODID_DRAM1 : "DRAM1",
+    MODID_DRAM2 : "DRAM2",
+    MODID_ETH : "ETH",
+}
