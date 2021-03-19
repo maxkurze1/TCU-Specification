@@ -37,8 +37,8 @@ class PM():
     def tcu_reset(self):
         self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
 
-    def tcu_set_privileged(self, priv):
-        self.mem[TCU.TCU_REGADDR_FEATURES] = priv
+    def tcu_set_features(self, priv, vm, ctxsw):
+        self.mem[TCU.TCU_REGADDR_FEATURES] = ((ctxsw & 0x1)<<2) | ((vm & 0x1)<<1) | (priv & 0x1)
 
     def tcu_get_ep(self, ep_id):
         r0 = self.mem[TCU.TCU_REGADDR_EP_START + (8 * 3) * ep_id + 0]
