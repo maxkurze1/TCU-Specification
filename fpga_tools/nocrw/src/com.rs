@@ -32,9 +32,8 @@ enum Mode {
     ReadReq     = 0,
     ReadResp    = 1,
     WritePosted = 2,
-    MsgHeader   = 3,
-    MsgPayload  = 4,
-    MsgAck      = 5,
+    TCUMsg      = 3,
+    TCUMsgAck   = 4,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
