@@ -443,3 +443,13 @@ where state is changed.
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{ACK\_MSG} command.}
 \end{algorithm}
+
+\section{Debug Prints}
+
+The register \texttt{PRINT} can be used to perform debug prints with the TCU. The software has to
+first write the string to print into the print registers (\texttt{PR0}, \dots), starting with the
+first byte of the string at the least significant byte of \texttt{PR0}. Afterwards, the number of
+bytes to print has to be written to \texttt{PRINT}. As soon as the print was carried out, the TCU
+writes 0 to \texttt{PRINT} to acknowledge the print. Note that the effect of the debug prints is
+implementation defined. For example, a simulator might write the string into a log file, whereas a
+hardware implementation could output the string via a serial port.
