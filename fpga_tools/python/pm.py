@@ -57,8 +57,8 @@ class PM():
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
 
-    def tcu_io_flit_count(self):
-        flits = self.mem[TCU.TCU_REGADDR_TCU_IO_FLIT_COUNT]
+    def tcu_byp_flit_count(self):
+        flits = self.mem[TCU.TCU_REGADDR_TCU_BYP_FLIT_COUNT]
         flits_rx = flits & 0xFFFFFFFF
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
