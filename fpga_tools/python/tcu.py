@@ -209,7 +209,9 @@ class LOG():
               "CMD_PRIV_XCHG_VPE",
               "CMD_PRIV_TIMER",
               "CMD_PRIV_ABORT",
-              "CMD_PRIV_FINISH"]
+              "CMD_PRIV_FINISH",
+              "PRIV_CORE_REQ_FORMSG",
+              "PRIV_CORE_REQ_FORMSG_FINISH"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -324,13 +326,19 @@ class LOG():
         #abort
         if (log_id == 31):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = (upper_data64 & 0xFFF) | (lower_data64 >> 56)
+            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
 
         #finish
         if (log_id == 32):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
+
+        #core request
+        if (log_id == 33):
+            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_ep = ((upper_data64 & 0xFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "vpeid: {:#x}, ep: {:d}".format(log_vpeid, log_ep)
 
         return ret_string
 
