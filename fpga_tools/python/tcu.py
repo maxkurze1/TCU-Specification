@@ -211,7 +211,10 @@ class LOG():
               "CMD_PRIV_ABORT",
               "CMD_PRIV_FINISH",
               "PRIV_CORE_REQ_FORMSG",
-              "PRIV_CORE_REQ_FORMSG_FINISH"]
+              "PRIV_CORE_REQ_FORMSG_FINISH",
+              "PRIV_TLB_WRITE_ENTRY",
+              "PRIV_TLB_READ_ENTRY",
+              "PRIV_TLB_DEL_ENTRY"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -339,6 +342,29 @@ class LOG():
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_ep = ((upper_data64 & 0xFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, ep: {:d}".format(log_vpeid, log_ep)
+
+        #TLB write
+        if (log_id == 35):
+            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
+            log_tlb_perm = (upper_data64 >> 32) & 0x1F
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+
+        #TLB read
+        if (log_id == 36):
+            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
+            log_tlb_perm = (upper_data64 >> 32) & 0x1F
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, read perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+
+        #TLB invalidate page
+        if (log_id == 37):
+            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_tlb_vpeid, log_tlb_virtpage)
+
 
         return ret_string
 
