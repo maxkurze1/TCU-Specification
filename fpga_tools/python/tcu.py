@@ -196,8 +196,9 @@ class LOG():
               "NOC_READ",
               "NOC_MSG",
               "NOC_MSG_INV",
+              "NOC_WRITE_ACK",
               "NOC_MSG_ACK",
-              "NOC_MSG_ACK_ERR",
+              "NOC_ACK_ERR",
               "NOC_ERROR",
               "NOC_ERROR_UNEXP",
               "NOC_INVMODE",
@@ -233,7 +234,7 @@ class LOG():
             log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
             log_size = (upper_data64 >> 24) & 0xFFFFFFFF
             log_modid = upper_data64 >> 56
-            return ret_string + "to tile: {}, send-ep: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_size)
+            return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_size)
 
         if (log_id <= 6):
             log_ep = (lower_data64 >> 40) & 0xFFFF
@@ -286,7 +287,13 @@ class LOG():
             log_ep = (lower_data64 >> 48) & 0xFFFF
             return ret_string + "from tile: {}, recv-ep: {:d}".format(modid_to_tile(log_modid), log_ep)
 
-        #NoC received msg-ack or error packet
+        #NoC received ACK or error packet
+        if (log_id <= 20):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | ((lower_data64 >> 48) & 0xFFFF)
+            log_size = (upper_data64 >> 16) & 0xFFFFFFFF
+            return ret_string + "from tile: {}, addr: {:#010x}, size: {:d}".format(modid_to_tile(log_modid), log_addr, log_size)
+
         if (log_id <= 23):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
