@@ -53,3 +53,52 @@ class NoCmonitor(threading.Thread):
                 #print l
                 self.dropmap[madr] = drops
         fh.close()
+
+class NoCARQRegfile(object):
+    REGADDR_ARQ_ENABLE            = 0x00
+    REGADDR_ARQ_TIMEOUT_RX_CYCLES = 0x08
+    REGADDR_NOC_RX_COUNT          = 0x10
+    REGADDR_NOC_RX_DROP           = 0x18
+
+    def __init__(self, nocid):
+        self.nocid = nocid
+
+    def read8b_nocarq(self, trg_id, addr):
+        data = nocrw.read8b_nocarq(trg_id[0], trg_id[1], addr)
+        return int.from_bytes(data[0:8], byteorder='little')
+
+    def write8b_nocarq(self, trg_id, addr, word):
+        assert isinstance(word, int), "word must be an integer"
+        data = bytearray()
+        data = word.to_bytes(8, byteorder='little')
+        nocrw.write8b_nocarq(trg_id[0], trg_id[1], addr, bytes(data))
+
+    def set_arq_enable(self, val):
+        """
+        Set enable for ARQ protocol. Possible input values:
+        0: ARQ off, ARQ bit in NoC packet is forced to 0
+        1: ARQ on, ARQ bit in NoC packet is forced to 1 (default)
+        2: ARQ follows ARQ bit in packet
+        """
+        self.write8b_nocarq(self.nocid, self.REGADDR_ARQ_ENABLE, val)
+
+    def get_arq_enable(self):
+        return self.read8b_nocarq(self.nocid, self.REGADDR_ARQ_ENABLE)
+
+    def set_arq_timeout(self, cycles):
+        """
+        Set timeout to drop packets when deadlock occurs. Default: 10000 cycles
+        """
+        self.write8b_nocarq(self.nocid, self.REGADDR_ARQ_TIMEOUT_RX_CYCLES, cycles)
+
+    def get_arq_packet_count(self):
+        """
+        Number of received packets in NoC ARQ interface
+        """
+        return self.read8b_nocarq(self.nocid, self.REGADDR_NOC_RX_COUNT)
+
+    def get_arq_drop_packet_count(self):
+        """
+        Number of received packets in NoC ARQ interface which were dropped
+        """
+        return self.read8b_nocarq(self.nocid, self.REGADDR_NOC_RX_DROP)

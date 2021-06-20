@@ -2,6 +2,7 @@
 from ipaddress import IPv4Address
 from time import sleep
 
+import noc
 import memory
 from tcu import TCU
 
@@ -11,6 +12,7 @@ class EthernetRegfile(memory.Memory):
         self.shortname = "eth_rf"
         self.name = "Ethernet Regfile"
         self.rf = memory.Memory(nocif, nocid)
+        self.nocarq = noc.NoCARQRegfile(nocid)
 
     def tcu_status(self):
         status = self.rf[TCU.TCU_REGADDR_TCU_STATUS]

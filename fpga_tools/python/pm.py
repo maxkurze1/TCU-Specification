@@ -16,6 +16,7 @@ class PM():
         self.shortname = "pm%d" % pm_num
         self.name = "PM%d" % pm_num
         self.mem = memory.Memory(nocif, self.nocid)
+        self.nocarq = noc.NoCARQRegfile(self.nocid)
         self.pm_num = pm_num
 
     def __repr__(self):

@@ -9,6 +9,7 @@ class DRAM(memory.Memory):
         self.shortname = "dram"
         self.name = "DDR4 SDRAM"
         self.mem = memory.Memory(nocif, nocid)
+        self.nocarq = noc.NoCARQRegfile(nocid)
 
     def getStatus(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START]

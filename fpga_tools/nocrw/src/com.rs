@@ -27,13 +27,21 @@ const READ_TIMEOUT: Duration = Duration::from_secs(1);
 const MAX_READ_RETRIES: usize = 3;
 
 #[repr(u8)]
-#[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive, Copy, Clone)]
 enum Mode {
-    ReadReq     = 0,
-    ReadResp    = 1,
-    WritePosted = 2,
-    TCUMsg      = 3,
-    TCUMsgAck   = 4,
+    ReadReq        = 0,
+    ReadResp       = 1,
+    WritePosted    = 2,
+    TCUMsg         = 3,
+    TCUAck         = 4,
+    ReadReq2       = 5,
+    ReadResp2      = 6,
+    WritePosted2   = 7,
+    Error          = 8,
+    ARQAck         = 9,
+    ARQReadReq     = 10,
+    ARQReadResp    = 11,
+    ARQWritePosted = 12,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -96,7 +104,7 @@ impl Communicator {
     pub fn self_test(&mut self) -> std::io::Result<()> {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF];
         // use an offset that nobody else should use; notice the alignment
-        self.write_noburst(ETH_MOD, 0xDEAD_BEE0, &test_data)?;
+        self.write_noburst(ETH_MOD, 0xDEAD_BEE0, &test_data, false)?;
 
         let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
 
@@ -163,7 +171,12 @@ impl Communicator {
             let noc_packet = self.decode_packet(&buf[pos..]);
             match noc_packet {
                 NocPacket::Normal((src, mode, off, data)) => {
-                    assert!(mode == Mode::WritePosted);
+                    // ignore other packets
+                    if mode != Mode::WritePosted {
+                        debug!("Ignoring packet with mode {:?}", mode);
+                        pos += NOC_PACKET_LEN;
+                        continue;
+                    }
 
                     if self.burst.is_some() {
                         debug!("Received burst-start from {} at offset {:#x}", src, off);
@@ -191,13 +204,19 @@ impl Communicator {
         target: FPGAModule,
         mut addr: u32,
         mut len: usize,
+        nocarq: bool,
     ) -> std::io::Result<Vec<u8>> {
         let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
         let mut res = Vec::with_capacity(len);
+        let read_mode = if nocarq == true {
+            Mode::ARQReadReq
+        } else {
+            Mode::ReadReq
+        };
 
         let mut retries = 0;
         while len > 0 {
-            match self.read_single(&mut buf, &mut res, target, addr, len) {
+            match self.read_single(&mut buf, &mut res, target, read_mode, addr, len) {
                 Err(e) => {
                     error!("read request failed: {}", e);
                     // try a few times if it failed for a different reason
@@ -221,6 +240,7 @@ impl Communicator {
         buf: &mut Vec<u8>,
         res: &mut Vec<u8>,
         target: FPGAModule,
+        read_mode: Mode,
         addr: u32,
         len: usize,
     ) -> std::io::Result<usize> {
@@ -229,7 +249,7 @@ impl Communicator {
 
         let byte_count = cmp::min(MAX_READ_REQ_LEN, len);
         let byte_count_bytes = ((byte_count as u64) << 32 | req_id as u64).to_le_bytes();
-        let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, Mode::ReadReq);
+        let noc_packet = encode_packet(target, false, 0xFF, addr, &byte_count_bytes, read_mode);
         self.append_packet(&noc_packet)?;
         self.flush_packets()?;
 
@@ -253,8 +273,9 @@ impl Communicator {
                         }
 
                         // ignore other packets; TODO support messages
-                        if mode != Mode::ReadResp {
+                        if mode != Mode::ReadResp && mode != Mode::ARQReadResp {
                             debug!("Ignoring packet with mode {:?}", mode);
+                            pos += NOC_PACKET_LEN;
                             continue;
                         }
 
@@ -298,6 +319,7 @@ impl Communicator {
         target: FPGAModule,
         mut addr: u32,
         data: &[u8],
+        nocarq: bool,
     ) -> std::io::Result<usize> {
         let build_min_packet = |data: &[u8], pos: usize| {
             let mut buf = data[pos..].to_vec();
@@ -309,12 +331,17 @@ impl Communicator {
         };
 
         let mut pos = 0;
+        let write_mode = if nocarq == true {
+            Mode::ARQWritePosted
+        }  else {
+            Mode::WritePosted
+        };
 
         // align it first
         let rem = addr as usize % BYTES_PER_PACKET;
         if rem != 0 {
             let buf = build_min_packet(data, pos);
-            let noc_pkt = encode_packet(target, false, 0xFF >> rem, addr, &buf, Mode::WritePosted);
+            let noc_pkt = encode_packet(target, false, 0xFF >> rem, addr, &buf, write_mode);
             self.append_packet(&noc_pkt)?;
 
             let amount = BYTES_PER_PACKET - rem;
@@ -324,7 +351,7 @@ impl Communicator {
 
         // write full and aligned packets
         while pos + BYTES_PER_PACKET <= data.len() {
-            let noc_pkt = encode_packet(target, false, 0xFF, addr, &data[pos..], Mode::WritePosted);
+            let noc_pkt = encode_packet(target, false, 0xFF, addr, &data[pos..], write_mode);
             self.append_packet(&noc_pkt)?;
 
             addr += BYTES_PER_PACKET as u32;
@@ -389,7 +416,7 @@ impl Communicator {
         }
 
         // sent the remaining data without burst, if there is any
-        self.write_noburst(target, addr, &data[pos..])
+        self.write_noburst(target, addr, &data[pos..], false)
     }
 
     fn append_packet(&mut self, packet: &[u8]) -> std::io::Result<()> {
@@ -435,7 +462,7 @@ impl Communicator {
             // 0x1   | 14    |  1
             // 0x0   | 15    |  0
 
-            let begin = if bytes[0] == 0 {
+            let begin = if (bytes[0] >> 1) == 0 {
                 (0xF - (bsel >> 4)) as usize
             }
             else {
@@ -449,7 +476,8 @@ impl Communicator {
             };
 
             *first = false;
-            if bytes[0] == 0 {
+            //ignore arq bit
+            if (bytes[0] >> 1) == 0 {
                 self.burst = None;
             }
 
@@ -461,7 +489,7 @@ impl Communicator {
                 | (bytes[7] as u32) << 16
                 | (bytes[8] as u32) << 8
                 | bytes[9] as u32;
-            if bytes[0] == 1 {
+            if (bytes[0] >> 1) == 1 {
                 self.burst = Some((bytes[1], true));
             }
             let mode = Mode::try_from(bytes[5] & 0xF).unwrap();
@@ -487,9 +515,11 @@ fn encode_packet(
     mode: Mode,
 ) -> [u8; 18] {
     let mode_byte: u8 = mode.into();
+    let arq: u8 = 0;
     [
-        // burst and bsel
-        burst as u8,
+        // burst and arq bit
+        ((burst as u8) << 1) | arq,
+        // bsel
         bsel,
         // source and target
         ETH_MOD.mod_id,
@@ -514,9 +544,10 @@ fn encode_packet(
 }
 
 fn encode_packet_burst(not_last: bool, bytes: &[u8]) -> [u8; 18] {
+    let arq: u8 = 0;
     [
-        // burst and bsel
-        not_last as u8,
+        // burst and arq bit
+        ((not_last as u8) << 1) | arq,
         0xFF,
         // data
         bytes[15],
