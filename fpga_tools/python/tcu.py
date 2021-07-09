@@ -172,7 +172,6 @@ class RecvEP(EP):
 
 class LOG():
 
-    #Log IDs
     LOG_ID = ["NONE",
 
               "CMD_SEND",
@@ -225,56 +224,56 @@ class LOG():
         time_string = "Time: {:12}".format(log_time)
         ret_string = time_string + ", " + id_string + ", "
 
-        if (log_id == 0):
+        if (id_string == "NONE"):
             return ret_string
 
         #unpriv cmd
-        if (log_id <= 4):
+        if (id_string == "CMD_SEND" or id_string == "CMD_REPLY" or id_string == "CMD_READ" or id_string == "CMD_WRITE"):
             log_ep = (lower_data64 >> 40) & 0xFFFF
             log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
             log_size = (upper_data64 >> 24) & 0xFFFFFFFF
             log_modid = upper_data64 >> 56
             return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_size)
 
-        if (log_id <= 6):
+        if (id_string == "CMD_FETCH" or id_string == "CMD_ACK_MSG"):
             log_ep = (lower_data64 >> 40) & 0xFFFF
             return ret_string + "ep: {:d}".format(log_ep)
 
         #unpriv finish
-        if (log_id == 7):
+        if (id_string == "CMD_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
 
         #ext cmd
-        if (log_id == 8):
+        if (id_string == "CMD_EXT_INVEP"):
             log_ep = (lower_data64 >> 40) & 0xFF
             log_force = (lower_data64 >> 48) & 0x1
             return ret_string + "ep: {:d}, force: {:d}".format(log_ep, log_force)
 
         #ext finish
-        if (log_id == 9):
+        if (id_string == "CMD_EXT_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
 
         #NoC received write or read
-        if (log_id <= 13):
+        if (id_string == "NOC_REG_WRITE_ERR" or id_string == "NOC_REG_WRITE" or id_string == "NOC_READ_RSP" or id_string == "NOC_READ_RSP_ERR"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
             return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x}".format(modid_to_tile(log_modid), log_mode, log_addr)
 
-        if (log_id == 14):
+        if (id_string == "NOC_READ_RSP_DONE"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
             return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
 
-        if (log_id == 15):
+        if (id_string == "NOC_WRITE"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
             return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x}".format(modid_to_tile(log_modid), log_mode, log_addr)
 
-        if (log_id <= 17):
+        if (id_string == "NOC_READ_ERR" or id_string == "NOC_READ"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
@@ -282,25 +281,26 @@ class LOG():
             return ret_string + "from tile: {}, mode: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_mode, log_addr, log_size)
 
         #NoC received msg
-        if (log_id <= 19):
+        if (id_string == "NOC_MSG" or id_string == "NOC_MSG_INV"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_ep = (lower_data64 >> 48) & 0xFFFF
             return ret_string + "from tile: {}, recv-ep: {:d}".format(modid_to_tile(log_modid), log_ep)
 
-        #NoC received ACK or error packet
-        if (log_id <= 20):
+        #NoC received write ACK
+        if (id_string == "NOC_WRITE_ACK"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | ((lower_data64 >> 48) & 0xFFFF)
             log_size = (upper_data64 >> 16) & 0xFFFFFFFF
             return ret_string + "from tile: {}, addr: {:#010x}, size: {:d}".format(modid_to_tile(log_modid), log_addr, log_size)
 
-        if (log_id <= 23):
+        #NoC received msg ACK or error packet
+        if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR" or id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
             return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
 
         #NoC received packet with invalid data
-        if (log_id <= 25):
+        if (id_string == "NOC_INVMODE" or id_string == "NOC_INVFLIT"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_mode = (lower_data64 >> 48) & 0xF
             log_addr = ((upper_data64 & 0xFFFFF) << 12) | (lower_data64 >> 52)
@@ -310,48 +310,42 @@ class LOG():
 
         #priv. cmds
         #invalidate page
-        if (log_id == 26):
+        if (id_string == "CMD_PRIV_INV_PAGE"):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
 
         #insert TLB
-        if (log_id == 28):
+        if (id_string == "CMD_PRIV_INS_TLB"):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_phys = (upper_data64 >> 12) & 0xFFFFF
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_vpeid, log_virt, log_phys)
 
         #xchg_vpe (vpe=id+msgs)
-        if (log_id == 29):
+        if (id_string == "CMD_PRIV_XCHG_VPE"):
             log_curvpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             log_xchgvpe = (upper_data64 >> 8) & 0xFFFFFFFF
             return ret_string + "cur_vpe: {:#x}, xchg_vpe: {:#x}".format(log_curvpe, log_xchgvpe)
 
         #timer
-        if (log_id == 30):
+        if (id_string == "CMD_PRIV_TIMER"):
             log_nanos = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             return ret_string + "nanos: {:d}".format(log_nanos)
 
-        #abort
-        if (log_id == 31):
-            log_vpeid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
-
         #finish
-        if (log_id == 32):
+        if (id_string == "CMD_PRIV_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
 
         #core request
-        if (log_id == 33):
+        if (id_string == "PRIV_CORE_REQ_FORMSG"):
             log_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_ep = ((upper_data64 & 0xFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, ep: {:d}".format(log_vpeid, log_ep)
 
         #TLB write
-        if (log_id == 35):
+        if (id_string == "PRIV_TLB_WRITE_ENTRY"):
             log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
@@ -359,7 +353,7 @@ class LOG():
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
 
         #TLB read
-        if (log_id == 36):
+        if (id_string == "PRIV_TLB_READ_ENTRY"):
             log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
@@ -367,11 +361,10 @@ class LOG():
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, read perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
 
         #TLB invalidate page
-        if (log_id == 37):
+        if (id_string == "PRIV_TLB_DEL_ENTRY"):
             log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_tlb_vpeid, log_tlb_virtpage)
-
 
         return ret_string
 
