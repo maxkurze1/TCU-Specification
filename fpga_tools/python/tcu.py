@@ -214,7 +214,8 @@ class LOG():
               "PRIV_CORE_REQ_FORMSG_FINISH",
               "PRIV_TLB_WRITE_ENTRY",
               "PRIV_TLB_READ_ENTRY",
-              "PRIV_TLB_DEL_ENTRY"]
+              "PRIV_TLB_DEL_ENTRY",
+              "PRIV_CUR_VPE_CHANGE"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -365,6 +366,12 @@ class LOG():
             log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_tlb_vpeid, log_tlb_virtpage)
+
+        #reg CUR_VPE has changed its value
+        if (id_string == "PRIV_CUR_VPE_CHANGE"):
+            log_new_cur_vpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            log_old_cur_vpe = (upper_data64 >> 8) & 0xFFFFFFFF
+            return ret_string + "old cur_vpe: {:#x}, new cur_vpe: {:#x}".format(log_old_cur_vpe, log_new_cur_vpe)
 
         return ret_string
 
