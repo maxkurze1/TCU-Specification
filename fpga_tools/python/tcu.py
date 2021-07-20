@@ -229,16 +229,33 @@ class LOG():
             return ret_string
 
         #unpriv cmd
-        if (id_string == "CMD_SEND" or id_string == "CMD_REPLY" or id_string == "CMD_READ" or id_string == "CMD_WRITE"):
+        if (id_string == "CMD_SEND"):
             log_ep = (lower_data64 >> 40) & 0xFFFF
             log_addr = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
             log_size = (upper_data64 >> 24) & 0xFFFFFFFF
             log_modid = upper_data64 >> 56
-            return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x} size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_size)
+            return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x}, size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_size)
+
+        if (id_string == "CMD_REPLY"):
+            log_ep = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48)
+            log_offset = (upper_data64 >> 16) & 0xFFFF
+            log_size = (upper_data64 >> 32) & 0xFFFF
+            log_modid = upper_data64 >> 48
+            return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x}, msg offset: {:#x}, size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_offset, log_size)
+
+        if (id_string == "CMD_READ" or id_string == "CMD_WRITE"):
+            log_ep = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48)
+            log_offset = (upper_data64 >> 16) & 0xFFFFF
+            log_size = (upper_data64 >> 36) & 0xFFFFF
+            log_modid = upper_data64 >> 56
+            return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x}, rem. addr offset: {:#x}, size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_offset, log_size)
 
         if (id_string == "CMD_FETCH" or id_string == "CMD_ACK_MSG"):
             log_ep = (lower_data64 >> 40) & 0xFFFF
-            return ret_string + "ep: {:d}".format(log_ep)
+            log_offset = ((upper_data64 & 0xFFFFFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "ep: {:d}, msg offset: {:#x}".format(log_ep, log_offset)
 
         #unpriv finish
         if (id_string == "CMD_FINISH"):
