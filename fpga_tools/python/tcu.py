@@ -220,7 +220,7 @@ class LOG():
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
         log_id = (lower_data64 >> 32) & 0xFF
-        log_time = lower_data64 & 0xFFFFFFFF
+        log_time = (lower_data64 & 0xFFFFFFFF) << 4    #shift left by 4 to get time in ns
         id_string = tcu_log.get_tcu_log(log_id)
         time_string = "Time: {:12}".format(log_time)
         ret_string = time_string + ", " + id_string + ", "
@@ -239,9 +239,9 @@ class LOG():
         if (id_string == "CMD_REPLY"):
             log_ep = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | (lower_data64 >> 48)
-            log_offset = (upper_data64 >> 16) & 0xFFFF
-            log_size = (upper_data64 >> 32) & 0xFFFF
-            log_modid = upper_data64 >> 48
+            log_offset = (upper_data64 >> 16) & 0xFFFFF
+            log_size = (upper_data64 >> 36) & 0xFFFFF
+            log_modid = upper_data64 >> 56
             return ret_string + "to tile: {}, ep: {:d}, local addr: {:#010x}, msg offset: {:#x}, size: {:d}".format(modid_to_tile(log_modid), log_ep, log_addr, log_offset, log_size)
 
         if (id_string == "CMD_READ" or id_string == "CMD_WRITE"):

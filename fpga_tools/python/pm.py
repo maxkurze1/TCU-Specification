@@ -75,12 +75,15 @@ class PM():
         fh = open(filename, 'w')
 
         if all:
-            log_count = 65535
+            log_count = 65536
         else:
             log_count = self.mem[TCU.TCU_REGADDR_TCU_LOG]
-        print("%s: Number of TCU log messages: %d" % (self.name, log_count))
 
+        print("%s: Number of TCU log messages: %d" % (self.name, log_count))
         fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
+
+        if log_count > 65536:
+            log_count = 65536
 
         if log_count > 0:
             for i in range(log_count):
