@@ -80,10 +80,11 @@ class PM():
             log_count = self.mem[TCU.TCU_REGADDR_TCU_LOG]
 
         print("%s: Number of TCU log messages: %d" % (self.name, log_count))
-        fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
-
         if log_count > 65536:
+            fh.write("%s: Number of TCU log messages: %d (only 65536 shown, last log at %d)\n" % (self.name, log_count, log_count%65536-1))
             log_count = 65536
+        else:
+            fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
 
         if log_count > 0:
             for i in range(log_count):
