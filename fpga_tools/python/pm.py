@@ -33,7 +33,7 @@ class PM():
 
     def tcu_status(self):
         status = self.mem[TCU.TCU_REGADDR_TCU_STATUS]
-        return (status & 0xFF, (status >> 8) & 0xFF, (status >> 16) & 0xFF)
+        return (status & 0xFF, (status >> 8) & 0xFF, (status >> 16) & 0xFF, (status >> 24) & 0xFF)
 
     def tcu_reset(self):
         self.mem[TCU.TCU_REGADDR_TCU_RESET] = 1
