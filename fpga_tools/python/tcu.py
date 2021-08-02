@@ -181,6 +181,7 @@ class LOG():
               "CMD_FETCH",
               "CMD_ACK_MSG",
               "CMD_FINISH",
+              "RECV_FINISH",
 
               "CMD_EXT_INVEP",
               "CMD_EXT_FINISH",
@@ -261,6 +262,13 @@ class LOG():
         if (id_string == "CMD_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
             return ret_string + "error: {:d}".format(log_error)
+
+        #msg receive has been finished
+        if (id_string == "RECV_FINISH"):
+            log_occ_mask = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            log_unread_mask = (upper_data64 >> 8) & 0xFFFFFFFF
+            log_bitpos = (upper_data64 >> 40) & 0xFFFF
+            return ret_string + "orig. occ. mask: {:#010x}, orig. unread mask: {:#010x}, new set bit pos. in masks: {:#010x}".format(log_occ_mask, log_unread_mask, log_bitpos)
 
         #ext cmd
         if (id_string == "CMD_EXT_INVEP"):
