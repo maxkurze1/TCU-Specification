@@ -180,6 +180,16 @@ impl Communicator {
 
                     if self.burst.is_some() {
                         debug!("Received burst-start from {} at offset {:#x}", src, off);
+
+                        // we receive the number of flits, which contain each at most 16 bytes
+                        // the TCU is happy with an estimate as long as it's >= the real number
+                        let len_estimate = (data[data.len()-1] * 16) as u64;
+                        debug!("Send ACK packet: len_estimate = {}: {:02x?}", len_estimate, data);
+                        let byte_count_bytes = (1 << 32 | len_estimate).to_le_bytes();
+                        // send ACK packet
+                        let ack_packet = encode_packet(src, false, 0xFF, off, &byte_count_bytes, Mode::TCUAck);
+                        self.append_packet(&ack_packet)?;
+                        self.flush_packets()?;
                     }
                     else {
                         debug!(
@@ -187,6 +197,13 @@ impl Communicator {
                             src, off, data
                         );
                         res.extend(data.iter().rev());
+
+                        // send ACK packet
+                        let byte_count_bytes = (1 << 32 | data.len()).to_le_bytes();
+                        debug!("Send ACK packet: len = {}: {:02x?}", data.len(), data);
+                        let ack_packet = encode_packet(src, false, 0xFF, off, &byte_count_bytes, Mode::TCUAck);
+                        self.append_packet(&ack_packet)?;
+                        self.flush_packets()?;
                     }
                 },
                 NocPacket::Burst(data) => {
