@@ -23,9 +23,22 @@ const MAX_SELF_TEST_RETRIES: usize = 100;
 // work fine and reaches a sufficiently high data rate.
 const MAX_READ_REQ_LEN: usize = (1024 + 512) * BYTES_PER_BURST_PACKET;
 const MAX_WRITE_BURST_LEN: usize = 2047 * BYTES_PER_BURST_PACKET;
+const MAX_SEND_BURST_LEN: usize = 128 * BYTES_PER_BURST_PACKET;
 
 const READ_TIMEOUT: Duration = Duration::from_secs(1);
 const MAX_READ_RETRIES: usize = 3;
+
+#[allow(dead_code)]
+#[repr(C, packed)]
+struct MessageHeader {
+    flags_reply_size: u8,
+    sender_pe: u8,
+    sender_ep: u16,
+    reply_ep: u16,
+    length: u16,
+    reply_label: u32,
+    label: u32,
+}
 
 #[repr(u8)]
 #[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive, Copy, Clone)]
@@ -154,6 +167,66 @@ impl Communicator {
         Ok(())
     }
 
+    pub fn send_bytes(&mut self, target: FPGAModule, ep: u16, data: &[u8]) -> std::io::Result<()> {
+        // write initial NoC packet that defines the burst length
+        assert!(data.len() <= MAX_SEND_BURST_LEN);
+        // the first flit is always the header
+        let word_count =
+            1 + ((data.len() + BYTES_PER_BURST_PACKET - 1) / BYTES_PER_BURST_PACKET) as u64;
+        let word_count_bytes = word_count.to_le_bytes();
+        // TODO change bsel according to data.len()
+        let noc_packet = encode_packet(
+            target,
+            true,
+            0xFF,
+            ep as u32,
+            &word_count_bytes,
+            Mode::TCUMsg,
+        );
+        self.append_packet(&noc_packet)?;
+
+        // append message header
+        let mut header = MessageHeader {
+            flags_reply_size: 0 | (4 << 2),
+            sender_pe: ETH_MOD.mod_id,
+            sender_ep: 0xFFFFu16.to_le(),
+            reply_ep: 0xFFFFu16.to_le(),
+            length: (data.len() as u16).to_le(),
+            reply_label: 0,
+            label: 0,
+        };
+        let header_bytes: &mut [u8] = unsafe {
+            std::slice::from_raw_parts_mut(
+                &mut header as *mut _ as *mut u8,
+                std::mem::size_of::<MessageHeader>(),
+            )
+        };
+        let header_packet = encode_packet_burst(data.len() > 0, header_bytes);
+        self.append_packet(&header_packet)?;
+
+        // append data
+        let mut pos = 0;
+        while pos < data.len() {
+            let not_last = pos + BYTES_PER_BURST_PACKET < data.len();
+            // pad last packet with zeros, if required
+            let noc_packet = if !not_last && pos + BYTES_PER_BURST_PACKET > data.len() {
+                let mut padded_data = data[pos..].to_vec();
+                for _ in 0..(BYTES_PER_BURST_PACKET - (data.len() - pos)) {
+                    padded_data.push(0);
+                }
+                encode_packet_burst(not_last, &padded_data)
+            }
+            else {
+                encode_packet_burst(not_last, &data[pos..])
+            };
+            self.append_packet(&noc_packet)?;
+
+            pos += BYTES_PER_BURST_PACKET;
+        }
+
+        self.flush_packets()
+    }
+
     pub fn receive(&mut self, timeout: Duration) -> std::io::Result<Vec<u8>> {
         // set custom timeout
         self.sock.set_read_timeout(Some(timeout))?;
@@ -222,7 +295,8 @@ impl Communicator {
         let mut res = Vec::with_capacity(len);
         let read_mode = if nocarq == true {
             Mode::ARQReadReq
-        } else {
+        }
+        else {
             Mode::ReadReq
         };
 
@@ -345,7 +419,8 @@ impl Communicator {
         let mut pos = 0;
         let write_mode = if nocarq == true {
             Mode::ARQWritePosted
-        }  else {
+        }
+        else {
             Mode::WritePosted
         };
 

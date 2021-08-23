@@ -52,7 +52,20 @@ py_module_initializer!(nocrw, |py, m| {
         ),
     )?;
 
-    m.add(py, "receive_bytes", py_fn!(py, receive_bytes(timeout_ns: u64)))?;
+    m.add(
+        py,
+        "send_bytes",
+        py_fn!(
+            py,
+            send_bytes(chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes)
+        ),
+    )?;
+
+    m.add(
+        py,
+        "receive_bytes",
+        py_fn!(py, receive_bytes(timeout_ns: u64)),
+    )?;
     Ok(())
 });
 
@@ -161,13 +174,7 @@ fn write_bytes(
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write_bytes failed: {}", e)))
 }
 
-fn write8b_nocarq(
-    py: Python,
-    chip_id: u8,
-    mod_id: u8,
-    addr: u32,
-    b: &PyBytes,
-) -> PyResult<u64> {
+fn write8b_nocarq(py: Python, chip_id: u8, mod_id: u8, addr: u32, b: &PyBytes) -> PyResult<u64> {
     info!(
         "write8b_nocarq(chip_id={}, mod_id={}, addr={:#x}, len={})",
         chip_id,
@@ -182,6 +189,23 @@ fn write8b_nocarq(
 
     res.map(|_| 0)
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write8b_nocarq failed: {}", e)))
+}
+
+fn send_bytes(py: Python, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> PyResult<u64> {
+    info!(
+        "send_bytes(chip_id={}, mod_id={}, ep={}, len={})",
+        chip_id,
+        mod_id,
+        ep,
+        b.data(py).len(),
+    );
+
+    let mut guard = COM.lock().unwrap();
+    let com = guard.as_mut().unwrap();
+    let res = com.send_bytes(FPGAModule::new(chip_id, mod_id), ep, b.data(py));
+
+    res.map(|_| 0)
+        .map_err(|e| PyErr::new::<TypeError, _>(py, format!("send_bytes failed: {}", e)))
 }
 
 fn receive_bytes(py: Python, timeout_ns: u64) -> PyResult<PyBytes> {

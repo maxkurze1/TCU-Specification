@@ -19,6 +19,9 @@ class NoCethernet(object):
     def write_bytes(self, trg_id, addr, bytes, burst=False):
         return nocrw.write_bytes(trg_id[0], trg_id[1], addr, bytes, burst)
 
+    def send_bytes(self, trg_id, trg_ep, bytes):
+        return nocrw.send_bytes(trg_id[0], trg_id[1], trg_ep, bytes)
+
     def receive_bytes(self, timeout_ns=1000_000_000):
         return nocrw.receive_bytes(timeout_ns)
 
