@@ -27,14 +27,17 @@ class EthernetRegfile(memory.Memory):
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
 
-    def tcu_io_flit_count(self):
-        flits = self.rf[TCU.TCU_REGADDR_TCU_IO_FLIT_COUNT]
+    def tcu_byp_flit_count(self):
+        flits = self.rf[TCU.TCU_REGADDR_TCU_BYP_FLIT_COUNT]
         flits_rx = flits & 0xFFFFFFFF
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
 
     def tcu_drop_flit_count(self):
-        return self.rf[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT]
+        return self.rf[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] & 0xFFFFFFFF
+
+    def tcu_error_flit_count(self):
+        return self.rf[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] >> 32
 
     def system_reset(self):
         self.rf[TCU.TCU_REGADDR_CORE_CFG_START] = 1
