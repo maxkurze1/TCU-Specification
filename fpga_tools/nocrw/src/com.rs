@@ -7,6 +7,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
+use std::thread;
 
 const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
 
@@ -140,6 +141,17 @@ impl Communicator {
             std::io::ErrorKind::TimedOut,
             "no self test response",
         ))
+    }
+
+    pub fn fpga_reset(&mut self) -> std::io::Result<()> {
+        let reset_data: [u8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
+        self.write_noburst(ETH_MOD, 0xF0003028, &reset_data, false)?;
+
+        //need some time to get FPGA restarted
+        let wait_sec = Duration::from_secs(5);
+        thread::sleep(wait_sec);
+
+        Ok(())
     }
 
     pub fn receive(&mut self, timeout: Duration) -> std::io::Result<Vec<u8>> {

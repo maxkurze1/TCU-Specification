@@ -19,7 +19,7 @@ py_module_initializer!(nocrw, |py, m| {
     m.add(
         py,
         "connect",
-        py_fn!(py, connect(fpga_ip: &str, fpga_port: u16)),
+        py_fn!(py, connect(fpga_ip: &str, fpga_port: u16, reset: bool)),
     )?;
 
     m.add(
@@ -67,7 +67,7 @@ fn log_level(env_var: &str, def: LevelFilter) -> LevelFilter {
     }
 }
 
-fn do_connect(fpga_ip: &str, fpga_port: u16) -> std::io::Result<()> {
+fn do_connect(fpga_ip: &str, fpga_port: u16, reset: bool) -> std::io::Result<()> {
     // ensure that the log directory exists
     create_dir("log").ok();
 
@@ -88,15 +88,19 @@ fn do_connect(fpga_ip: &str, fpga_port: u16) -> std::io::Result<()> {
     info!("connect(fpga_ip={}, fpga_port={})", fpga_ip, fpga_port);
 
     let mut com = Communicator::new(fpga_ip, fpga_port)?;
+    if reset {
+        info!("Reset FPGA...");
+        com.fpga_reset()?;
+    }
     com.self_test()?;
     *COM.lock().unwrap() = Some(com);
     Ok(())
 }
 
-fn connect(py: Python, fpga_ip: &str, fpga_port: u16) -> PyResult<u64> {
+fn connect(py: Python, fpga_ip: &str, fpga_port: u16, reset: bool) -> PyResult<u64> {
     assert!(COM.lock().unwrap().is_none());
 
-    do_connect(fpga_ip, fpga_port)
+    do_connect(fpga_ip, fpga_port, reset)
         .map(|_| 0)
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("connect failed: {}", e)))
 }

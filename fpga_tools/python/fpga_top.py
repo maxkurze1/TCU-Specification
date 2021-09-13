@@ -8,7 +8,7 @@ import pm
 import uart
 import regfile
 
-import os
+import sys
 from ipaddress import IPv4Address
 
 
@@ -35,12 +35,16 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
-    def __init__(self, fpga_sw=0, use_uart=False):
+    def __init__(self, fpga_sw=0, reset=0, use_uart=False):
         if fpga_sw >= 15:
             print("Invalid FPGA IP address selected! Only use 192.168.42.240-254")
             raise ValueError
 
         self.fpga_ip_addr = str(IPv4Address(int(IPv4Address(self.FPGA_IP)) + fpga_sw))
+
+        print("Connect to FPGA (fpga_ip={}, fpga_port={})".format(self.fpga_ip_addr, self.FPGA_PORT))
+        if reset: print("FPGA Reset...")
+        sys.stdout.flush()
 
         #DIP switch determines Chip-ID - currently disabled
         #chipid = fpga_sw
@@ -51,7 +55,7 @@ class FPGA_TOP(fpga):
             self.uart = uart.UART('/dev/ttyUSB1')
 
         #NOC
-        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT))
+        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT), reset)
         self.eth_rf = ethernet.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
 
         #regfile
