@@ -66,17 +66,14 @@ class EthernetRegfile(memory.Memory):
     def getUDPstatus(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x10]
 
-    def getARPcount(self):
+    def getRXUDPerror(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x18]
 
-    def getIPcount(self):
+    def getMACstatus(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x20]
 
-    def getHOSTIP(self):
+    def getFPGAIP(self):
         return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x28] & 0xFFFFFFFF)
 
-    def getFPGAIP(self):
-        return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30] & 0xFFFFFFFF)
-
     def getFPGAMAC(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x38]
+        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30]
