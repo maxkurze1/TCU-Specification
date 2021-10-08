@@ -86,12 +86,24 @@ class PM():
         else:
             fh.write("%s: Number of TCU log messages: %d\n" % (self.name, log_count))
 
+        #read log mem: first log is at TCU_REGADDR_TCU_LOG+0x10
         if log_count > 0:
             for i in range(log_count):
-                lower = self.mem[TCU.TCU_REGADDR_TCU_LOG+8+i*16]
-                upper = self.mem[TCU.TCU_REGADDR_TCU_LOG+16+i*16]
+                lower = self.mem[TCU.TCU_REGADDR_TCU_LOG+0x10+i*16]
+                upper = self.mem[TCU.TCU_REGADDR_TCU_LOG+0x18+i*16]
                 fh.write("%5d: %s\n" % (i, LOG.split_tcu_log(upper, lower)))
         fh.close()
+
+    def tcu_set_log_mask(self, mask):
+        """
+        Set log selection mask. Default value: 0xFFFFFFFF
+        Each bit of the mask represents a log id from list TCU.LOG_ID starting with bit 0 = CMD_SEND
+        If the bit in the mask is set, the TCU writes the log with this id to log mem.
+        """
+        self.mem[TCU.TCU_REGADDR_TCU_LOG+8] = mask
+
+    def tcu_get_log_mask(self):
+        return self.mem[TCU.TCU_REGADDR_TCU_LOG+8]
 
 
     #----------------------------------------------
