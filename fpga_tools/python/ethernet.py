@@ -72,8 +72,28 @@ class EthernetRegfile(memory.Memory):
     def getMACstatus(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x20]
 
+    #FPGA IP address is set via DIP switch
     def getFPGAIP(self):
         return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x28] & 0xFFFFFFFF)
 
-    def getFPGAMAC(self):
+    def setFPGAPort(self, fpga_port):
+        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30] = fpga_port
+
+    def getFPGAPort(self):
         return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30]
+
+    #FPGA MAC address is set via DIP switch
+    def getFPGAMAC(self):
+        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x38]
+
+    def setHostIP(self, host_ip):
+        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x40] = int(IPv4Address(host_ip))
+
+    def getHostIP(self):
+        return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x40] & 0xFFFFFFFF)
+
+    def setHostPort(self, host_port):
+        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x48] = host_port
+
+    def getHostPort(self):
+        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x48]
