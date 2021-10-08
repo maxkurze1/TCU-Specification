@@ -216,8 +216,7 @@ class LOG():
               "PRIV_TLB_WRITE_ENTRY",
               "PRIV_TLB_READ_ENTRY",
               "PRIV_TLB_DEL_ENTRY",
-              "PRIV_CUR_VPE_CHANGE",
-              "PRINT"]
+              "PRIV_CUR_VPE_CHANGE"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -398,11 +397,6 @@ class LOG():
             log_new_cur_vpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             log_old_cur_vpe = (upper_data64 >> 8) & 0xFFFFFFFF
             return ret_string + "old cur_vpe: {:#x}, new cur_vpe: {:#x}".format(log_old_cur_vpe, log_new_cur_vpe)
-
-        #TCU PRINT
-        if (id_string == "PRINT"):
-            log_size = (lower_data64 >> 40) & 0xFFFF
-            return ret_string + "size: {}".format(log_size)
 
         return ret_string
 
