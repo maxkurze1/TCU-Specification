@@ -71,14 +71,17 @@ class Memory(object):
                     continue
 
                 if seg['p_filesz'] > 0:
-                    print("Loading {} bytes at {:#x}".format(seg['p_filesz'], seg['p_vaddr'] + off))
-                    self.write_bytes_checked(seg['p_vaddr'] + off, seg.data())
+                    addr = seg['p_vaddr'] + off
+                    print("Loading {} bytes at {:#x}".format(seg['p_filesz'], addr))
+                    burst = addr % 16 == 0
+                    self.write_bytes_checked(seg['p_vaddr'] + off, seg.data(), burst)
 
                 zero_num = seg['p_memsz'] - seg['p_filesz']
                 if zero_num > 0:
-                    addr = seg['p_vaddr'] + seg['p_filesz']
-                    print("Zeroing {} bytes at {:#x}".format(zero_num, addr + off))
-                    self.write_bytes_checked(addr + off, bytes([0] * zero_num))
+                    addr = seg['p_vaddr'] + seg['p_filesz'] + off
+                    print("Zeroing {} bytes at {:#x}".format(zero_num, addr))
+                    burst = addr % 16 == 0
+                    self.write_bytes_checked(addr, bytes([0] * zero_num), burst)
 
     def write_bytes(self, addr, data, burst=True):
         """
