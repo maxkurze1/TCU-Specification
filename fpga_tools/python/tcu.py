@@ -216,7 +216,8 @@ class LOG():
               "PRIV_TLB_WRITE_ENTRY",
               "PRIV_TLB_READ_ENTRY",
               "PRIV_TLB_DEL_ENTRY",
-              "PRIV_CUR_VPE_CHANGE"]
+              "PRIV_CUR_VPE_CHANGE",
+              "PMP_ACCESS_DENIED"]
 
     def split_tcu_log(upper_data64, lower_data64):
         tcu_log = LOG()
@@ -397,6 +398,13 @@ class LOG():
             log_new_cur_vpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             log_old_cur_vpe = (upper_data64 >> 8) & 0xFFFFFFFF
             return ret_string + "old cur_vpe: {:#x}, new cur_vpe: {:#x}".format(log_old_cur_vpe, log_new_cur_vpe)
+
+        #PMP: access from core not allowed
+        if (id_string == "PMP_ACCESS_DENIED"):
+            log_mode = (lower_data64 >> 40) & 0xF
+            log_addr = ((upper_data64 & 0xFFF) << 20) | (lower_data64 >> 44)
+            log_size = (upper_data64 >> 12) & 0xFFFF
+            return ret_string + "mode: {:d}, addr: {:#010x}, size: {:d}".format(log_mode, log_addr, log_size)
 
         return ret_string
 
