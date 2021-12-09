@@ -153,7 +153,7 @@ class PM():
     def rocket_getTCUAXIBridgeError(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x30]
 
-    def rocket_getAXISPMBridgeError(self):
+    def rocket_getAXIMemBridgeError(self):
         return self.mem[TCU.TCU_REGADDR_CORE_CFG_START+0x38]
 
     def rocket_enableTrace(self):
