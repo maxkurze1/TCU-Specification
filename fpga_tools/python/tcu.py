@@ -38,24 +38,24 @@ class EP():
     def type(self):
         return self.regs[0] & 0x7
 
-    def vpe(self):
+    def act(self):
         return (self.regs[0] >> 3) & 0xFFFF
-    def set_vpe(self, vpe):
+    def set_act(self, act):
         self.regs[0] &= ~(0xFFFF << 3)
-        self.regs[0] |= (vpe & 0xFFFF) << 3;
+        self.regs[0] |= (act & 0xFFFF) << 3;
 
     def __repr__(self):
-        return "Inv [type={}, vpe={}]".format(self.type(), self.vpe())
+        return "Inv [type={}, act={}]".format(self.type(), self.act())
 
 class MemEP(EP):
     def __init__(self, regs = [EP.MEMORY, 0, 0]):
         super(MemEP, self).__init__(regs)
 
-    def pe(self):
+    def tile(self):
         return (self.regs[0] >> 23) & 0xFF
-    def set_pe(self, pe):
+    def set_tile(self, tile):
         self.regs[0] &= ~(0xFF << 23)
-        self.regs[0] |= (pe & 0xFF) << 23;
+        self.regs[0] |= (tile & 0xFF) << 23;
 
     def addr(self):
         return self.regs[1]
@@ -74,8 +74,8 @@ class MemEP(EP):
         self.regs[0] |= (flags & 0xF) << 19
 
     def __repr__(self):
-        return "Mem [pe={}, vpe={:#x}, addr={:#x}, size={:#x}, flags={}]".format(
-            modid_to_tile(self.pe()), self.vpe(), self.addr(), self.size(), self.flags()
+        return "Mem [tile={}, act={:#x}, addr={:#x}, size={:#x}, flags={}]".format(
+            modid_to_tile(self.tile()), self.act(), self.addr(), self.size(), self.flags()
         )
 
 class SendEP(EP):
@@ -84,11 +84,11 @@ class SendEP(EP):
     def __init__(self, regs = [EP.SEND, 0, 0]):
         super(SendEP, self).__init__(regs)
 
-    def pe(self):
+    def tile(self):
         return (self.regs[1] >> 16) & 0xFF
-    def set_pe(self, pe):
+    def set_tile(self, tile):
         self.regs[1] &= ~(0xFF << 16)
-        self.regs[1] |= (pe & 0xFF) << 16
+        self.regs[1] |= (tile & 0xFF) << 16
 
     def ep(self):
         return self.regs[1] & 0xFFFF
@@ -123,8 +123,8 @@ class SendEP(EP):
         return (self.regs[0] >> 37) & 0xFFFF
 
     def __repr__(self):
-        return "Send[dst={}:{}, vpe={:#x}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
-            modid_to_tile(self.pe()), self.ep(), self.vpe(), self.label(), self.msg_size(), self.cur_crd(),
+        return "Send[dst={}:{}, act={:#x}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
+            modid_to_tile(self.tile()), self.ep(), self.act(), self.label(), self.msg_size(), self.cur_crd(),
             self.max_crd(), self.is_reply()
         )
 
@@ -165,8 +165,8 @@ class RecvEP(EP):
         return (self.regs[0] >> 47) & 0x3F
 
     def __repr__(self):
-        return "Recv[buffer={:#x}, vpe={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
-            self.buffer(), self.vpe(), self.slots(), self.slot_size(), self.unread(), self.occupied(),
+        return "Recv[buffer={:#x}, act={:#x}, slots=2^{}, slot_size=2^{}, unread={:#x}, occupied={:#x}, rpl_eps={}, rpos={}, wpos={}]".format(
+            self.buffer(), self.act(), self.slots(), self.slot_size(), self.unread(), self.occupied(),
             self.reply_eps(), self.rpos(), self.wpos()
         )
 
@@ -338,22 +338,22 @@ class LOG():
         #priv. cmds
         #invalidate page
         if (id_string == "CMD_PRIV_INV_PAGE"):
-            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_actid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_vpeid, log_virt)
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}".format(log_actid, log_virt)
 
         #insert TLB
         if (id_string == "CMD_PRIV_INS_TLB"):
-            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_actid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_phys = (upper_data64 >> 12) & 0xFFFFF
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_vpeid, log_virt, log_phys)
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
 
-        #xchg_vpe (vpe=id+msgs)
+        #xchg_act (act=id+msgs)
         if (id_string == "CMD_PRIV_XCHG_VPE"):
-            log_curvpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
-            log_xchgvpe = (upper_data64 >> 8) & 0xFFFFFFFF
-            return ret_string + "cur_vpe: {:#x}, xchg_vpe: {:#x}".format(log_curvpe, log_xchgvpe)
+            log_curact = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            log_xchgact = (upper_data64 >> 8) & 0xFFFFFFFF
+            return ret_string + "cur_act: {:#x}, xchg_act: {:#x}".format(log_curact, log_xchgact)
 
         #timer
         if (id_string == "CMD_PRIV_TIMER"):
@@ -367,37 +367,37 @@ class LOG():
 
         #core request
         if (id_string == "PRIV_CORE_REQ_FORMSG"):
-            log_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_actid = (lower_data64 >> 40) & 0xFFFF
             log_ep = ((upper_data64 & 0xFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "vpeid: {:#x}, ep: {:d}".format(log_vpeid, log_ep)
+            return ret_string + "actid: {:#x}, ep: {:d}".format(log_actid, log_ep)
 
         #TLB write
         if (id_string == "PRIV_TLB_WRITE_ENTRY"):
-            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
             log_tlb_perm = (upper_data64 >> 32) & 0x1F
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, perm. bits: {:#04x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
 
         #TLB read
         if (id_string == "PRIV_TLB_READ_ENTRY"):
-            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
             log_tlb_perm = (upper_data64 >> 32) & 0x1F
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, read perm. bits: {:#04x}".format(log_tlb_vpeid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, read perm. bits: {:#04x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
 
         #TLB invalidate page
         if (id_string == "PRIV_TLB_DEL_ENTRY"):
-            log_tlb_vpeid = (lower_data64 >> 40) & 0xFFFF
+            log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "vpeid: {:#x}, virt. page: {:#07x}".format(log_tlb_vpeid, log_tlb_virtpage)
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage)
 
         #reg CUR_VPE has changed its value
         if (id_string == "PRIV_CUR_VPE_CHANGE"):
-            log_new_cur_vpe = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
-            log_old_cur_vpe = (upper_data64 >> 8) & 0xFFFFFFFF
-            return ret_string + "old cur_vpe: {:#x}, new cur_vpe: {:#x}".format(log_old_cur_vpe, log_new_cur_vpe)
+            log_new_cur_act = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
+            log_old_cur_act = (upper_data64 >> 8) & 0xFFFFFFFF
+            return ret_string + "old cur_act: {:#x}, new cur_act: {:#x}".format(log_old_cur_act, log_new_cur_act)
 
         #PMP: access from core not allowed
         if (id_string == "PMP_ACCESS_DENIED"):
