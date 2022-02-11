@@ -1,39 +1,39 @@
 \chapter{System Overview}
 \label{sec:systemoverview}
 
-\newcommand{\fillpe}[3]{
-    \node[below=.6em of pe#1.north] {#2};
-    \node[cu, above right=.6em and .6em of pe#1.south west,#3] (cu#1) {CU};
-    \node[tcu,above left=.6em and .6em of pe#1.south east,#3] (tcu#1) {TCU};
+\newcommand{\filltile}[3]{
+    \node[below=.6em of tile#1.north] {#2};
+    \node[cu, above right=.6em and .6em of tile#1.south west,#3] (cu#1) {CU};
+    \node[tcu,above left=.6em and .6em of tile#1.south east,#3] (tcu#1) {TCU};
 
-    \draw[noc] ($(pe#1.south west)-(0,1.0em)$) -- ($(pe3.south east)-(0,1.0em)$);
-    \draw[noc] ($(pe#1.south west)-(0,1.2em)$) -- ($(pe3.south east)-(0,1.2em)$);
-    \draw[noc] ($(pe#1.south west)-(0,1.4em)$) -- ($(pe3.south east)-(0,1.4em)$);
+    \draw[noc] ($(tile#1.south west)-(0,1.0em)$) -- ($(tile3.south east)-(0,1.0em)$);
+    \draw[noc] ($(tile#1.south west)-(0,1.2em)$) -- ($(tile3.south east)-(0,1.2em)$);
+    \draw[noc] ($(tile#1.south west)-(0,1.4em)$) -- ($(tile3.south east)-(0,1.4em)$);
 
     \draw
-      let \p1=(tcu#1.south), \p2=($(pe#1.south west)-(0,1.2em)$) in
+      let \p1=(tcu#1.south), \p2=($(tile#1.south west)-(0,1.2em)$) in
       (tcu#1.south) -- (\x1, \y2);
     \fill[radius=.2em]
-      let \p1=(tcu#1.south), \p2=($(pe#1.south west)-(0,1.2em)$) in
+      let \p1=(tcu#1.south), \p2=($(tile#1.south west)-(0,1.2em)$) in
       (\x1, \y2) circle node {};
 }
 
 \begin{figure}[h]
   \center
   \begin{tikzpicture}[
-      pe/.style={draw=gray,minimum width=9.5em,minimum height=8em},
+      tile/.style={draw=gray,minimum width=9.5em,minimum height=8em},
       cu/.style={draw=gray,fill=red!50,minimum width=4.5em,minimum height=4.5em},
       tcu/.style={draw=gray,fill=green!50,minimum width=3em,minimum height=3em},
       noc/.style={draw=green},
     ]
 
-    \node[pe] (pe1) {};
-    \node[pe,right=2em of pe1] (pe2) {};
-    \node[pe,right=2em of pe2] (pe3) {};
+    \node[tile] (tile1) {};
+    \node[tile,right=2em of tile1] (tile2) {};
+    \node[tile,right=2em of tile2] (tile3) {};
 
-    \fillpe{1}{Kernel PE}{fill=green!50};
-    \fillpe{2}{User PE}{};
-    \fillpe{3}{User PE}{};
+    \filltile{1}{Kernel tile}{fill=green!50};
+    \filltile{2}{User tile}{};
+    \filltile{3}{User tile}{};
 
     \node[draw=black, fill=white,
           below right=.3em and .3em of cu2.north west,
@@ -47,8 +47,8 @@
           minimum width=1.8em, minimum height=1.8em] (app2) {\tiny App};
     \node[draw=black, fill=white,
           above right=.3em and .3em of cu3.south west,
-          minimum width=3.9em, minimum height=1.8em] (pex) {Priv};
-    \node[draw=black, fill=pemux, above left=.3em and .3em of tcu3.south east] {};
+          minimum width=3.9em, minimum height=1.8em] (tilex) {Priv};
+    \node[draw=black, fill=tilemux, above left=.3em and .3em of tcu3.south east] {};
     \node[draw=black, fill=vm, above left=.3em and 1.2em of tcu3.south east] {};
 
   \end{tikzpicture}
@@ -57,27 +57,27 @@
 \end{figure}
 
 \noindent The trusted communication unit~(TCU) is a building block that can be used to construct
-secure systems. As shown in \rref{fig:sysoverview}, the system consists of multiple processing
-elements~(PEs), each containing a compute unit~(CU) and a TCU. The PEs are linked through some
-interconnect (e.g., a network-on-chip) and are split into \emph{kernel PEs} and \emph{user PEs}. The
-former are privileged and manage the TCUs of the user PEs, whereas the latter are unprivileged.
+secure systems. As shown in \rref{fig:sysoverview}, the system is based upon a tiled architecture
+and each tile contains a compute unit~(CU) and a TCU. The tiles are linked through some interconnect
+(e.g., a network-on-chip) and are split into \emph{kernel tiles} and \emph{user tiles}. The former
+are privileged and manage the TCUs of the user tiles, whereas the latter are unprivileged.
 
-In this system, the TCU, the interconnect, and the kernel PEs are trusted (shown green), whereas the
-CUs in the user PEs are untrusted (shown red). By default, all PEs are isolated from each other, but
-communication channels between PEs can be established. These communication channels can only be
-establish by kernel PEs, but can be used afterwards by user PEs. Which PEs are kernel PEs is defined
-by the TCU's \texttt{FEATURES} register. At boot, all PEs are kernel PEs, which can be changed by
-the kernel booting on one specific PE before the other PEs start.
+In this system, the TCU, the interconnect, and the kernel tiles are trusted (shown green), whereas the
+CUs in the user tiles are untrusted (shown red). By default, all tiles are isolated from each other, but
+communication channels between tiles can be established. These communication channels can only be
+establish by kernel tiles, but can be used afterwards by user tiles. Which tiles are kernel tiles is defined
+by the TCU's \texttt{FEATURES} register. At boot, all tiles are kernel tiles, which can be changed by
+the kernel booting on one specific tile before the other tiles start.
 
-User PEs can have different complexities, mostly driven by the used CU. The left user PE uses a
-simple core with scratchpad memory and a basic TCU without extensions. The right user PE uses a
+User tiles can have different complexities, mostly driven by the used CU. The left user tile uses a
+simple core with scratchpad memory and a basic TCU without extensions. The right user tile uses a
 complex core with caches and virtual memory support and a privileged software (Priv) that enables
-multiple applications on the same PE and/or virtual memory. These features require TCU extensions
-for virtual memory (\extbox{vm}) and/or PE sharing (\extbox{pemux}). This specification highlights
+multiple applications on the same tile and/or virtual memory. These features require TCU extensions
+for virtual memory (\extbox{vm}) and/or tile sharing (\extbox{tilemux}). This specification highlights
 the portions that are required by only one extension in its color and portions that are required by
-either extension as \extbox{vmpex}.
+either extension as \extbox{vmtilex}.
 
-\section{Processing Elements}
+\section{Tile Internals}
 
 \begin{figure}[h]
   \center
@@ -123,13 +123,13 @@ either extension as \extbox{vmpex}.
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
     \node[
-      regtbl,fill=vmpex,below right=0cm and .38cm of cmdregs.north east,minimum height=3cm
+      regtbl,fill=vmtilex,below right=0cm and .38cm of cmdregs.north east,minimum height=3cm
     ] (prvregs) {};
     \node[below=.1cm of prvregs.north] {PrivRegs};
     \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CORE\_REQ}};
     \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CMD}};
     \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD\_ARG}};
-    \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_VPE}};
+    \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_ACT}};
 
     \path
       let \p1=(cu.east), \p2=(tcu.west) in
@@ -139,11 +139,11 @@ either extension as \extbox{vmpex}.
       let \p1=(mem.east), \p2=(tcu.west) in
       [draw=black,thick,<-] (mem.east) -- (\x2,\y1);
   \end{tikzpicture}
-  \caption{The internal organization of a PE.}
-  \label{fig:peinternal}
+  \caption{The internal organization of a tile.}
+  \label{fig:tileinternal}
 \end{figure}
 
-\rref{fig:peinternal} shows the internals of a processing element~(PE). The compute unit~(CU) is
+\rref{fig:tileinternal} shows the internals of a tile. The compute unit~(CU) is
 connected to the trusted communication unit~(TCU) and can access the TCU's registers via memory
 mapped input/output (MMIO). Additionally, the CU is connected to the local memory. The TCU is also
 connected to the local memory (SPM or cache) to, for example, access messages. These components are
@@ -152,16 +152,16 @@ local memory.
 
 To support the security model introduced in \rref{sec:systemoverview}, the registers are split into
 different groups, each group having different access permissions. All registers are generally
-readable. \emph{External registers} can only be written externally, that is, from a remote PE. They
-are intended for the kernel PE to manipulate the state of remote TCUs. \emph{Endpoint registers} can
-be written externally and locally by the kernel PE. \emph{Unprivileged registers} can be written by
-the CU. In consequence, only kernel PEs can \emph{establish} communication channels by writing
-endpoint registers, but user PEs can \emph{use} these communication channels through the
+readable. \emph{External registers} can only be written externally, that is, from a remote tile. They
+are intended for the kernel tile to manipulate the state of remote TCUs. \emph{Endpoint registers} can
+be written externally and locally by the kernel tile. \emph{Unprivileged registers} can be written by
+the CU. In consequence, only kernel tiles can \emph{establish} communication channels by writing
+endpoint registers, but user tiles can \emph{use} these communication channels through the
 unprivileged registers.
 
-\extstart{vmpex} The \emph{privileged registers} are intended for privileged software running on PEs
-that are multiplexed among multiple VPEs and/or use virtual memory. The privileged software should
-make sure that unprivileged software running on the same PE cannot access the privileged registers.
+\extstart{vmtilex} The \emph{privileged registers} are intended for privileged software running on tiles
+that are multiplexed among multiple activities and/or use virtual memory. The privileged software should
+make sure that unprivileged software running on the same tile cannot access the privileged registers.
 \extend{}
 
 \section{Registers}
@@ -208,10 +208,10 @@ as follows:
   \texttt{0xF000\_0730} & \texttt{PR31} & PrintRegs & Thirty-second print register \\
   \hline
   \hline
-  \texttt{0xF000\_2000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmpex} \\
+  \texttt{0xF000\_2000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmtilex} \\
   \texttt{0xF000\_2008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
   \texttt{0xF000\_2010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
-  \texttt{0xF000\_2018} & \texttt{CUR\_VPE} & PrivRegs & Currently running VPE \extstart{pemux} \extend{} \\
+  \texttt{0xF000\_2018} & \texttt{CUR\_ACT} & PrivRegs & Currently running activity \extstart{tilemux} \extend{} \\
 \end{tabular}\\[1em]
 
 \section{Error List}
@@ -223,7 +223,7 @@ The TCU uses the following error codes to provide feedback to the software for f
   \item \texttt{NO\_MEP} (1): no memory endpoint,
   \item \texttt{NO\_SEP} (2): no send endpoint,
   \item \texttt{NO\_REP} (3): no receive endpoint,
-  \item \texttt{FOREIGN\_EP} (4): the endpoint belongs to a different VPE,
+  \item \texttt{FOREIGN\_EP} (4): the endpoint belongs to a different activity,
   \item \texttt{SEND\_REPLY\_EP} (5): SEND command with a reply EP or REPLY with send EP,
   \item \texttt{RECV\_GONE} (6): receiver gone (received message at non-receive EP),
   \item \texttt{RECV\_NO\_SPACE} (7): receiver buffer full,

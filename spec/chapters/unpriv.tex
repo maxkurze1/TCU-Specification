@@ -66,14 +66,14 @@ several building blocks:
   \item \texttt{write\_local(data, phys, size) -> Error}:\\
   write \texttt{data} of \texttt{size} bytes to given physical address in local memory and
   return the error code (0~=~success)
-  \item \texttt{read\_remote(pe, phys, size) -> (data, Error)}:\\
-  read \texttt{size} bytes from the given PE at given the physical address into \texttt{data} and
+  \item \texttt{read\_remote(tile, phys, size) -> (data, Error)}:\\
+  read \texttt{size} bytes from the given tile at given the physical address into \texttt{data} and
   return the error code (0~=~success)
-  \item \texttt{write\_remote(data, pe, phys, size) -> Error}:\\
-  write \texttt{size} bytes from \texttt{data} to the given physical address in the given PE and
+  \item \texttt{write\_remote(data, tile, phys, size) -> Error}:\\
+  write \texttt{size} bytes from \texttt{data} to the given physical address in the given tile and
   return the error code (0~=~success)
-  \item \texttt{send\_msg(msg, pe, ep)}:\\
-  send \texttt{msg} to endpoint \texttt{ep} at given PE
+  \item \texttt{send\_msg(msg, tile, ep)}:\\
+  send \texttt{msg} to endpoint \texttt{ep} at given tile
   \item \texttt{send\_ack(error)}:\\
   send ACK to the sending TCU and report given error back
   \item \texttt{wait\_for\_ack() -> Error}:\\
@@ -86,11 +86,11 @@ several building blocks:
   \item \texttt{unpriv\_stop(error)}:\\
   stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
   the error code to the given error.
-  \item \texttt{queue\_foreign\_msg\_req(ep, vpe)}:\extstart{pemux}\\
+  \item \texttt{queue\_foreign\_msg\_req(ep, act)}:\extstart{tilemux}\\
   append a new foreign-message request to the queue of core requests (see
   \rref{code:corereqstart} for more details).\extend{}
-  \item \texttt{lookup\_tlb(\colorbox{pemux}{vpe, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
-  lookup the given virtual address in the TLB \colorbox{pemux}{for given VPE} and return the
+  \item \texttt{lookup\_tlb(\colorbox{tilemux}{act, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
+  lookup the given virtual address in the TLB \colorbox{tilemux}{for given activity} and return the
   physical address. On misses or missing permissions, the \texttt{TLB\_MISS} or \texttt{NO\_PERM}
   error is returned, respectively. Note that the virtual address is not page aligned and the page
   offset should be added to the resulting physical address, depending on the page size set in the
@@ -107,7 +107,7 @@ The commands behave as follows:
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& READ == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
@@ -115,14 +115,14 @@ The commands behave as follows:
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, WRITE)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{tilemux}{CUR\_ACT.id, }DATA.address, WRITE)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
-    $(data, err) \gets read\_remote(ep.PE, ep.addr + ARG_1, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    $(data, err) \gets read\_remote(ep.tile, ep.addr + ARG_1, DATA.size)$\;
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     $err \gets write\_local(data, phys, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{READ} command.}
@@ -133,7 +133,7 @@ The commands behave as follows:
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != MEMORY}{unpriv\_stop(NO\_MEP)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{ep.rw \& WRITE == 0}{unpriv\_stop(NO\_PERM)}
     \uIf{DATA.size == 0}{unpriv\_stop(NONE)}
     \uIf{DATA.size + $ARG_1$ > ep.size}{unpriv\_stop(OUT\_OF\_BOUNDS)}
@@ -141,14 +141,14 @@ The commands behave as follows:
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{tilemux}{CUR\_ACT.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     $(data, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
-    $err \gets write\_remote(data, ep.PE, ep.addr + ARG_1, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    $err \gets write\_remote(data, ep.tile, ep.addr + ARG_1, DATA.size)$\;
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $COMMAND \gets 0$\;
     \caption{The TCU's \texttt{WRITE} command.}
@@ -175,7 +175,7 @@ The header is defined as:
   \regfieldb{length}{16}{48}%
   \regfieldb{rep}{16}{32}%
   \regfieldb{sep}{16}{16}%
-  \regfieldb{spe}{8}{8}%
+  \regfieldb{stile}{8}{8}%
   \regfieldb{rsize}{6}{2}%
   \regfieldb{flags}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
@@ -184,7 +184,7 @@ The header is defined as:
     \item[length] the payload size in bytes
     \item[rep] the receive endpoint ID for the reply at the sender side
     \item[sep] the sender endpoint ID
-    \item[spe] the sender PE ID
+    \item[stile] the sender tile ID
     \item[rsize] the size of the reply message as a power of 2
     \item[flags] contains the following flags:
     \begin{itemize}
@@ -209,7 +209,7 @@ in a broken state, too (one credit is lost and we never get it back).
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != SEND}{unpriv\_stop(NO\_SEP)}
     \uIf{ep.reply != 0}{unpriv\_stop(SEND\_REPLY\_EP)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \uIf{$ep.msg\_sz > 11$}{unpriv\_stop(SEND\_INV\_MSG\_SZ)}
     \uIf{DATA.size + sizeof(header) > ($1 << ep.msg\_sz$)}{unpriv\_stop(OUT\_OF\_BOUNDS)}
     \uIf{(DATA.address \& 0xF) != 0}{unpriv\_stop(MSG\_UNALIGNED)}
@@ -217,7 +217,7 @@ in a broken state, too (one credit is lost and we never get it back).
     \BlankLine
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{tilemux}{CUR\_ACT.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
@@ -233,7 +233,7 @@ in a broken state, too (one credit is lost and we never get it back).
     }
     \BlankLine
     $(payload, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     \uIf{ep.cur\_crd != 0x3F}{
         \uIf{ep.cur\_crd == 0}{unpriv\_stop(NO\_CREDITS)}
@@ -252,10 +252,10 @@ in a broken state, too (one credit is lost and we never get it back).
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets rsize$\;
     $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
-    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
+    $\quad\quad\quad\quad\quad stile \gets ownTile$\;
     $\quad\quad\quad\quad\quad sep \gets sepid$\;
     $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
-    $send\_msg(header\ |\ payload, ep.tgt\_pe, ep.tgt\_ep)$\;
+    $send\_msg(header\ |\ payload, ep.tgt\_tile, ep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
@@ -291,11 +291,11 @@ and stores messages. Nevertheless, its behavior is described by the following al
     \BlankLine
     \uIf{(header.flags \& REPLY) == 0 and ep.rpl\_eps != 0xFFFF and header.rep != 0xFFFF}{
       $sep \gets \{\ type \gets SEND$\;
-      \extstart{pemux}
-      $\quad\quad\quad\ \ \  vpe \gets ep.vpe$\;
+      \extstart{tilemux}
+      $\quad\quad\quad\ \ \  act \gets ep.act$\;
       \extend{}
       $\quad\quad\quad\ \ \  reply \gets 1$\;
-      $\quad\quad\quad\ \ \  tgt\_pe \gets header.spe$\;
+      $\quad\quad\quad\ \ \  tgt\_tile \gets header.stile$\;
       $\quad\quad\quad\ \ \  tgt\_ep \gets header.rep$\;
       $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
       $\quad\quad\quad\ \ \  msg\_sz \gets header.rsize$\;
@@ -311,13 +311,13 @@ and stores messages. Nevertheless, its behavior is described by the following al
       $write\_ep(header.rep, sep)$\;
     }
     $send\_ack(NONE)$\;
-    \extstart{pemux}
+    \extstart{tilemux}
     \BlankLine
-    \uIf{ep.vpe == CUR\_VPE.id}{
-      CUR\_VPE.msgs += 1\;
+    \uIf{ep.act == CUR\_ACT.id}{
+      CUR\_ACT.msgs += 1\;
     }
     \uElse{
-      $queue\_foreign\_msg\_req(rep, ep.vpe)$\;
+      $queue\_foreign\_msg\_req(rep, ep.act)$\;
     }
     \extend{}
     \caption{If `header | payload' is received via EP `rep'.}
@@ -334,7 +334,7 @@ where state is changed.
     \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
     \uIf{ep.rpl\_eps == 0xFFFF}{unpriv\_stop(REPLIES\_DISABLED)}
     \uIf{$ep.rpl\_eps + (1 << ep.slots) > EP\_COUNT$}{unpriv\_stop(RECV\_INV\_RPL\_EPS)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     \uIf{idx >= $1 << ep.slots$}{unpriv\_stop(INV\_MSG\_OFF)}
@@ -353,31 +353,31 @@ where state is changed.
     \setcounter{AlgoLine}{27}
     $phys \gets$ DATA.address\;
     \extstart{vm}
-    $(phys, err) \gets$ lookup\_tlb(\colorbox{pemux}{CUR\_VPE.id, }DATA.address, READ)\;
+    $(phys, err) \gets$ lookup\_tlb(\colorbox{tilemux}{CUR\_ACT.id, }DATA.address, READ)\;
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
     $(payload, err) \gets read\_local(phys, DATA.size)$\;
-    \extstart{pemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
+    \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $header \gets$ \{ flags $\gets$ REPLY\;
     $\quad\quad\quad\quad\quad label \gets sep.label$\;
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets 0$\;
     $\quad\quad\quad\quad\quad rlabel \gets 0$\;
-    $\quad\quad\quad\quad\quad spe \gets ownPE$\;
+    $\quad\quad\quad\quad\quad stile \gets ownTile$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
-    $send\_msg(header\ |\ payload, sep.tgt\_pe, sep.tgt\_ep)$\;
+    $send\_msg(header\ |\ payload, sep.tgt\_tile, sep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
     $sep \gets \{~type \gets INVALID~\}$\;
     $write\_ep(ep.rpl\_eps + idx, sep)$\;
     \BlankLine
-    \extstart{pemux}
+    \extstart{tilemux}
     \uIf{ep.unread.is\_set(idx)}{
-      CUR\_VPE.msgs -= 1\;
+      CUR\_ACT.msgs -= 1\;
     }
     \extend{}
     \BlankLine
@@ -394,8 +394,8 @@ where state is changed.
 \begin{algorithm}[H]
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
-    \uIf{ep.unread == 0\colorbox{pemux}{ or CUR\_VPE.msgs == 0}}{
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \uIf{ep.unread == 0\colorbox{tilemux}{ or CUR\_ACT.msgs == 0}}{
       $ARG_1 \gets -1$\;
       unpriv\_stop(NONE)\;
     }
@@ -405,8 +405,8 @@ where state is changed.
     $ep.rpos \gets idx + 1$\;
     $write\_ep(COMMAND.ep, ep)$\;
     \BlankLine
-    \extstart{pemux}
-    CUR\_VPE.msgs -= 1\;
+    \extstart{tilemux}
+    CUR\_ACT.msgs -= 1\;
     \extend{}
     \BlankLine
     $ARG_1 \gets idx << ep.slot\_size$\;
@@ -420,14 +420,14 @@ where state is changed.
     $ep \gets$ read\_ep(COMMAND.ep)\;
     \uIf{ep.type != RECEIVE}{unpriv\_stop(NO\_REP)}
     \uIf{ep.rpl\_eps != 0xFFFF and $ep.rpl\_eps + (1 << ep.slots) > EP\_COUNT$}{unpriv\_stop(RECV\_INV\_RPL\_EPS)}
-    \extstart{pemux}\uIf{ep.vpe != $CUR\_VPE.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
+    \extstart{tilemux}\uIf{ep.act != $CUR\_ACT.id$}{unpriv\_stop(FOREIGN\_EP)}\extend{}
     \BlankLine
     $idx \gets COMMAND.arg_0 >> ep.slot\_size$\;
     \uIf{idx >= $1 << ep.slots$}{unpriv\_stop(INV\_MSG\_OFF)}
     \BlankLine
-    \extstart{pemux}
+    \extstart{tilemux}
     \uIf{ep.unread.is\_set(idx)}{
-      CUR\_VPE.msgs -= 1\;
+      CUR\_ACT.msgs -= 1\;
     }
     \extend{}
     \BlankLine

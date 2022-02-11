@@ -1,13 +1,13 @@
 \chapter{Privileged Interface}
 
-The privileged interface of the TCU adds support for virtual memory and PE sharing to the TCU and is
+The privileged interface of the TCU adds support for virtual memory and tile sharing to the TCU and is
 thus only required if either of these features are desired. Thus, all non-highlighted functionality
 is required if either extension is used, whereas the highlighted functionality is only required for
 one specific extension.
 
 The interface consists of multiple privileged registers, privileged commands, and \emph{core
 requests}, which are raised by the TCU and answered by the privileged software. To support the
-privileged software in the management of multiple VPEs or virtual memory, privileged commands are
+privileged software in the management of multiple activities or virtual memory, privileged commands are
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
 
 \begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2008}}
@@ -24,19 +24,19 @@ used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is d
 \noindent Note that none of the privileged commands can currently fail. Thus, only unknown command
 opcodes lead to \texttt{err} being set to an a non-zero value.
 
-\extstart{pemux}
-\noindent The TCU stores the id of the current VPE including the number of unread messages in all
-its receive EPs in the \texttt{CUR\_VPE} register:
+\extstart{tilemux}
+\noindent The TCU stores the id of the current activity including the number of unread messages in all
+its receive EPs in the \texttt{CUR\_ACT} register:
 
 \setlength{\regWidth}{.95\textwidth}
-\begin{register}{H}{CUR\_VPE}{\texttt{0xF000\_2018}}
+\begin{register}{H}{CUR\_ACT}{\texttt{0xF000\_2018}}
   \regfield[gray!20]{reserved}{32}{32}{{uninitialized}}%
   \regfield{msgs}{16}{16}{0}%
   \regfield{id}{16}{0}{1111111111111111}%
   \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[msgs] the sum of all unread messages in the receive EPs for this VPE
-    \item[id] the VPE id
+    \item[msgs] the sum of all unread messages in the receive EPs for this activity
+    \item[id] the activity id
   \end{reglist}\end{regdesc}
 \end{register}
 \setlength{\regWidth}{\textwidth}
@@ -48,11 +48,11 @@ The following privileged commands are supported with the opcodes in parentheses.
 to an \texttt{UNKNOWN\_CMD} error.
 
 \begin{itemize}
-  \item \texttt{IDLE} (0): \extstart{vmpex} don't do anything, \extend{}
+  \item \texttt{IDLE} (0): \extstart{vmtilex} don't do anything, \extend{}
   \item \texttt{INV\_PAGE} (1): invalidate a page in the TLB, \extstart{vm}
   \item \texttt{INV\_TLB} (2): invalidate the complete TLB,
   \item \texttt{INS\_TLB} (3): insert an entry into the TLB, \extend{}
-  \item \texttt{XCHG\_VPE} (4): change the VPE, \extstart{pemux}
+  \item \texttt{XCHG\_ACT} (4): change the activity, \extstart{tilemux}
   \item \texttt{SET\_TIMER} (5): start/stop the timer,
   \item \texttt{ABORT\_CMD} (6): abort the unprivileged command. \extend{}
 \end{itemize}
@@ -63,13 +63,13 @@ The following sections use pseudo code to describe the behavior of the privilege
 several building blocks:
 
 \begin{itemize}
-  \item \texttt{insert\_tlb\_entry(vpe, virt, phys, flags)}: \extstart{vm}\\
-  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for given VPE
-  \item \texttt{remove\_tlb\_entry(vpe, virt)}:\\
-  removes the entry with \texttt{virt} for given VPE
+  \item \texttt{insert\_tlb\_entry(act, virt, phys, flags)}: \extstart{vm}\\
+  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for given activity
+  \item \texttt{remove\_tlb\_entry(act, virt)}:\\
+  removes the entry with \texttt{virt} for given activity
   \item \texttt{clear\_tlb()}:\\
   removes all non-fixed entries from the TLB \extend{}
-  \item \texttt{set\_timer(timeout)}: \extstart{pemux}\\
+  \item \texttt{set\_timer(timeout)}: \extstart{tilemux}\\
   starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
   \item \texttt{unset\_timer()}:\\
   stops the timer
@@ -99,13 +99,13 @@ several building blocks:
 \subsection{\texttt{INV\_PAGE}}
 
 \begin{algorithm}[H]
-    \colorbox{pemux}{$vpe \gets PRIV\_CMD.arg0 >> 32$}\;
+    \colorbox{tilemux}{$act \gets PRIV\_CMD.arg0 >> 32$}\;
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
     \BlankLine
-    $(\_, err) \gets lookup\_tlb(\colorbox{pemux}{vpe, }virt\_page\_no << 12, READ)$\;
+    $(\_, err) \gets lookup\_tlb(\colorbox{tilemux}{act, }virt\_page\_no << 12, READ)$\;
     \uIf{err == TLB\_MISS}{priv\_stop(TLB\_MISS)}
     \BlankLine
-    $remove\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no)$\;
+    $remove\_tlb\_entry(\colorbox{tilemux}{act, }virt\_page\_no)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_PAGE} command.}
 \end{algorithm}
@@ -127,28 +127,28 @@ flag.
 \subsection{\texttt{INS\_TLB}}
 
 \begin{algorithm}[H]
-    \colorbox{pemux}{$vpe \gets PRIV\_CMD.arg0 >> 32$}\;
+    \colorbox{tilemux}{$act \gets PRIV\_CMD.arg0 >> 32$}\;
     $virt\_page\_no \gets (PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000) >> 12$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     $phys\_page\_no \gets (PRIV\_CMD\_ARG1\ \&\ 0xFFFF\_F000) >> 12$\;
     \BlankLine
     \uIf{all entries are FIXED}{priv\_stop(TLB\_FULL)}
     \BlankLine
-    $insert\_tlb\_entry(\colorbox{pemux}{vpe, }virt\_page\_no, phys\_page\_no, flags)$\;
+    $insert\_tlb\_entry(\colorbox{tilemux}{act, }virt\_page\_no, phys\_page\_no, flags)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
 \extend{}
 
-\subsection{\texttt{XCHG\_VPE}}
-\extstart{pemux}
+\subsection{\texttt{XCHG\_ACT}}
+\extstart{tilemux}
 
 \begin{algorithm}[H]
-    $PRIV\_CMD\_ARG1 \gets CUR\_VPE$\;
-    $CUR\_VPE \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
+    $PRIV\_CMD\_ARG1 \gets CUR\_ACT$\;
+    $CUR\_ACT \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_FFFF$\;
     \BlankLine
     $PRIV\_CMD.op \gets 0$\;
-    \caption{The TCU's \texttt{XCHG\_VPE} command.}
+    \caption{The TCU's \texttt{XCHG\_ACT} command.}
 \end{algorithm}
 
 \subsection{\texttt{SET\_TIMER}}
@@ -188,8 +188,8 @@ flag.
 
 \section{Core Requests}
 
-With PE sharing, the TCU needs assistance of the CU if a message for another VPE than the currently
-running VPE (\texttt{CUR\_VPE}) is received. Since we assume in this case that the CU is a
+With tile sharing, the TCU needs assistance of the CU if a message for another activity than the currently
+running activity (\texttt{CUR\_ACT}) is received. Since we assume in this case that the CU is a
 general-purpose core, these requests for assistance are called \emph{core requests}.
 
 Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
@@ -208,8 +208,8 @@ The following pseudo code describes the TCU's behavior regarding core requests i
 \begin{algorithm}[H]
     \SetKwFunction{FMain}{queue\_foreign\_msg\_req}
     \SetKwProg{Fn}{Function}{:}{}
-    \Fn{\FMain{$vpe$, $ep$}}{
-      $queue.enqueue(vpe\ |\ ep\ |\ 2)$\;
+    \Fn{\FMain{$act$, $ep$}}{
+      $queue.enqueue(act\ |\ ep\ |\ 2)$\;
       $try\_start\_req()$\;
     }
     \textbf{End Function}
@@ -252,13 +252,13 @@ The following pseudo code describes the TCU's behavior regarding core requests i
 most of the bits depend on the type of request/response, defined in the following.
 
 \begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
-  \regfieldb{vpe}{16}{48}%
+  \regfieldb{act}{16}{48}%
   \regfieldb[gray!20]{reserved}{30}{18}%
   \regfieldb{ep}{16}{2}%
   \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[ep] the receive EP which received a message
-    \item[vpe] the VPE that received the message
+    \item[act] the activity that received the message
   \end{reglist}\end{regdesc}
 \end{register}
 
@@ -282,7 +282,7 @@ potentially running command when removing entries from the TLB to ensure that it
 anymore.
 
 The TLB contains a 20-bit virtual page number (virtual address shifted right by 12 bits),
-\colorbox{pemux}{16-bit VPE id, }20-bit physical page number (physical address shifted right by 12
+\colorbox{tilemux}{16-bit activity id, }20-bit physical page number (physical address shifted right by 12
 bits), and 5 bits for permissions. Small pages are 4~KiB and large pages 2~MiB. The virtual and
 physical address are always page-size aligned. The permissions are defined as follows:
 
@@ -296,15 +296,15 @@ physical address are always page-size aligned. The permissions are defined as fo
 
 \section{Physical Memory Protection}
 
-\noindent With virtual memory support, PEs get access to a shared physical memory. The mapping from
-virtual to physical memory is performed by privileged software on each PE. To prevent that this
-privileged software and the CU within the PE is part of the trusted computing base (as it can access
+\noindent With virtual memory support, tiles get access to a shared physical memory. The mapping from
+virtual to physical memory is performed by privileged software on each tile. To prevent that this
+privileged software and the CU within the tile is part of the trusted computing base (as it can access
 all physical memory without further measures), the TCU supports physical memory protection.
 
-The physical memory of each PE is split into multiple fixed-sized regions, whereas each region is
+The physical memory of each tile is split into multiple fixed-sized regions, whereas each region is
 protected by a memory EP. The current implementation uses four regions of 1~GiB each and thus uses
 the upper two bits of the physical address to determine the memory EP. In other words, the first
-four EPs define to which parts of external memories the PE has access and also defines the access
+four EPs define to which parts of external memories the tile has access and also defines the access
 permissions (read and/or write).
 
 Instead of connecting the last-level cache~(LLC) directly to the NoC, the LLC is connected to the
@@ -324,10 +324,10 @@ the NoC. The following pseudo code describes this process:\\[.2em]
       \uIf{off + size > ep.size}{ignore access}
       \BlankLine
       \uIf{access == READ}{
-        $read\_remote(ep.PE, ep.addr + off, size)$\;
+        $read\_remote(ep.tile, ep.addr + off, size)$\;
       }
       \uElse{
-        $write\_remote(data, ep.PE, ep.addr + off, size)$\;
+        $write\_remote(data, ep.tile, ep.addr + off, size)$\;
       }
     }
     \textbf{End Function}

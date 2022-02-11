@@ -1,6 +1,6 @@
 \chapter{External Interface}
 
-The external interface of the TCU allows remote PEs to manipulate its state. First of all, the
+The external interface of the TCU allows remote tiles to manipulate its state. First of all, the
 available TCU features can be configured through the \texttt{FEATURES} register, which has the
 following format:
 
@@ -14,15 +14,15 @@ following format:
   \begin{regdesc}\begin{reglist}
     \item[ctxsw] whether the context-switching extension is available
     \item[vm] whether the virtual-memory extension is available
-    \item[kernel] whether the TCU belongs to a kernel PE
+    \item[kernel] whether the TCU belongs to a kernel tile
   \end{reglist}\end{regdesc}
 \end{register}
 \setlength{\regWidth}{\textwidth}
 
-\noindent At reset, \texttt{FEATURES.kernel} is set to 1, so that all PEs are kernel PEs. The
-software starting on one PE can afterwards downgrade the other PEs to user PEs. If
+\noindent At reset, \texttt{FEATURES.kernel} is set to 1, so that all tiles are kernel tiles. The
+software starting on one tile can afterwards downgrade the other tiles to user tiles. If
 \texttt{FEATURES.kernel} is 1, the CU can write to endpoint registers. This can be used to create a
-communication channel to the TCU's MMIO region in another PE, which allows to establish other
+communication channel to the TCU's MMIO region in another tile, which allows to establish other
 communication channels by writing to the endpoint registers within the MMIO region.
 
 The bits \texttt{FEATURES.ctxsw} and \texttt{FEATURES.vm} control whether the context-switching and
