@@ -10,6 +10,7 @@ use std::time::Duration;
 use std::thread;
 
 const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
+const HOST_MOD: FPGAModule = FPGAModule::new(0x3F, 0x05);
 
 const NOC_PACKET_LEN: usize = 18;
 const UDP_PAYLOAD_LEN: usize = 1472;
@@ -118,7 +119,7 @@ impl Communicator {
     pub fn self_test(&mut self) -> std::io::Result<()> {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF];
         // use an offset that nobody else should use; notice the alignment
-        self.write_noburst(ETH_MOD, 0xDEAD_BEE0, &test_data, false)?;
+        self.write_noburst(HOST_MOD, 0xDEAD_BEE0, &test_data, false)?;
 
         let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
 
@@ -138,7 +139,7 @@ impl Communicator {
                     if off == 0xDEAD_BEE0 {
                         assert!(mode == Mode::WritePosted);
                         assert!(self.burst.is_none());
-                        assert!(src == ETH_MOD);
+                        assert!(src == HOST_MOD);
                         assert!(data.iter().rev().eq(test_data.iter()));
                         return Ok(());
                     }
@@ -188,7 +189,7 @@ impl Communicator {
         // append message header
         let mut header = MessageHeader {
             flags_reply_size: 0 | (4 << 2),
-            sender_pe: ETH_MOD.mod_id,
+            sender_pe: HOST_MOD.mod_id,
             sender_ep: 0xFFFFu16.to_le(),
             reply_ep: 0xFFFFu16.to_le(),
             length: (data.len() as u16).to_le(),
@@ -609,9 +610,9 @@ fn encode_packet(
         // bsel
         bsel,
         // source and target
-        ETH_MOD.mod_id,
-        (ETH_MOD.chip_id << 2) | target.mod_id >> 6,
-        (target.mod_id << 2) | (target.chip_id >> 6),
+        HOST_MOD.mod_id,
+        (HOST_MOD.chip_id << 2) | target.mod_id >> 6,
+        (target.mod_id << 2) | (target.chip_id >> 4),
         (target.chip_id << 4) | mode_byte,
         // target address
         (addr >> 24) as u8,
