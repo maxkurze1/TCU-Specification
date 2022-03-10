@@ -46,9 +46,8 @@ class FPGA_TOP(fpga):
         if reset: print("FPGA Reset...")
         sys.stdout.flush()
 
-        #DIP switch determines Chip-ID - currently disabled
-        #chipid = fpga_sw
-        chipid = 0
+        #DIP switch determines Chip-ID
+        chipid = fpga_sw
 
         #periphery
         if use_uart:
