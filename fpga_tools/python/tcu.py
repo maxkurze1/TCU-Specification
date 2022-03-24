@@ -208,7 +208,7 @@ class LOG():
               "CMD_PRIV_INV_TLB",
               "CMD_PRIV_INS_TLB",
               "CMD_PRIV_XCHG_VPE",
-              "CMD_PRIV_TIMER",
+              "CMD_PRIV_SET_TIMER",
               "CMD_PRIV_ABORT",
               "CMD_PRIV_FINISH",
               "PRIV_CORE_REQ_FORMSG",
@@ -217,6 +217,7 @@ class LOG():
               "PRIV_TLB_READ_ENTRY",
               "PRIV_TLB_DEL_ENTRY",
               "PRIV_CUR_VPE_CHANGE",
+              "PRIV_TIMER_INTR",
               "PMP_ACCESS_DENIED"]
 
     def split_tcu_log(upper_data64, lower_data64):
@@ -356,7 +357,7 @@ class LOG():
             return ret_string + "cur_act: {:#x}, xchg_act: {:#x}".format(log_curact, log_xchgact)
 
         #timer
-        if (id_string == "CMD_PRIV_TIMER"):
+        if (id_string == "CMD_PRIV_SET_TIMER"):
             log_nanos = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             return ret_string + "nanos: {:d}".format(log_nanos)
 
