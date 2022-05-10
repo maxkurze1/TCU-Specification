@@ -5,12 +5,13 @@ use cpython::exc::TypeError;
 use cpython::PyErr;
 use cpython::{py_fn, py_module_initializer, PyBytes, PyResult, Python};
 use lazy_static::lazy_static;
-use log::info;
+use log::{info, logger};
 use simplelog::{
     CombinedLogger, Config, LevelFilter, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
 use std::env;
 use std::fs::{create_dir, File};
+use std::io::BufWriter;
 use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -69,6 +70,15 @@ py_module_initializer!(nocrw, |py, m| {
     Ok(())
 });
 
+#[derive(Default)]
+struct LogGuard {}
+
+impl Drop for LogGuard {
+    fn drop(&mut self) {
+        logger().flush();
+    }
+}
+
 lazy_static! {
     static ref COM: Mutex<Option<Communicator>> = Mutex::new(None);
 }
@@ -91,7 +101,7 @@ fn do_connect(fpga_ip: &str, fpga_port: u16, reset: bool) -> std::io::Result<()>
     loggers.push(WriteLogger::new(
         file_level,
         Config::default(),
-        File::create("log/ethernet.log")?,
+        BufWriter::new(File::create("log/ethernet.log")?),
     ));
     if let Some(tl) = TermLogger::new(term_level, Config::default(), TerminalMode::Stderr) {
         loggers.push(tl);
@@ -113,6 +123,8 @@ fn do_connect(fpga_ip: &str, fpga_port: u16, reset: bool) -> std::io::Result<()>
 fn connect(py: Python<'_>, fpga_ip: &str, fpga_port: u16, reset: bool) -> PyResult<u64> {
     assert!(COM.lock().unwrap().is_none());
 
+    let _g = LogGuard::default();
+
     do_connect(fpga_ip, fpga_port, reset)
         .map(|_| 0)
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("connect failed: {}", e)))
@@ -123,6 +135,8 @@ fn read_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> P
         "read_bytes(chip_id={}, mod_id={}, addr={:#x}, len={})",
         chip_id, mod_id, addr, len
     );
+
+    let _g = LogGuard::default();
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
@@ -136,6 +150,8 @@ fn read8b_nocarq(py: Python<'_>, chip_id: u8, mod_id: u8, addr: u32) -> PyResult
         "read8b_nocarq(chip_id={}, mod_id={}, addr={:#x})",
         chip_id, mod_id, addr
     );
+
+    let _g = LogGuard::default();
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
@@ -160,6 +176,8 @@ fn write_bytes(
         b.data(py).len(),
         burst,
     );
+
+    let _g = LogGuard::default();
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
@@ -189,6 +207,8 @@ fn write8b_nocarq(
         b.data(py).len(),
     );
 
+    let _g = LogGuard::default();
+
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
     let res = com.write_noburst(FPGAModule::new(chip_id, mod_id), addr, b.data(py), true);
@@ -206,6 +226,8 @@ fn send_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> 
         b.data(py).len(),
     );
 
+    let _g = LogGuard::default();
+
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
     let res = com.send_bytes(FPGAModule::new(chip_id, mod_id), ep, b.data(py));
@@ -216,6 +238,8 @@ fn send_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> 
 
 fn receive_bytes(py: Python<'_>, timeout_ns: u64) -> PyResult<PyBytes> {
     info!("receive_bytes(timeout={}ns)", timeout_ns);
+
+    let _g = LogGuard::default();
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
