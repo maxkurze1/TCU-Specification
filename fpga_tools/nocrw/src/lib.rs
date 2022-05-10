@@ -110,7 +110,7 @@ fn do_connect(fpga_ip: &str, fpga_port: u16, reset: bool) -> std::io::Result<()>
     Ok(())
 }
 
-fn connect(py: Python, fpga_ip: &str, fpga_port: u16, reset: bool) -> PyResult<u64> {
+fn connect(py: Python<'_>, fpga_ip: &str, fpga_port: u16, reset: bool) -> PyResult<u64> {
     assert!(COM.lock().unwrap().is_none());
 
     do_connect(fpga_ip, fpga_port, reset)
@@ -118,7 +118,7 @@ fn connect(py: Python, fpga_ip: &str, fpga_port: u16, reset: bool) -> PyResult<u
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("connect failed: {}", e)))
 }
 
-fn read_bytes(py: Python, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> PyResult<PyBytes> {
+fn read_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> PyResult<PyBytes> {
     info!(
         "read_bytes(chip_id={}, mod_id={}, addr={:#x}, len={})",
         chip_id, mod_id, addr, len
@@ -131,7 +131,7 @@ fn read_bytes(py: Python, chip_id: u8, mod_id: u8, addr: u32, len: u32) -> PyRes
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("read_bytes failed: {}", e)))
 }
 
-fn read8b_nocarq(py: Python, chip_id: u8, mod_id: u8, addr: u32) -> PyResult<PyBytes> {
+fn read8b_nocarq(py: Python<'_>, chip_id: u8, mod_id: u8, addr: u32) -> PyResult<PyBytes> {
     info!(
         "read8b_nocarq(chip_id={}, mod_id={}, addr={:#x})",
         chip_id, mod_id, addr
@@ -145,7 +145,7 @@ fn read8b_nocarq(py: Python, chip_id: u8, mod_id: u8, addr: u32) -> PyResult<PyB
 }
 
 fn write_bytes(
-    py: Python,
+    py: Python<'_>,
     chip_id: u8,
     mod_id: u8,
     addr: u32,
@@ -174,7 +174,13 @@ fn write_bytes(
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write_bytes failed: {}", e)))
 }
 
-fn write8b_nocarq(py: Python, chip_id: u8, mod_id: u8, addr: u32, b: &PyBytes) -> PyResult<u64> {
+fn write8b_nocarq(
+    py: Python<'_>,
+    chip_id: u8,
+    mod_id: u8,
+    addr: u32,
+    b: &PyBytes,
+) -> PyResult<u64> {
     info!(
         "write8b_nocarq(chip_id={}, mod_id={}, addr={:#x}, len={})",
         chip_id,
@@ -191,7 +197,7 @@ fn write8b_nocarq(py: Python, chip_id: u8, mod_id: u8, addr: u32, b: &PyBytes) -
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write8b_nocarq failed: {}", e)))
 }
 
-fn send_bytes(py: Python, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> PyResult<u64> {
+fn send_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> PyResult<u64> {
     info!(
         "send_bytes(chip_id={}, mod_id={}, ep={}, len={})",
         chip_id,
@@ -208,7 +214,7 @@ fn send_bytes(py: Python, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> PyRe
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("send_bytes failed: {}", e)))
 }
 
-fn receive_bytes(py: Python, timeout_ns: u64) -> PyResult<PyBytes> {
+fn receive_bytes(py: Python<'_>, timeout_ns: u64) -> PyResult<PyBytes> {
     info!("receive_bytes(timeout={}ns)", timeout_ns);
 
     let mut guard = COM.lock().unwrap();
