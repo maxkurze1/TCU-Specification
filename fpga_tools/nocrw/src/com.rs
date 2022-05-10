@@ -299,14 +299,28 @@ impl Communicator {
         };
 
         let mut retries = 0;
+        let mut last_addr = addr;
         while len > 0 {
             match self.read_single(&mut buf, &mut res, target, read_mode, addr, len) {
                 Err(e) => {
                     error!("read request failed: {}", e);
-                    // try a few times if it failed for a different reason
-                    retries += 1;
-                    if retries >= MAX_READ_RETRIES {
-                        return Err(e);
+
+                    // receive all packets the FPGA sends us, with a timeout of 100ms
+                    self.sock
+                        .set_read_timeout(Some(Duration::from_millis(100)))?;
+                    while self.sock.recv_from(&mut buf).is_ok() {}
+                    self.sock.set_read_timeout(Some(READ_TIMEOUT)).ok();
+
+                    // give up if the error persists for the same address
+                    if last_addr == addr {
+                        retries += 1;
+                        if retries >= MAX_READ_RETRIES {
+                            return Err(e);
+                        }
+                    }
+                    else {
+                        retries = 0;
+                        last_addr = addr;
                     }
                 },
                 Ok(amount) => {
@@ -363,14 +377,13 @@ impl Communicator {
                             continue;
                         }
 
-                        // sometimes we get a delayed response for an earlier request; just ignore
-                        // these and continue.
+                        // sometimes we get a delayed response for an earlier request; stop here
                         if off != req_id {
                             debug!(
                                 "Received packet with unexpected offset {:#x} (expected {:#x})",
                                 off, req_id
                             );
-                            self.burst = old_burst;
+                            return Err(Error::from(ErrorKind::InvalidData));
                         }
                         else if self.burst.is_some() {
                             debug!("Received burst-start from {} at offset {:#x}", src, off);
