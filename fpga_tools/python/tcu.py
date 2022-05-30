@@ -322,10 +322,16 @@ class LOG():
             return ret_string + "from tile: {}, addr: {:#010x}, size: {:d}".format(modid_to_tile(log_modid), log_addr, log_size)
 
         #NoC received msg ACK or error packet
-        if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR" or id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
+        if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
             return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
+
+        if (id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | ((lower_data64 >> 48) & 0xFFFF)
+            log_error = (upper_data64 >> 16) & 0x1F
+            return ret_string + "from tile: {}, addr: {:#010x}, error: {:d}".format(modid_to_tile(log_modid), log_addr, log_error)
 
         #NoC received packet with invalid data
         if (id_string == "NOC_INVMODE" or id_string == "NOC_INVFLIT"):
