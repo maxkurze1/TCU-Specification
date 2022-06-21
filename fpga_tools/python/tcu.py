@@ -220,7 +220,7 @@ class LOG():
               "CMD_PRIV_INV_TLB",
               "CMD_PRIV_INS_TLB",
               "CMD_PRIV_XCHG_VPE",
-              "CMD_PRIV_TIMER",
+              "CMD_PRIV_SET_TIMER",
               "CMD_PRIV_ABORT",
               "CMD_PRIV_FINISH",
               "PRIV_CORE_REQ_FORMSG",
@@ -229,6 +229,7 @@ class LOG():
               "PRIV_TLB_READ_ENTRY",
               "PRIV_TLB_DEL_ENTRY",
               "PRIV_CUR_VPE_CHANGE",
+              "PRIV_TIMER_INTR",
               "PMP_ACCESS_DENIED"]
 
     def split_tcu_log(upper_data64, lower_data64):
@@ -333,10 +334,16 @@ class LOG():
             return ret_string + "from tile: {}, addr: {:#010x}, size: {:d}".format(modid_to_tile(log_modid), log_addr, log_size)
 
         #NoC received msg ACK or error packet
-        if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR" or id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
+        if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
             return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
+
+        if (id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
+            log_modid = (lower_data64 >> 40) & 0xFF
+            log_addr = ((upper_data64 & 0xFFFF) << 16) | ((lower_data64 >> 48) & 0xFFFF)
+            log_error = (upper_data64 >> 16) & 0x1F
+            return ret_string + "from tile: {}, addr: {:#010x}, error: {:d}".format(modid_to_tile(log_modid), log_addr, log_error)
 
         #NoC received packet with invalid data
         if (id_string == "NOC_INVMODE" or id_string == "NOC_INVFLIT"):
@@ -368,7 +375,7 @@ class LOG():
             return ret_string + "cur_act: {:#x}, xchg_act: {:#x}".format(log_curact, log_xchgact)
 
         #timer
-        if (id_string == "CMD_PRIV_TIMER"):
+        if (id_string == "CMD_PRIV_SET_TIMER"):
             log_nanos = ((upper_data64 & 0xFF) << 24) | (lower_data64 >> 40)
             return ret_string + "nanos: {:d}".format(log_nanos)
 

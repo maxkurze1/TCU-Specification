@@ -5,9 +5,10 @@ use std::cmp;
 use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::fmt;
+use std::io::{Error, ErrorKind, Result};
 use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
 const HOST_MOD: FPGAModule = FPGAModule::new(0x3F, 0x05);
@@ -92,7 +93,7 @@ enum NocPacket<'b> {
 }
 
 impl Communicator {
-    pub fn new(fpga_ip: &str, fpga_port: u16) -> std::io::Result<Self> {
+    pub fn new(fpga_ip: &str, fpga_port: u16) -> Result<Self> {
         let sock = Socket::new(
             Domain::ipv4(),
             socket2::Type::dgram(),
@@ -116,7 +117,7 @@ impl Communicator {
         })
     }
 
-    pub fn self_test(&mut self) -> std::io::Result<()> {
+    pub fn self_test(&mut self) -> Result<()> {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF];
         // use an offset that nobody else should use; notice the alignment
         self.write_noburst(HOST_MOD, 0xDEAD_BEE0, &test_data, false)?;
@@ -132,7 +133,7 @@ impl Communicator {
             }
 
             let old_burst = self.burst;
-            let noc_packet = self.decode_packet(&buf);
+            let noc_packet = self.decode_packet(&buf)?;
             match noc_packet {
                 NocPacket::Normal((src, mode, off, data)) => {
                     // we assume that nobody is writing to this offset, except for the self test
@@ -151,13 +152,10 @@ impl Communicator {
             retries += 1;
         }
 
-        Err(std::io::Error::new(
-            std::io::ErrorKind::TimedOut,
-            "no self test response",
-        ))
+        Err(Error::new(ErrorKind::TimedOut, "no self test response"))
     }
 
-    pub fn fpga_reset(&mut self) -> std::io::Result<()> {
+    pub fn fpga_reset(&mut self) -> Result<()> {
         let reset_data: [u8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
         self.write_noburst(ETH_MOD, 0xF0003028, &reset_data, false)?;
 
@@ -168,7 +166,7 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn send_bytes(&mut self, target: FPGAModule, ep: u16, data: &[u8]) -> std::io::Result<()> {
+    pub fn send_bytes(&mut self, target: FPGAModule, ep: u16, data: &[u8]) -> Result<()> {
         // write initial NoC packet that defines the burst length
         assert!(data.len() <= MAX_SEND_BURST_LEN);
         // the first flit is always the header
@@ -228,7 +226,7 @@ impl Communicator {
         self.flush_packets()
     }
 
-    pub fn receive(&mut self, timeout: Duration) -> std::io::Result<Vec<u8>> {
+    pub fn receive(&mut self, timeout: Duration) -> Result<Vec<u8>> {
         // set custom timeout
         self.sock.set_read_timeout(Some(timeout))?;
         let res = self.do_receive();
@@ -237,7 +235,7 @@ impl Communicator {
         res
     }
 
-    fn do_receive(&mut self) -> std::io::Result<Vec<u8>> {
+    fn do_receive(&mut self) -> Result<Vec<u8>> {
         // either take a packet from our receive queue
         let (buf, size) = if let Some(pkt) = self.received_pkts.pop_front() {
             let size = pkt.len();
@@ -254,7 +252,7 @@ impl Communicator {
         let mut pos = 0;
         let mut res = vec![];
         while pos + NOC_PACKET_LEN <= size {
-            let noc_packet = self.decode_packet(&buf[pos..]);
+            let noc_packet = self.decode_packet(&buf[pos..])?;
             match noc_packet {
                 NocPacket::Normal((src, mode, off, data)) => {
                     // ignore other packets
@@ -291,7 +289,7 @@ impl Communicator {
         mut addr: u32,
         mut len: usize,
         nocarq: bool,
-    ) -> std::io::Result<Vec<u8>> {
+    ) -> Result<Vec<u8>> {
         let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
         let mut res = Vec::with_capacity(len);
         let read_mode = if nocarq == true {
@@ -302,14 +300,28 @@ impl Communicator {
         };
 
         let mut retries = 0;
+        let mut last_addr = addr;
         while len > 0 {
             match self.read_single(&mut buf, &mut res, target, read_mode, addr, len) {
                 Err(e) => {
                     error!("read request failed: {}", e);
-                    // try a few times if it failed for a different reason
-                    retries += 1;
-                    if retries >= MAX_READ_RETRIES {
-                        return Err(e);
+
+                    // receive all packets the FPGA sends us, with a timeout of 100ms
+                    self.sock
+                        .set_read_timeout(Some(Duration::from_millis(100)))?;
+                    while self.sock.recv_from(&mut buf).is_ok() {}
+                    self.sock.set_read_timeout(Some(READ_TIMEOUT)).ok();
+
+                    // give up if the error persists for the same address
+                    if last_addr == addr {
+                        retries += 1;
+                        if retries >= MAX_READ_RETRIES {
+                            return Err(e);
+                        }
+                    }
+                    else {
+                        retries = 0;
+                        last_addr = addr;
                     }
                 },
                 Ok(amount) => {
@@ -330,7 +342,7 @@ impl Communicator {
         read_mode: Mode,
         addr: u32,
         len: usize,
-    ) -> std::io::Result<usize> {
+    ) -> Result<usize> {
         let mut req_id = self.next_req_id;
         self.next_req_id = self.next_req_id.wrapping_add(1);
 
@@ -347,7 +359,7 @@ impl Communicator {
             let mut pos = 0;
             'pkt_loop: while pos + NOC_PACKET_LEN <= size {
                 let old_burst = self.burst;
-                let noc_packet = self.decode_packet(&buf[pos..]);
+                let noc_packet = self.decode_packet(&buf[pos..])?;
                 match noc_packet {
                     NocPacket::Normal((src, mode, off, data)) => {
                         if mode == Mode::WritePosted {
@@ -366,14 +378,13 @@ impl Communicator {
                             continue;
                         }
 
-                        // sometimes we get a delayed response for an earlier request; just ignore
-                        // these and continue.
+                        // sometimes we get a delayed response for an earlier request; stop here
                         if off != req_id {
                             debug!(
                                 "Received packet with unexpected offset {:#x} (expected {:#x})",
                                 off, req_id
                             );
-                            self.burst = old_burst;
+                            return Err(Error::from(ErrorKind::InvalidData));
                         }
                         else if self.burst.is_some() {
                             debug!("Received burst-start from {} at offset {:#x}", src, off);
@@ -407,7 +418,7 @@ impl Communicator {
         mut addr: u32,
         data: &[u8],
         nocarq: bool,
-    ) -> std::io::Result<usize> {
+    ) -> Result<usize> {
         let build_min_packet = |data: &[u8], pos: usize| {
             let mut buf = data[pos..].to_vec();
             // pad remaining data with zeros to reach BYTES_PER_PACKET bytes
@@ -466,12 +477,7 @@ impl Communicator {
         self.flush_packets().map(|_| pos)
     }
 
-    pub fn write_burst(
-        &mut self,
-        target: FPGAModule,
-        mut addr: u32,
-        data: &[u8],
-    ) -> std::io::Result<usize> {
+    pub fn write_burst(&mut self, target: FPGAModule, mut addr: u32, data: &[u8]) -> Result<usize> {
         let mut pos = 0;
         let mut burst_pos = MAX_WRITE_BURST_LEN;
         while pos + BYTES_PER_BURST_PACKET <= data.len() {
@@ -507,7 +513,7 @@ impl Communicator {
         self.write_noburst(target, addr, &data[pos..], false)
     }
 
-    fn append_packet(&mut self, packet: &[u8]) -> std::io::Result<()> {
+    fn append_packet(&mut self, packet: &[u8]) -> Result<()> {
         if self.send_buf.len() + packet.len() > self.send_buf.capacity() {
             self.flush_packets()?;
         }
@@ -517,7 +523,7 @@ impl Communicator {
         Ok(())
     }
 
-    fn flush_packets(&mut self) -> std::io::Result<()> {
+    fn flush_packets(&mut self) -> Result<()> {
         if !self.send_buf.is_empty() {
             self.sock.send_to(&self.send_buf, &self.addr)?;
             self.send_buf.clear();
@@ -525,7 +531,7 @@ impl Communicator {
         Ok(())
     }
 
-    fn decode_packet<'b>(&mut self, bytes: &'b [u8]) -> NocPacket<'b> {
+    fn decode_packet<'b>(&mut self, bytes: &'b [u8]) -> Result<NocPacket<'b>> {
         debug!("<- NoC packet: {:02x?}", &bytes[0..18]);
         if let Some((bsel, ref mut first)) = self.burst {
             // bsel[3:0] = addr of first valid byte in first 128-bit burst flit
@@ -569,7 +575,7 @@ impl Communicator {
                 self.burst = None;
             }
 
-            NocPacket::Burst(&bytes[2 + begin..18 - end])
+            Ok(NocPacket::Burst(&bytes[2 + begin..18 - end]))
         }
         else {
             let src = FPGAModule::new(bytes[3] >> 2, bytes[2]);
@@ -580,7 +586,8 @@ impl Communicator {
             if (bytes[0] >> 1) == 1 {
                 self.burst = Some((bytes[1], true));
             }
-            let mode = Mode::try_from(bytes[5] & 0xF).unwrap();
+            let mode =
+                Mode::try_from(bytes[5] & 0xF).map_err(|_| Error::from(ErrorKind::InvalidData))?;
             let data = if bytes[1] == 0xFF {
                 &bytes[10..18]
             }
@@ -589,7 +596,7 @@ impl Communicator {
                 let last = bytes[1].trailing_zeros() as usize;
                 &bytes[10 + first..18 - last]
             };
-            NocPacket::Normal((src, mode, addr, data))
+            Ok(NocPacket::Normal((src, mode, addr, data)))
         }
     }
 }

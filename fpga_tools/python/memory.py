@@ -96,11 +96,24 @@ class Memory(object):
         writes bytes into memory at given address and checks whether the data has been written
         correctly by reading it afterwards.
         """
-        self.write_bytes(addr, data, burst)
-        written = self.read_bytes(addr, len(data))
-        if written != data:
-            bindiff(data, written)
-        assert written == data
+        # write+read in chunks of 1MB to on the one hand limit the amount of data we have to
+        # retransmit in case of errors and on the other hand get reasonable speed by not-too-small
+        # chunks.
+        off = 0
+        while off < len(data):
+            # try a few times to write that chunk to memory until we give up
+            for i in range(0, 3):
+                try:
+                    amount = min(1024 * 1024, len(data) - off)
+                    self.write_bytes(addr + off, data[off:off + amount], burst)
+                    written = self.read_bytes(addr + off, amount)
+                    if written == data[off:off + amount]:
+                        break
+                except:
+                    continue
+            if i == 3:
+                assert False, "Unable to write bytes to {:#x}; giving up after 3 attempts".format(addr)
+            off += amount
 
     def __repr__(self):
         return '<Memory Module:%d:%d>' % self.nocid
