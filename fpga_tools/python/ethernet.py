@@ -41,17 +41,21 @@ class EthernetRegfile(memory.Memory):
 
     def system_reset(self):
         self.rf[TCU.TCU_REGADDR_CORE_CFG_START] = 1
-        print("FPGA Reset...")
+        print("FPGA System Reset...")
         sleep(5)   #need some time to get FPGA restarted
 
         #check if link is up
         link_check = 3
         while link_check > 0:
-            eth_status = self.getStatusVector()
+            try:
+                eth_status = self.getStatusVector()
+            except:
+                eth_status = 0
             intpyh_linkupandsync = eth_status & 0x3
             extphy_linkup = eth_status & 0x80 #for SGMII only
             if intpyh_linkupandsync == 0 or extphy_linkup == 0:
                 #check again
+                print("Ethernet link not set up. Check again.")
                 link_check -= 1
                 sleep(1)
             else:
