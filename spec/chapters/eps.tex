@@ -42,8 +42,7 @@ bits, starting with 3 bits for the endpoint type (T), 16 bits for the activity t
 \section{Send Endpoint}
 
 \begin{register}{H}{Send EP}{}
-  \regfieldb[gray!20]{reserved}{32}{32}%
-  \regfieldb{label}{32}{0}\regnewline%
+  \regfieldb{label}{64}{0}\regnewline%
   \regfieldb[gray!20]{reserved}{34}{30}%
   \regfieldb{tgt\_chip}{6}{24}%
   \regfieldb{tgt\_tile}{8}{16}%
