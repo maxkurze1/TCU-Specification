@@ -7,7 +7,8 @@ use cpython::{py_fn, py_module_initializer, PyBytes, PyResult, Python};
 use lazy_static::lazy_static;
 use log::{info, logger};
 use simplelog::{
-    CombinedLogger, Config, LevelFilter, SharedLogger, TermLogger, TerminalMode, WriteLogger,
+    ColorChoice, CombinedLogger, Config, LevelFilter, SharedLogger, TermLogger, TerminalMode,
+    WriteLogger,
 };
 use std::env;
 use std::fs::{create_dir, File};
@@ -103,9 +104,12 @@ fn do_connect(fpga_ip: &str, fpga_port: u16, reset: bool) -> std::io::Result<()>
         Config::default(),
         BufWriter::new(File::create("log/ethernet.log")?),
     ));
-    if let Some(tl) = TermLogger::new(term_level, Config::default(), TerminalMode::Stderr) {
-        loggers.push(tl);
-    }
+    loggers.push(TermLogger::new(
+        term_level,
+        Config::default(),
+        TerminalMode::Stderr,
+        ColorChoice::Always,
+    ));
     CombinedLogger::init(loggers).unwrap();
 
     info!("connect(fpga_ip={}, fpga_port={})", fpga_ip, fpga_port);
