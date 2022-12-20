@@ -34,11 +34,9 @@ const MAX_READ_RETRIES: usize = 3;
 #[allow(dead_code)]
 #[repr(C, packed)]
 struct MessageHeader {
-    flags_reply_size: u8,
-    sender_pe: u8,
+    other: u32,
     sender_ep: u16,
     reply_ep: u16,
-    length: u16,
     reply_label: u32,
     label: u32,
 }
@@ -185,12 +183,11 @@ impl Communicator {
         self.append_packet(&noc_packet)?;
 
         // append message header
+        let sender_tile = ((HOST_MOD.chip_id as u32) << 8) | HOST_MOD.mod_id as u32;
         let mut header = MessageHeader {
-            flags_reply_size: 0 | (4 << 2),
-            sender_pe: HOST_MOD.mod_id,
+            other: (data.len() as u32) << 19 | (sender_tile << 5) | (4 << 1),
             sender_ep: 0xFFFFu16.to_le(),
             reply_ep: 0xFFFFu16.to_le(),
-            length: (data.len() as u16).to_le(),
             reply_label: 0,
             label: 0,
         };
