@@ -6,11 +6,13 @@ use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::fmt;
 use std::io::{Error, ErrorKind, Result};
+use std::mem::{transmute, MaybeUninit};
 use std::net::{IpAddr, SocketAddr};
 use std::thread;
 use std::time::Duration;
 
 const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
+const HOST_MOD: FPGAModule = FPGAModule::new(0x3F, 0x05);
 
 const NOC_PACKET_LEN: usize = 18;
 const UDP_PAYLOAD_LEN: usize = 1472;
@@ -93,11 +95,7 @@ enum NocPacket<'b> {
 
 impl Communicator {
     pub fn new(fpga_ip: &str, fpga_port: u16) -> Result<Self> {
-        let sock = Socket::new(
-            Domain::ipv4(),
-            socket2::Type::dgram(),
-            Some(Protocol::udp()),
-        )?;
+        let sock = Socket::new(Domain::IPV4, socket2::Type::DGRAM, Some(Protocol::UDP))?;
         let addr = "0.0.0.0:".to_string() + &fpga_port.to_string();
         sock.bind(&addr.parse::<SocketAddr>().unwrap().into())?;
 
@@ -119,9 +117,9 @@ impl Communicator {
     pub fn self_test(&mut self) -> Result<()> {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF];
         // use an offset that nobody else should use; notice the alignment
-        self.write_noburst(ETH_MOD, 0xDEAD_BEE0, &test_data, false)?;
+        self.write_noburst(HOST_MOD, 0xDEAD_BEE0, &test_data, false)?;
 
-        let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
+        let mut buf: [MaybeUninit<u8>; UDP_PAYLOAD_LEN] = [MaybeUninit::uninit(); UDP_PAYLOAD_LEN];
 
         // try multiple times, because PEs might still be busy with sending prints to the ETH
         let mut retries = 0;
@@ -131,15 +129,18 @@ impl Communicator {
                 continue;
             }
 
+            // safety: now we can assume that buf[0..size] is initialized
+            let recv_buf: &[u8] = unsafe { transmute(&buf[0..size]) };
+
             let old_burst = self.burst;
-            let noc_packet = self.decode_packet(&buf)?;
+            let noc_packet = self.decode_packet(recv_buf)?;
             match noc_packet {
                 NocPacket::Normal((src, mode, off, data)) => {
                     // we assume that nobody is writing to this offset, except for the self test
                     if off == 0xDEAD_BEE0 {
                         assert!(mode == Mode::WritePosted);
                         assert!(self.burst.is_none());
-                        assert!(src == ETH_MOD);
+                        assert!(src == HOST_MOD);
                         assert!(data.iter().rev().eq(test_data.iter()));
                         return Ok(());
                     }
@@ -186,7 +187,7 @@ impl Communicator {
         // append message header
         let mut header = MessageHeader {
             flags_reply_size: 0 | (4 << 2),
-            sender_pe: ETH_MOD.mod_id,
+            sender_pe: HOST_MOD.mod_id,
             sender_ep: 0xFFFFu16.to_le(),
             reply_ep: 0xFFFFu16.to_le(),
             length: (data.len() as u16).to_le(),
@@ -242,9 +243,12 @@ impl Communicator {
         }
         // or receive a new one
         else {
-            let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
-            let (size, _) = self.sock.recv_from(&mut buf)?;
+            let mut buf: Vec<MaybeUninit<u8>> = vec![MaybeUninit::uninit(); UDP_PAYLOAD_LEN];
+            let (size, _) = self.sock.recv_from(&mut buf[..])?;
             assert!(size >= NOC_PACKET_LEN);
+            // safety: buf[0..size] is now initialized, so resize it and transmute
+            buf.resize(size, MaybeUninit::uninit());
+            let buf: Vec<u8> = unsafe { transmute(buf) };
             (buf, size)
         };
 
@@ -289,7 +293,7 @@ impl Communicator {
         mut len: usize,
         nocarq: bool,
     ) -> Result<Vec<u8>> {
-        let mut buf = vec![0u8; UDP_PAYLOAD_LEN];
+        let mut buf: [MaybeUninit<u8>; UDP_PAYLOAD_LEN] = [MaybeUninit::uninit(); UDP_PAYLOAD_LEN];
         let mut res = Vec::with_capacity(len);
         let read_mode = if nocarq == true {
             Mode::ARQReadReq
@@ -308,7 +312,7 @@ impl Communicator {
                     // receive all packets the FPGA sends us, with a timeout of 100ms
                     self.sock
                         .set_read_timeout(Some(Duration::from_millis(100)))?;
-                    while self.sock.recv_from(&mut buf).is_ok() {}
+                    while self.sock.recv_from(&mut buf[..]).is_ok() {}
                     self.sock.set_read_timeout(Some(READ_TIMEOUT)).ok();
 
                     // give up if the error persists for the same address
@@ -335,7 +339,7 @@ impl Communicator {
 
     fn read_single(
         &mut self,
-        buf: &mut Vec<u8>,
+        buf: &mut [MaybeUninit<u8>],
         res: &mut Vec<u8>,
         target: FPGAModule,
         read_mode: Mode,
@@ -353,18 +357,22 @@ impl Communicator {
 
         let org_len = res.len();
         while res.len() - org_len < byte_count {
-            let (size, _) = self.sock.recv_from(buf)?;
+            let (size, _) = self.sock.recv_from(&mut buf[..])?;
+
+            // safety: buf[0..size] is now initialized, so resize it and transmute
+            let recv_buf: &[u8] = unsafe { transmute(&buf[0..size]) };
 
             let mut pos = 0;
             'pkt_loop: while pos + NOC_PACKET_LEN <= size {
                 let old_burst = self.burst;
-                let noc_packet = self.decode_packet(&buf[pos..])?;
+                let noc_packet = self.decode_packet(&recv_buf[pos..])?;
+
                 match noc_packet {
                     NocPacket::Normal((src, mode, off, data)) => {
                         if mode == Mode::WritePosted {
                             debug!("Keeping packet with mode {:?} for later", mode);
                             // keep the packet for later and go to the next UDP packet
-                            self.received_pkts.push_back(buf[0..size].to_vec());
+                            self.received_pkts.push_back(recv_buf[0..size].to_vec());
                             self.burst = old_burst;
                             pos = size;
                             break 'pkt_loop;
@@ -616,9 +624,9 @@ fn encode_packet(
         // bsel
         bsel,
         // source and target
-        ETH_MOD.mod_id,
-        (ETH_MOD.chip_id << 2) | target.mod_id >> 6,
-        (target.mod_id << 2) | (target.chip_id >> 6),
+        HOST_MOD.mod_id,
+        (HOST_MOD.chip_id << 2) | target.mod_id >> 6,
+        (target.mod_id << 2) | (target.chip_id >> 4),
         (target.chip_id << 4) | mode_byte,
         // target address
         (addr >> 24) as u8,

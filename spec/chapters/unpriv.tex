@@ -66,14 +66,14 @@ several building blocks:
   \item \texttt{write\_local(data, phys, size) -> Error}:\\
   write \texttt{data} of \texttt{size} bytes to given physical address in local memory and
   return the error code (0~=~success)
-  \item \texttt{read\_remote(tile, phys, size) -> (data, Error)}:\\
-  read \texttt{size} bytes from the given tile at given the physical address into \texttt{data} and
-  return the error code (0~=~success)
-  \item \texttt{write\_remote(data, tile, phys, size) -> Error}:\\
-  write \texttt{size} bytes from \texttt{data} to the given physical address in the given tile and
-  return the error code (0~=~success)
-  \item \texttt{send\_msg(msg, tile, ep)}:\\
-  send \texttt{msg} to endpoint \texttt{ep} at given tile
+  \item \texttt{read\_remote(chip, tile, phys, size) -> (data, Error)}:\\
+  read \texttt{size} bytes from the given tile on given chip at given the physical address into
+  \texttt{data} and return the error code (0~=~success)
+  \item \texttt{write\_remote(data, chip, tile, phys, size) -> Error}:\\
+  write \texttt{size} bytes from \texttt{data} to the given physical address in the given tile on
+  given chip and return the error code (0~=~success)
+  \item \texttt{send\_msg(msg, chip, tile, ep)}:\\
+  send \texttt{msg} to endpoint \texttt{ep} at given tile on given chip
   \item \texttt{send\_ack(error)}:\\
   send ACK to the sending TCU and report given error back
   \item \texttt{wait\_for\_ack() -> Error}:\\
@@ -119,7 +119,7 @@ The commands behave as follows:
     \uIf{err != 0}{unpriv\_stop(TRANSLATION\_FAULT)}
     \extend{}
     \BlankLine
-    $(data, err) \gets read\_remote(ep.tile, ep.addr + ARG_1, DATA.size)$\;
+    $(data, err) \gets read\_remote(ep.chip, ep.tile, ep.addr + ARG_1, DATA.size)$\;
     \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     $err \gets write\_local(data, phys, DATA.size)$\;
     \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
@@ -147,7 +147,7 @@ The commands behave as follows:
     \BlankLine
     $(data, err) \gets read\_local(phys, DATA.size)$\;
     \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
-    $err \gets write\_remote(data, ep.tile, ep.addr + ARG_1, DATA.size)$\;
+    $err \gets write\_remote(data, ep.chip, ep.tile, ep.addr + ARG_1, DATA.size)$\;
     \extstart{tilemux}\uIf{err != 0}{unpriv\_stop(ABORT)}\extend{}
     \BlankLine
     $COMMAND \gets 0$\;
@@ -172,18 +172,20 @@ The header is defined as:
 \begin{register}{H}{Message Header}{}
   \regfieldb{label}{32}{32}%
   \regfieldb{rlabel}{32}{0}\regnewline%
-  \regfieldb{length}{16}{48}%
-  \regfieldb{rep}{16}{32}%
-  \regfieldb{sep}{16}{16}%
-  \regfieldb{stile}{8}{8}%
-  \regfieldb{rsize}{6}{2}%
-  \regfieldb{flags}{2}{0}\regnewline%
+  \regfieldb{rep}{16}{48}%
+  \regfieldb{sep}{16}{32}%
+  \regfieldb{length}{13}{19}%
+  \regfieldb{schip}{6}{13}%
+  \regfieldb{stile}{8}{5}%
+  \regfieldb{rsize}{4}{1}%
+  \regfieldb{flags}{1}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[label] the label of the sender
     \item[rlabel] the label the receiver should use for the reply
-    \item[length] the payload size in bytes
     \item[rep] the receive endpoint ID for the reply at the sender side
     \item[sep] the sender endpoint ID
+    \item[length] the payload size in bytes
+    \item[schip] the sender chip ID
     \item[stile] the sender tile ID
     \item[rsize] the size of the reply message as a power of 2
     \item[flags] contains the following flags:
@@ -252,10 +254,11 @@ in a broken state, too (one credit is lost and we never get it back).
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets rsize$\;
     $\quad\quad\quad\quad\quad rlabel \gets ARG_1$\;
+    $\quad\quad\quad\quad\quad schip \gets ownChip$\;
     $\quad\quad\quad\quad\quad stile \gets ownTile$\;
     $\quad\quad\quad\quad\quad sep \gets sepid$\;
     $\quad\quad\quad\quad\quad rep \gets repid$ \}\;
-    $send\_msg(header\ |\ payload, ep.tgt\_tile, ep.tgt\_ep)$\;
+    $send\_msg(header\ |\ payload, ep.tgt\_chip, ep.tgt\_tile, ep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine
@@ -268,6 +271,7 @@ in a broken state, too (one credit is lost and we never get it back).
     \caption{The TCU's \texttt{SEND} command (continued).}
 \end{algorithm}
 
+\newpage
 \subsection{\texttt{RECEIVE}}
 
 Note that \texttt{RECEIVE} is not a command, but just the logic at the receiver side that accepts
@@ -295,6 +299,7 @@ and stores messages. Nevertheless, its behavior is described by the following al
       $\quad\quad\quad\ \ \  act \gets ep.act$\;
       \extend{}
       $\quad\quad\quad\ \ \  reply \gets 1$\;
+      $\quad\quad\quad\ \ \  tgt\_chip \gets header.schip$\;
       $\quad\quad\quad\ \ \  tgt\_tile \gets header.stile$\;
       $\quad\quad\quad\ \ \  tgt\_ep \gets header.rep$\;
       $\quad\quad\quad\ \ \  label \gets header.rlabel$\;
@@ -365,10 +370,11 @@ where state is changed.
     $\quad\quad\quad\quad\quad length \gets DATA.size$\;
     $\quad\quad\quad\quad\quad rsize \gets 0$\;
     $\quad\quad\quad\quad\quad rlabel \gets 0$\;
+    $\quad\quad\quad\quad\quad schip \gets ownChip$\;
     $\quad\quad\quad\quad\quad stile \gets ownTile$\;
     $\quad\quad\quad\quad\quad sep \gets COMMAND.ep$\;
     $\quad\quad\quad\quad\quad rep \gets sep.crd\_ep$ \}\;
-    $send\_msg(header\ |\ payload, sep.tgt\_tile, sep.tgt\_ep)$\;
+    $send\_msg(header\ |\ payload, sep.tgt\_chip, sep.tgt\_tile, sep.tgt\_ep)$\;
     $err \gets wait\_for\_ack()$\;
     \uIf{err != 0}{unpriv\_stop(err)}
     \BlankLine

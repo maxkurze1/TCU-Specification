@@ -57,6 +57,12 @@ class MemEP(EP):
         self.regs[0] &= ~(0xFF << 23)
         self.regs[0] |= (tile & 0xFF) << 23;
 
+    def chip(self):
+        return (self.regs[0] >> 31) & 0x3F
+    def set_chip(self, chip):
+        self.regs[0] &= ~(0x3F << 31)
+        self.regs[0] |= (chip & 0x3F) << 31;
+
     def addr(self):
         return self.regs[1]
     def set_addr(self, addr):
@@ -74,8 +80,8 @@ class MemEP(EP):
         self.regs[0] |= (flags & 0xF) << 19
 
     def __repr__(self):
-        return "Mem [tile={}, act={:#x}, addr={:#x}, size={:#x}, flags={}]".format(
-            modid_to_tile(self.tile()), self.act(), self.addr(), self.size(), self.flags()
+        return "Mem [chip={}, tile={}, act={:#x}, addr={:#x}, size={:#x}, flags={}]".format(
+            self.chip(), modid_to_tile(self.tile()), self.act(), self.addr(), self.size(), self.flags()
         )
 
 class SendEP(EP):
@@ -89,6 +95,12 @@ class SendEP(EP):
     def set_tile(self, tile):
         self.regs[1] &= ~(0xFF << 16)
         self.regs[1] |= (tile & 0xFF) << 16
+
+    def chip(self):
+        return (self.regs[1] >> 24) & 0x3F
+    def set_chip(self, chip):
+        self.regs[1] &= ~(0x3F << 24)
+        self.regs[1] |= (chip & 0x3F) << 24;
 
     def ep(self):
         return self.regs[1] & 0xFFFF
@@ -123,8 +135,8 @@ class SendEP(EP):
         return (self.regs[0] >> 37) & 0xFFFF
 
     def __repr__(self):
-        return "Send[dst={}:{}, act={:#x}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
-            modid_to_tile(self.tile()), self.ep(), self.act(), self.label(), self.msg_size(), self.cur_crd(),
+        return "Send[dst={}-{}:{}, act={:#x}, label={:#x}, msgsz=2^{}, crd={}:{}, reply={}]".format(
+            self.chip(), modid_to_tile(self.tile()), self.ep(), self.act(), self.label(), self.msg_size(), self.cur_crd(),
             self.max_crd(), self.is_reply()
         )
 
