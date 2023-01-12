@@ -11,11 +11,11 @@ privileged software in the management of multiple activities or virtual memory, 
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
 
 \begin{register}{H}{PRIV\_CMD}{\texttt{0xF000\_2008}}
-  \regfieldb{arg}{55}{9}%
+  \regfieldb{arg0}{55}{9}%
   \regfieldb{err}{5}{4}%
   \regfieldb{op}{4}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[arg] the argument for the privileged command
+    \item[arg0] the first argument for the privileged command (\texttt{PRIV\_CMD\_ARG1} is the second)
     \item[err] the result of the operation (output field)
     \item[op] the opcode of the privileged command
   \end{reglist}\end{regdesc}
