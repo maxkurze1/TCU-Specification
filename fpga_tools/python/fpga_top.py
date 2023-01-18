@@ -54,7 +54,7 @@ class FPGA_TOP(fpga):
             self.uart = uart.UART('/dev/ttyUSB1')
 
         #NOC
-        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT), reset)
+        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT), chipid, reset)
         self.eth_rf = ethernet.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
 
         #regfile

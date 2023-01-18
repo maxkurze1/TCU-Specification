@@ -11,7 +11,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::thread;
 use std::time::Duration;
 
-const ETH_MOD: FPGAModule = FPGAModule::new(0, 0x05);
+const ETH_MOD_ID: u8 = 0x05;
 const HOST_MOD: FPGAModule = FPGAModule::new(0x3F, 0x05);
 
 const NOC_PACKET_LEN: usize = 18;
@@ -153,9 +153,9 @@ impl Communicator {
         Err(Error::new(ErrorKind::TimedOut, "no self test response"))
     }
 
-    pub fn fpga_reset(&mut self) -> Result<()> {
+    pub fn fpga_reset(&mut self, chip_id: u8) -> Result<()> {
         let reset_data: [u8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
-        self.write_noburst(ETH_MOD, 0xF0003028, &reset_data, false)?;
+        self.write_noburst(FPGAModule::new(chip_id, ETH_MOD_ID), 0xF0003028, &reset_data, false)?;
 
         //need some time to get FPGA restarted
         let wait_sec = Duration::from_secs(5);
