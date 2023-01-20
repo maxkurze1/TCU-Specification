@@ -37,8 +37,9 @@ struct MessageHeader {
     other: u32,
     sender_ep: u16,
     reply_ep: u16,
-    reply_label: u32,
-    label: u32,
+    reply_label: u64,
+    label: u64,
+    _pad: u64,
 }
 
 #[repr(u8)]
@@ -169,7 +170,7 @@ impl Communicator {
         assert!(data.len() <= MAX_SEND_BURST_LEN);
         // the first flit is always the header
         let word_count =
-            1 + ((data.len() + BYTES_PER_BURST_PACKET - 1) / BYTES_PER_BURST_PACKET) as u64;
+            2 + ((data.len() + BYTES_PER_BURST_PACKET - 1) / BYTES_PER_BURST_PACKET) as u64;
         let word_count_bytes = word_count.to_le_bytes();
         // TODO change bsel according to data.len()
         let noc_packet = encode_packet(
@@ -190,6 +191,7 @@ impl Communicator {
             reply_ep: 0xFFFFu16.to_le(),
             reply_label: 0,
             label: 0,
+            _pad: 0,
         };
         let header_bytes: &mut [u8] = unsafe {
             std::slice::from_raw_parts_mut(
@@ -197,8 +199,10 @@ impl Communicator {
                 std::mem::size_of::<MessageHeader>(),
             )
         };
-        let header_packet = encode_packet_burst(data.len() > 0, header_bytes);
-        self.append_packet(&header_packet)?;
+        let header_packet1 = encode_packet_burst(true, &header_bytes[0..15]);
+        let header_packet2 = encode_packet_burst(data.len() > 0, &header_bytes[16..]);
+        self.append_packet(&header_packet1)?;
+        self.append_packet(&header_packet2)?;
 
         // append data
         let mut pos = 0;
