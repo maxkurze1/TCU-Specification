@@ -358,15 +358,15 @@ class LOG():
         #invalidate page
         if (id_string == "CMD_PRIV_INV_PAGE"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}".format(log_actid, log_virt)
+            log_virt = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_actid, log_virt)
 
         #insert TLB
         if (id_string == "CMD_PRIV_INS_TLB"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            log_phys = (upper_data64 >> 12) & 0xFFFFF
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
+            log_virt = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            log_phys = (upper_data64 >> 44) & 0xFFFFF
+            return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
 
         #xchg_act (act=id+msgs)
         if (id_string == "CMD_PRIV_XCHG_VPE"):
@@ -393,24 +393,22 @@ class LOG():
         #TLB write
         if (id_string == "PRIV_TLB_WRITE_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
-            log_tlb_perm = (upper_data64 >> 32) & 0x1F
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, perm. bits: {:#04x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 44) & 0xFFFFF
+            return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
 
         #TLB read
         if (id_string == "PRIV_TLB_READ_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
-            log_tlb_perm = (upper_data64 >> 32) & 0x1F
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, read perm. bits: {:#04x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, log_tlb_perm)
+            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 44) & 0xFFFFF
+            return ret_string + "actid: {:#x}, virt. page: {:#015x}, read phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
 
         #TLB invalidate page
         if (id_string == "PRIV_TLB_DEL_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage)
+            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_tlb_actid, log_tlb_virtpage)
 
         #reg CUR_VPE has changed its value
         if (id_string == "PRIV_CUR_VPE_CHANGE"):
