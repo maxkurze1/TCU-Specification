@@ -65,8 +65,9 @@ several building blocks:
 \begin{itemize}
   \item \texttt{insert\_tlb\_entry(act, virt, phys, flags)}: \extstart{vm}\\
   inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for given activity
-  \item \texttt{remove\_tlb\_entry(act, virt)}:\\
-  removes the entry with \texttt{virt} for given activity
+  \item \texttt{remove\_tlb\_entry(act, virt) -> bool}:\\
+  removes the entry with \texttt{virt} for given activity. The function returns true
+  if the entry existed and false otherwise.
   \item \texttt{clear\_tlb()}:\\
   removes all non-fixed entries from the TLB \extend{}
   \item \texttt{set\_timer(timeout)}: \extstart{tilemux}\\
@@ -102,10 +103,9 @@ several building blocks:
     \colorbox{tilemux}{$act \gets PRIV\_CMD.arg0$}\;
     $virt \gets PRIV\_CMD\_ARG1\ \&\ 0xFFFF\_FFFF\_FFFF\_F000$\;
     \BlankLine
-    $(\_, err) \gets lookup\_tlb(\colorbox{tilemux}{act, }virt, READ)$\;
-    \uIf{err == TLB\_MISS}{priv\_stop(TLB\_MISS)}
+    $success \gets remove\_tlb\_entry(\colorbox{tilemux}{act, }virt)$\;
+    \uIf{not success}{priv\_stop(TLB\_MISS)}
     \BlankLine
-    $remove\_tlb\_entry(\colorbox{tilemux}{act, }virt)$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_PAGE} command.}
 \end{algorithm}
