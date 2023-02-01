@@ -83,7 +83,7 @@ several building blocks:
   \item \texttt{lookup\_tlb(\colorbox{tilemux}{act, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
   lookup the given virtual address in the TLB \colorbox{tilemux}{for given activity} and return the
   physical address. On misses or missing permissions, the \texttt{TLB\_MISS} or \texttt{NO\_PERM}
-  error is returned, respectively. Note that the virtual address is not page aligned and the page
+  error is returned, respectively. \texttt{perm} is either \texttt{READ} or \texttt{WRITE} and denotes what permission bit needs to be present in the TLB entry. Note that the virtual address is not page aligned and the page
   offset should be added to the resulting physical address, depending on the page size set in the
   TLB entry.\extend{}
 \end{itemize}
