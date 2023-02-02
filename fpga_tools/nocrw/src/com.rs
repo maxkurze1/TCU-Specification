@@ -204,7 +204,7 @@ impl Communicator {
                 std::mem::size_of::<MessageHeader>(),
             )
         };
-        let header_packet1 = encode_packet_burst(true, &header_bytes[0..15]);
+        let header_packet1 = encode_packet_burst(true, &header_bytes[0..16]);
         let header_packet2 = encode_packet_burst(data.len() > 0, &header_bytes[16..]);
         self.append_packet(&header_packet1)?;
         self.append_packet(&header_packet2)?;
