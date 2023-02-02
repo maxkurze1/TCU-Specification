@@ -156,7 +156,12 @@ impl Communicator {
 
     pub fn fpga_reset(&mut self, chip_id: u8) -> Result<()> {
         let reset_data: [u8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
-        self.write_noburst(FPGAModule::new(chip_id, ETH_MOD_ID), 0xF0003028, &reset_data, false)?;
+        self.write_noburst(
+            FPGAModule::new(chip_id, ETH_MOD_ID),
+            0xF0003028,
+            &reset_data,
+            false,
+        )?;
 
         //need some time to get FPGA restarted
         let wait_sec = Duration::from_secs(5);
