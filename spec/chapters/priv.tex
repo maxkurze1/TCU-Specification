@@ -63,13 +63,9 @@ The following sections use pseudo code to describe the behavior of the privilege
 several building blocks:
 
 \begin{itemize}
-  \item \texttt{insert\_tlb\_entry(act, virt, phys, flags)}: \extstart{vm}\\
-  inserts an entry from \texttt{virt} to \texttt{phys} into the TLB for given activity
-  \item \texttt{remove\_tlb\_entry(act, virt) -> bool}:\\
-  removes the entry with \texttt{virt} for given activity. The function returns true
-  if the entry existed and false otherwise.
-  \item \texttt{clear\_tlb()}:\\
-  removes all non-fixed entries from the TLB \extend{}
+  \item \texttt{evict\_tlb\_entry() -> Entry}: \extstart{vm}\\
+  searches for a TLB entry that can be evicted and returns it. If all entries are fixed and
+  therefore cannot be evicted, \emph{null} is returned.\extend{}
   \item \texttt{set\_timer(timeout)}: \extstart{tilemux}\\
   starts/restarts the timer to fire an interrupt after \texttt{timeout} nanoseconds
   \item \texttt{unset\_timer()}:\\
@@ -103,8 +99,9 @@ several building blocks:
     \colorbox{tilemux}{$act \gets PRIV\_CMD.arg0$}\;
     $virt \gets PRIV\_CMD\_ARG1\ \&\ 0xFFFF\_FFFF\_FFFF\_F000$\;
     \BlankLine
-    $success \gets remove\_tlb\_entry(\colorbox{tilemux}{act, }virt)$\;
-    \uIf{not success}{priv\_stop(TLB\_MISS)}
+    \ForAll{entries e}{
+      \uIf{\colorbox{tilemux}{e.act == act and }e.virt == virt}{$e.flags \gets 0$\;}
+    }
     \BlankLine
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_PAGE} command.}
@@ -116,7 +113,10 @@ several building blocks:
 \subsection{\texttt{INV\_TLB}}
 
 \begin{algorithm}[H]
-    $clear\_tlb()$\;
+    \ForAll{entries e}{
+      \uIf{(e.flags \& FIXED) == 0}{e.flags = 0\;}
+    }
+    \BlankLine
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INV\_TLB} command.}
 \end{algorithm}
@@ -132,9 +132,22 @@ flag.
     $phys \gets PRIV\_CMD.arg0\ \&\ 0xFFFF\_F000$\;
     $flags \gets PRIV\_CMD.arg0\ \&\ 0x1F$\;
     \BlankLine
-    \uIf{all entries are FIXED}{priv\_stop(TLB\_FULL)}
+    $entry \gets \emph{null}$\;
+    \ForAll{entries e}{
+      \uIf{\colorbox{tilemux}{e.act == act and }e.virt == virt}{
+        $entry \gets e$\;
+      }
+    }
     \BlankLine
-    $insert\_tlb\_entry(\colorbox{tilemux}{act, }virt, phys, flags)$\;
+    \uIf{entry is null}{
+      $entry \gets evict\_tlb\_entry()$\;
+      \uIf{entry is null}{priv\_stop(TLB\_FULL)\;}
+    }
+    \BlankLine
+    \colorbox{tilemux}{$entry.act = act$}\;
+    $entry.virt = virt$\;
+    $entry.phys = phys$\;
+    $entry.flags = flags$\;
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{INS\_TLB} command.}
 \end{algorithm}
@@ -282,17 +295,17 @@ potentially running command when removing entries from the TLB to ensure that it
 anymore.
 
 The TLB contains a 52-bit virtual page number (virtual address shifted right by 12 bits),
-\colorbox{tilemux}{16-bit activity id, }20-bit physical page number (physical address shifted right by 12
-bits), and 5 bits for permissions. Small pages are 4~KiB and large pages 2~MiB. The virtual and
-physical address are always page-size aligned. The permissions are defined as follows:
+\colorbox{tilemux}{16-bit activity id, }20-bit physical page number (physical address shifted right
+by 12 bits), and 3 bits for flags. The virtual and physical address are always page-size aligned.
+The flags are defined as follows:
 
 \begin{itemize}
   \item \texttt{READ} (1): read permission,
   \item \texttt{WRITE} (2): write permission,
-  \item \texttt{EXEC} (4): execute permission \todo{remove that?},
-  \item \texttt{LARGE} (8): large page mapping,
-  \item \texttt{FIXED} (16): fixed entry, will not be evicted.
+  \item \texttt{FIXED} (4): fixed entry, will not be evicted.
 \end{itemize}
+
+If no flag bit is set, the TLB entry is invalid and will be ignored during lookups.
 
 \section{Physical Memory Protection}
 
