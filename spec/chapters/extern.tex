@@ -6,12 +6,15 @@ following format:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
-  \regfield[gray!20]{reserved}{61}{3}{{uninitialized}}%
+  \regfield[gray!20]{reserved}{24}{40}{{uninitialized}}%
+  \regfield{version}{8}{32}{?}%
+  \regfield[gray!20]{reserved}{29}{3}{{uninitialized}}%
   \regfield{ctxsw}{1}{2}{0}%
   \regfield{vm}{1}{1}{0}%
   \regfield{kernel}{1}{0}{1}%
   \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
+    \item[version] the TCU version number
     \item[ctxsw] whether the context-switching extension is available
     \item[vm] whether the virtual-memory extension is available
     \item[kernel] whether the TCU belongs to a kernel tile
@@ -30,6 +33,9 @@ virtual-memory extension is enabled, respectively. If the former is disabled, fo
 receptions do not raise a core request. If the latter is disabled, no address translation is
 performed and thus no translation core request is raised. The behavior of privileged commands is
 undefined if the associated extension is disabled.
+
+The version number is implementation defined and can be used to verify whether the software is
+compatible to the TCU implementation at hand. The version cannot be changed at runtime.
 
 Additionally, the TCU supports \emph{external commands}, which are triggered by writing to the
 \texttt{EXT\_CMD} register and feedback is given via this register as well. The \texttt{EXT\_CMD}

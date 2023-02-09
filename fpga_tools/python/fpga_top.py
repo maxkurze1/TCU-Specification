@@ -7,6 +7,7 @@ import dram
 import pm
 import uart
 import regfile
+from tcu import TCU
 
 import sys
 from ipaddress import IPv4Address
@@ -35,7 +36,7 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
-    def __init__(self, fpga_sw=0, reset=0, use_uart=False):
+    def __init__(self, version, fpga_sw=0, reset=0, use_uart=False):
         if fpga_sw >= 15:
             print("Invalid FPGA IP address selected! Only use 192.168.42.240-254")
             raise ValueError
@@ -53,9 +54,11 @@ class FPGA_TOP(fpga):
         if use_uart:
             self.uart = uart.UART('/dev/ttyUSB1')
 
+        tcu = TCU(version)
+
         #NOC
-        self.nocif = noc.NoCethernet((self.fpga_ip_addr, self.FPGA_PORT), chipid, reset)
-        self.eth_rf = ethernet.EthernetRegfile(self.nocif, (chipid, modids.MODID_ETH))
+        self.nocif = noc.NoCethernet(tcu, (self.fpga_ip_addr, self.FPGA_PORT), chipid, reset)
+        self.eth_rf = ethernet.EthernetRegfile(tcu, self.nocif, (chipid, modids.MODID_ETH))
 
         #regfile
         #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
@@ -65,12 +68,12 @@ class FPGA_TOP(fpga):
         self.router = [router.Router(self.nocif, (chipid, modids.MODID_ROUTER[x]), x) for x in range(self.router_count)]
 
         #DRAM
-        self.dram1 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM1))
-        self.dram2 = dram.DRAM(self.nocif, (chipid, modids.MODID_DRAM2))
+        self.dram1 = dram.DRAM(tcu, self.nocif, (chipid, modids.MODID_DRAM1))
+        self.dram2 = dram.DRAM(tcu, self.nocif, (chipid, modids.MODID_DRAM2))
 
         #PMs
         self.pm_count = len(modids.MODID_PMS)
-        self.pms = [pm.PM(self.nocif, (chipid, modids.MODID_PMS[x]), x) for x in range(self.pm_count)]
+        self.pms = [pm.PM(tcu, self.nocif, (chipid, modids.MODID_PMS[x]), x) for x in range(self.pm_count)]
 
 
     def tear(self):

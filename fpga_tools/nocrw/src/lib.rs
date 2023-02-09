@@ -21,7 +21,10 @@ py_module_initializer!(nocrw, |py, m| {
     m.add(
         py,
         "connect",
-        py_fn!(py, connect(fpga_ip: &str, fpga_port: u16, chip_id: u8, reset: bool)),
+        py_fn!(
+            py,
+            connect(fpga_ip: &str, fpga_port: u16, chip_id: u8, reset: bool)
+        ),
     )?;
 
     m.add(
@@ -59,7 +62,7 @@ py_module_initializer!(nocrw, |py, m| {
         "send_bytes",
         py_fn!(
             py,
-            send_bytes(chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes)
+            send_bytes(version: u8, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes)
         ),
     )?;
 
@@ -124,7 +127,13 @@ fn do_connect(fpga_ip: &str, fpga_port: u16, chip_id: u8, reset: bool) -> std::i
     Ok(())
 }
 
-fn connect(py: Python<'_>, fpga_ip: &str, fpga_port: u16, chip_id: u8, reset: bool) -> PyResult<u64> {
+fn connect(
+    py: Python<'_>,
+    fpga_ip: &str,
+    fpga_port: u16,
+    chip_id: u8,
+    reset: bool,
+) -> PyResult<u64> {
     assert!(COM.lock().unwrap().is_none());
 
     let _g = LogGuard::default();
@@ -221,9 +230,17 @@ fn write8b_nocarq(
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("write8b_nocarq failed: {}", e)))
 }
 
-fn send_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> PyResult<u64> {
+fn send_bytes(
+    py: Python<'_>,
+    version: u8,
+    chip_id: u8,
+    mod_id: u8,
+    ep: u16,
+    b: &PyBytes,
+) -> PyResult<u64> {
     info!(
-        "send_bytes(chip_id={}, mod_id={}, ep={}, len={})",
+        "send_bytes(version={}, chip_id={}, mod_id={}, ep={}, len={})",
+        version,
         chip_id,
         mod_id,
         ep,
@@ -234,7 +251,7 @@ fn send_bytes(py: Python<'_>, chip_id: u8, mod_id: u8, ep: u16, b: &PyBytes) -> 
 
     let mut guard = COM.lock().unwrap();
     let com = guard.as_mut().unwrap();
-    let res = com.send_bytes(FPGAModule::new(chip_id, mod_id), ep, b.data(py));
+    let res = com.send_bytes(version, FPGAModule::new(chip_id, mod_id), ep, b.data(py));
 
     res.map(|_| 0)
         .map_err(|e| PyErr::new::<TypeError, _>(py, format!("send_bytes failed: {}", e)))

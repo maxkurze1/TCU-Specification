@@ -4,43 +4,47 @@ from time import sleep
 
 import noc
 import memory
-from tcu import TCU
+from tcu import TCUStatusReg
 
 
 class EthernetRegfile(memory.Memory):
-    def __init__(self, nocif, nocid):
+    def __init__(self, tcu, nocif, nocid):
+        self.tcu = tcu
         self.shortname = "eth_rf"
         self.name = "Ethernet Regfile"
         self.rf = memory.Memory(nocif, nocid)
         self.nocarq = noc.NoCARQRegfile(nocid)
 
+    def tcu_version(self):
+        return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
+
     def tcu_status(self):
-        status = self.rf[TCU.TCU_REGADDR_TCU_STATUS]
+        status = self.rf[self.tcu.status_reg_addr(TCUStatusReg.STATUS)]
         return (status & 0xFF, (status >> 8) & 0xFF, (status >> 16) & 0xFF)
 
     def tcu_reset(self):
-        self.rf[TCU.TCU_REGADDR_TCU_RESET] = 1
+        self.rf[self.tcu.status_reg_addr(TCUStatusReg.RESET)] = 1
 
     def tcu_ctrl_flit_count(self):
-        flits = self.rf[TCU.TCU_REGADDR_TCU_CTRL_FLIT_COUNT]
+        flits = self.rf[self.tcu.status_reg_addr(TCUStatusReg.CTRL_FLIT_COUNT)]
         flits_rx = flits & 0xFFFFFFFF
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
 
     def tcu_byp_flit_count(self):
-        flits = self.rf[TCU.TCU_REGADDR_TCU_BYP_FLIT_COUNT]
+        flits = self.rf[self.tcu.status_reg_addr(TCUStatusReg.BYP_FLIT_COUNT)]
         flits_rx = flits & 0xFFFFFFFF
         flits_tx = flits >> 32
         return (flits_tx, flits_rx)
 
     def tcu_drop_flit_count(self):
-        return self.rf[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] & 0xFFFFFFFF
+        return self.rf[self.tcu.status_reg_addr(TCUStatusReg.DROP_FLIT_COUNT)] & 0xFFFFFFFF
 
     def tcu_error_flit_count(self):
-        return self.rf[TCU.TCU_REGADDR_TCU_DROP_FLIT_COUNT] >> 32
+        return self.rf[self.tcu.status_reg_addr(TCUStatusReg.DROP_FLIT_COUNT)] >> 32
 
     def system_reset(self):
-        self.rf[TCU.TCU_REGADDR_CORE_CFG_START] = 1
+        self.rf[self.tcu.config_reg_addr(0)] = 1
         print("FPGA System Reset...")
         sleep(5)   #need some time to get FPGA restarted
 
@@ -65,39 +69,39 @@ class EthernetRegfile(memory.Memory):
             print("Could not reset FPGA!")
 
     def getStatusVector(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x8]
+        return self.rf[self.tcu.config_reg_addr(1)]
 
     def getUDPstatus(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x10]
+        return self.rf[self.tcu.config_reg_addr(2)]
 
     def getRXUDPerror(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x18]
+        return self.rf[self.tcu.config_reg_addr(3)]
 
     def getMACstatus(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x20]
+        return self.rf[self.tcu.config_reg_addr(4)]
 
     #FPGA IP address is set via DIP switch
     def getFPGAIP(self):
-        return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x28] & 0xFFFFFFFF)
+        return IPv4Address(self.rf[self.tcu.config_reg_addr(5)] & 0xFFFFFFFF)
 
     def setFPGAPort(self, fpga_port):
-        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30] = fpga_port
+        self.rf[self.tcu.config_reg_addr(6)] = fpga_port
 
     def getFPGAPort(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x30]
+        return self.rf[self.tcu.config_reg_addr(6)]
 
     #FPGA MAC address is set via DIP switch
     def getFPGAMAC(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x38]
+        return self.rf[self.tcu.config_reg_addr(7)]
 
     def setHostIP(self, host_ip):
-        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x40] = int(IPv4Address(host_ip))
+        self.rf[self.tcu.config_reg_addr(8)] = int(IPv4Address(host_ip))
 
     def getHostIP(self):
-        return IPv4Address(self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x40] & 0xFFFFFFFF)
+        return IPv4Address(self.rf[self.tcu.config_reg_addr(8)] & 0xFFFFFFFF)
 
     def setHostPort(self, host_port):
-        self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x48] = host_port
+        self.rf[self.tcu.config_reg_addr(9)] = host_port
 
     def getHostPort(self):
-        return self.rf[TCU.TCU_REGADDR_CORE_CFG_START+0x48]
+        return self.rf[self.tcu.config_reg_addr(9)]

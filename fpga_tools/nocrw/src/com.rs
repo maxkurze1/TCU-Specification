@@ -31,17 +31,6 @@ const MAX_SEND_BURST_LEN: usize = 128 * BYTES_PER_BURST_PACKET;
 const READ_TIMEOUT: Duration = Duration::from_secs(1);
 const MAX_READ_RETRIES: usize = 3;
 
-#[allow(dead_code)]
-#[repr(C, packed)]
-struct MessageHeader {
-    other: u32,
-    sender_ep: u16,
-    reply_ep: u16,
-    reply_label: u64,
-    label: u64,
-    _pad: u64,
-}
-
 #[repr(u8)]
 #[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive, Copy, Clone)]
 enum Mode {
@@ -170,12 +159,43 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn send_bytes(&mut self, target: FPGAModule, ep: u16, data: &[u8]) -> Result<()> {
+    pub fn send_bytes(
+        &mut self,
+        version: u8,
+        target: FPGAModule,
+        ep: u16,
+        data: &[u8],
+    ) -> Result<()> {
+        #[repr(C, packed)]
+        struct MessageHeader {
+            other: u32,
+            sender_ep: u16,
+            reply_ep: u16,
+            // we don't care about the rest and it differs between v0 and v1
+            _dummy: [u64; 3],
+        }
+
+        let sender_tile = ((HOST_MOD.chip_id as u32) << 8) | HOST_MOD.mod_id as u32;
+        let header = MessageHeader {
+            other: (data.len() as u32) << 19 | (sender_tile << 5) | (4 << 1),
+            sender_ep: 0xFFFFu16.to_le(),
+            reply_ep: 0xFFFFu16.to_le(),
+            _dummy: [0; 3],
+        };
+        let header_bytes = unsafe {
+            std::slice::from_raw_parts(
+                &header as *const _ as *const u8,
+                std::mem::size_of::<MessageHeader>(),
+            )
+        };
+
         // write initial NoC packet that defines the burst length
         assert!(data.len() <= MAX_SEND_BURST_LEN);
+        let header_length = if version == 0 { 16 } else { 32 };
+        let header_packets = header_length as u64 / 16 as u64;
         // the first flit is always the header
-        let word_count =
-            2 + ((data.len() + BYTES_PER_BURST_PACKET - 1) / BYTES_PER_BURST_PACKET) as u64;
+        let word_count = header_packets
+            + ((data.len() + BYTES_PER_BURST_PACKET - 1) / BYTES_PER_BURST_PACKET) as u64;
         let word_count_bytes = word_count.to_le_bytes();
         // TODO change bsel according to data.len()
         let noc_packet = encode_packet(
@@ -189,25 +209,13 @@ impl Communicator {
         self.append_packet(&noc_packet)?;
 
         // append message header
-        let sender_tile = ((HOST_MOD.chip_id as u32) << 8) | HOST_MOD.mod_id as u32;
-        let mut header = MessageHeader {
-            other: (data.len() as u32) << 19 | (sender_tile << 5) | (4 << 1),
-            sender_ep: 0xFFFFu16.to_le(),
-            reply_ep: 0xFFFFu16.to_le(),
-            reply_label: 0,
-            label: 0,
-            _pad: 0,
-        };
-        let header_bytes: &mut [u8] = unsafe {
-            std::slice::from_raw_parts_mut(
-                &mut header as *mut _ as *mut u8,
-                std::mem::size_of::<MessageHeader>(),
-            )
-        };
-        let header_packet1 = encode_packet_burst(true, &header_bytes[0..16]);
-        let header_packet2 = encode_packet_burst(data.len() > 0, &header_bytes[16..]);
-        self.append_packet(&header_packet1)?;
-        self.append_packet(&header_packet2)?;
+        let mut rem_header = &header_bytes[0..header_length];
+        while rem_header.len() > 0 {
+            let pkt =
+                encode_packet_burst(rem_header.len() > 16 || data.len() > 0, &rem_header[0..16]);
+            self.append_packet(&pkt)?;
+            rem_header = &rem_header[16..];
+        }
 
         // append data
         let mut pos = 0;

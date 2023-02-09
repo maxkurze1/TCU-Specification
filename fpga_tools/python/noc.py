@@ -10,7 +10,8 @@ from fpga_utils import FPGA_Error
 import nocrw
 
 class NoCethernet(object):
-    def __init__(self, send_ipaddr, chip_id, reset):
+    def __init__(self, tcu, send_ipaddr, chip_id, reset):
+        self.tcu = tcu
         nocrw.connect(send_ipaddr[0], send_ipaddr[1], chip_id, reset)
 
     def read_bytes(self, trg_id, addr, len):
@@ -20,7 +21,7 @@ class NoCethernet(object):
         return nocrw.write_bytes(trg_id[0], trg_id[1], addr, bytes, burst)
 
     def send_bytes(self, trg_id, trg_ep, bytes):
-        return nocrw.send_bytes(trg_id[0], trg_id[1], trg_ep, bytes)
+        return nocrw.send_bytes(self.tcu.version, trg_id[0], trg_id[1], trg_ep, bytes)
 
     def receive_bytes(self, timeout_ns=1000_000_000):
         return nocrw.receive_bytes(timeout_ns)

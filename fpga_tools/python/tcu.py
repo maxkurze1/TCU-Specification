@@ -1,4 +1,4 @@
-
+from enum import Enum
 import modids
 
 
@@ -232,7 +232,7 @@ class LOG():
               "PRIV_TIMER_INTR",
               "PMP_ACCESS_DENIED"]
 
-    def split_tcu_log(upper_data64, lower_data64):
+    def split_tcu_log(version, upper_data64, lower_data64):
         tcu_log = LOG()
         log_id = (lower_data64 >> 32) & 0xFF
         log_time = (lower_data64 & 0xFFFFFFFF) << 4    #shift left by 4 to get time in ns
@@ -358,14 +358,14 @@ class LOG():
         #invalidate page
         if (id_string == "CMD_PRIV_INV_PAGE"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            log_virt = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
             return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_actid, log_virt)
 
         #insert TLB
         if (id_string == "CMD_PRIV_INS_TLB"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
-            log_phys = (upper_data64 >> 44) & 0xFFFFF
+            log_virt = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
+            log_phys = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
             return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
 
         #xchg_act (act=id+msgs)
@@ -393,21 +393,21 @@ class LOG():
         #TLB write
         if (id_string == "PRIV_TLB_WRITE_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> 44) & 0xFFFFF
+            log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
             return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
 
         #TLB read
         if (id_string == "PRIV_TLB_READ_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> 44) & 0xFFFFF
+            log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
             return ret_string + "actid: {:#x}, virt. page: {:#015x}, read phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
 
         #TLB invalidate page
         if (id_string == "PRIV_TLB_DEL_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & 0xFFFFFFFFFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
             return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_tlb_actid, log_tlb_virtpage)
 
         #reg CUR_VPE has changed its value
@@ -433,50 +433,53 @@ class LOG():
             return "UNDEFINED"
         return self.LOG_ID[log_id]
 
+class TCUExtReg(Enum):
+    FEATURES = 0
+    TILE_DESC = 1
+    EXT_CMD = 2
+
+class TCUStatusReg(Enum):
+    STATUS = 0
+    RESET = 1
+    CTRL_FLIT_COUNT = 2
+    BYP_FLIT_COUNT = 3
+    DROP_FLIT_COUNT = 4
 
 class TCU():
+    EP_COUNT = 128
+    BASE_ADDR = 0xF000_0000
+    STATUS_OFF = 0x0000_3000
+    CONFIG_OFF = 0x0000_3028
+    LOG_OFF = 0x0100_0000
 
-    TCU_EP_REG_COUNT = 128
-    TCU_CFG_REG_COUNT = 32
-    TCU_STATUS_REG_COUNT = 5
-    TCU_LOG_REG_COUNT = 2**17
+    def __init__(self, version):
+        self.version = version
 
-    TCU_EP_REG_SIZE = 0x18
-    TCU_CFG_REG_SIZE = 0x8
-    TCU_STATUS_REG_SIZE = 0x8
+    def ep_count(self):
+        return TCU.EP_COUNT
 
-    TCU_REGADDR_START = 0xF000_0000
+    def ext_reg_addr(self, reg):
+        assert isinstance(reg, TCUExtReg)
+        if self.version == 1:
+            return TCU.BASE_ADDR + reg.value * 8
+        if reg == TCUExtReg.FEATURES:
+            return TCU.BASE_ADDR + 0 * 8
+        return TCU.BASE_ADDR + 1 * 8
 
-    #ext regs
-    TCU_REGADDR_FEATURES = TCU_REGADDR_START + 0x0000_0000
-    TCU_REGADDR_EXT_CMD  = TCU_REGADDR_START + 0x0000_0008
+    def eps_addr(self):
+        if self.version == 1:
+            return TCU.BASE_ADDR + 0x0000_0040
+        return TCU.BASE_ADDR + 0x0000_0038
 
-    #unpriv. regs
-    TCU_REGADDR_COMMAND   = TCU_REGADDR_START + 0x0000_0010
-    TCU_REGADDR_DATA_ADDR = TCU_REGADDR_START + 0x0000_0018
-    TCU_REGADDR_DATA_SIZE = TCU_REGADDR_START + 0x0000_0020
-    TCU_REGADDR_ARG1      = TCU_REGADDR_START + 0x0000_0028
-    TCU_REGADDR_CUR_TIME  = TCU_REGADDR_START + 0x0000_0030
+    def ep_addr(self, ep):
+        return self.eps_addr() + ep * (8 * 3)
 
-    #ep regs
-    TCU_REGADDR_EP_START = TCU_REGADDR_START + 0x0000_0040
+    def status_reg_addr(self, reg):
+        assert isinstance(reg, TCUStatusReg)
+        return TCU.BASE_ADDR + TCU.STATUS_OFF + reg.value * 8
 
-    #priv. regs
-    TCU_REGADDR_CORE_REQ     = TCU_REGADDR_START + 0x0000_2000
-    TCU_REGADDR_PRIV_CMD     = TCU_REGADDR_START + 0x0000_2008
-    TCU_REGADDR_PRIV_CMD_ARG = TCU_REGADDR_START + 0x0000_2010
-    TCU_REGADDR_CUR_VPE      = TCU_REGADDR_START + 0x0000_2018
-    TCU_REGADDR_OLD_VPE      = TCU_REGADDR_START + 0x0000_2020
+    def config_reg_addr(self, reg):
+        return TCU.BASE_ADDR + TCU.CONFIG_OFF + reg * 8
 
-    #TCU status vector
-    TCU_REGADDR_TCU_STATUS          = TCU_REGADDR_START + 0x0000_3000
-    TCU_REGADDR_TCU_RESET           = TCU_REGADDR_START + 0x0000_3008
-    TCU_REGADDR_TCU_CTRL_FLIT_COUNT = TCU_REGADDR_START + 0x0000_3010
-    TCU_REGADDR_TCU_BYP_FLIT_COUNT  = TCU_REGADDR_START + 0x0000_3018
-    TCU_REGADDR_TCU_DROP_FLIT_COUNT = TCU_REGADDR_START + 0x0000_3020
-
-    #config regs for core
-    TCU_REGADDR_CORE_CFG_START = TCU_REGADDR_TCU_STATUS + TCU_STATUS_REG_COUNT*TCU_STATUS_REG_SIZE
-
-    #addr of log mem
-    TCU_REGADDR_TCU_LOG = TCU_REGADDR_START + 0x0100_0000
+    def log_addr(self):
+        return TCU.BASE_ADDR + TCU.LOG_OFF
