@@ -11,6 +11,7 @@ import modids
 class EthernetRegfile(memory.Memory):
     def __init__(self, tcu, nocif, nocid):
         self.tcu = tcu
+        self.nocif = nocif
         self.shortname = "eth_rf"
         self.name = "Ethernet Regfile"
         self.rf = memory.Memory(nocif, nocid)
