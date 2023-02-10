@@ -17,9 +17,6 @@ class DRAM(memory.Memory):
     def getInitCalibComplete(self):
         return self.mem[self.tcu.config_reg_addr(1)]
 
-    def tcu_version(self):
-        return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
-
     def tcu_status(self):
         return self.mem[self.tcu.status_reg_addr(TCUStatusReg.STATUS)]
 

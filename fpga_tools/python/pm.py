@@ -132,7 +132,7 @@ class PM():
         self.mem[self.tcu.config_reg_addr(4)] = val32
 
     def pico_getStackAddr(self):
-        return self.mem[Tself.tcu.config_reg_addr(4)]
+        return self.mem[self.tcu.config_reg_addr(4)]
 
     #----------------------------------------------
     #special functions for Rocket RISC-V core

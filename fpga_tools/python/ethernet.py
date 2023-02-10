@@ -15,9 +15,6 @@ class EthernetRegfile(memory.Memory):
         self.rf = memory.Memory(nocif, nocid)
         self.nocarq = noc.NoCARQRegfile(nocid)
 
-    def tcu_version(self):
-        return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
-
     def tcu_status(self):
         status = self.rf[self.tcu.status_reg_addr(TCUStatusReg.STATUS)]
         return (status & 0xFF, (status >> 8) & 0xFF, (status >> 16) & 0xFF)
