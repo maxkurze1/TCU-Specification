@@ -5,6 +5,7 @@ from time import sleep
 import noc
 import memory
 from tcu import TCUStatusReg
+import modids
 
 
 class EthernetRegfile(memory.Memory):
@@ -40,10 +41,19 @@ class EthernetRegfile(memory.Memory):
     def tcu_error_flit_count(self):
         return self.rf[self.tcu.status_reg_addr(TCUStatusReg.DROP_FLIT_COUNT)] >> 32
 
+    def self_test(self):
+        hostif = memory.Memory(self.nocif, (0x3F, modids.MODID_ETH))
+        test_addr = 0xDEAD_BEE0
+        test_data = 0xFFDEBC9A_78563412
+        hostif.write_word(test_addr, test_data)
+
     def system_reset(self):
         self.rf[self.tcu.config_reg_addr(0)] = 1
         print("FPGA System Reset...")
         sleep(5)   #need some time to get FPGA restarted
+
+        #do self test to automatically set host IP address
+        self.self_test()
 
         #check if link is up
         link_check = 3
