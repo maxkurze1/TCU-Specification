@@ -183,7 +183,6 @@ class RecvEP(EP):
         )
 
 class LOG():
-
     LOG_ID = ["NONE",
 
               "CMD_SEND",
@@ -275,7 +274,7 @@ class LOG():
         #unpriv finish
         if (id_string == "CMD_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
-            return ret_string + "error: {:d}".format(log_error)
+            return ret_string + "error: {}".format(TCUError.print_error(log_error))
 
         #msg receive has been finished
         if (id_string == "RECV_FINISH"):
@@ -293,7 +292,7 @@ class LOG():
         #ext finish
         if (id_string == "CMD_EXT_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
-            return ret_string + "error: {:d}".format(log_error)
+            return ret_string + "error: {}".format(TCUError.print_error(log_error))
 
         #NoC received write or read
         if (id_string == "NOC_REG_WRITE_ERR" or id_string == "NOC_REG_WRITE" or id_string == "NOC_READ_RSP" or id_string == "NOC_READ_RSP_ERR"):
@@ -305,7 +304,7 @@ class LOG():
         if (id_string == "NOC_READ_RSP_DONE"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
-            return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
+            return ret_string + "from tile: {}, error: {}".format(modid_to_tile(log_modid), TCUError.print_error(log_error))
 
         if (id_string == "NOC_WRITE"):
             log_modid = (lower_data64 >> 40) & 0xFF
@@ -337,13 +336,13 @@ class LOG():
         if (id_string == "NOC_MSG_ACK" or id_string == "NOC_ACK_ERR"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_error = (lower_data64 >> 48) & 0x1F
-            return ret_string + "from tile: {}, error: {:d}".format(modid_to_tile(log_modid), log_error)
+            return ret_string + "from tile: {}, error: {}".format(modid_to_tile(log_modid), TCUError.print_error(log_error))
 
         if (id_string == "NOC_ERROR" or id_string == "NOC_ERROR_UNEXP"):
             log_modid = (lower_data64 >> 40) & 0xFF
             log_addr = ((upper_data64 & 0xFFFF) << 16) | ((lower_data64 >> 48) & 0xFFFF)
             log_error = (upper_data64 >> 16) & 0x1F
-            return ret_string + "from tile: {}, addr: {:#010x}, error: {:d}".format(modid_to_tile(log_modid), log_addr, log_error)
+            return ret_string + "from tile: {}, addr: {:#010x}, error: {}".format(modid_to_tile(log_modid), log_addr, TCUError.print_error(log_error))
 
         #NoC received packet with invalid data
         if (id_string == "NOC_INVMODE" or id_string == "NOC_INVFLIT"):
@@ -359,14 +358,14 @@ class LOG():
         if (id_string == "CMD_PRIV_INV_PAGE"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
             log_virt = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
-            return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_actid, log_virt)
+            return ret_string + "actid: {:#x}, virt. page: {:#016x}".format(log_actid, log_virt)
 
         #insert TLB
         if (id_string == "CMD_PRIV_INS_TLB"):
             log_actid = (lower_data64 >> 40) & 0xFFFF
-            log_virt = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
-            log_phys = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
-            return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
+            log_virt = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_phys = (upper_data64 >> 12) & 0xFFFFF
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}".format(log_actid, log_virt, log_phys)
 
         #xchg_act (act=id+msgs)
         if (id_string == "CMD_PRIV_XCHG_VPE"):
@@ -382,7 +381,7 @@ class LOG():
         #finish
         if (id_string == "CMD_PRIV_FINISH"):
             log_error = (lower_data64 >> 40) & 0x1F
-            return ret_string + "error: {:d}".format(log_error)
+            return ret_string + "error: {}".format(TCUError.print_error(log_error))
 
         #core request
         if (id_string == "PRIV_CORE_REQ_FORMSG"):
@@ -393,22 +392,24 @@ class LOG():
         #TLB write
         if (id_string == "PRIV_TLB_WRITE_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
-            return ret_string + "actid: {:#x}, virt. page: {:#015x}, phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
+            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
+            log_tlb_flags = (upper_data64 >> 32) & 0x7
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, TCUTLBFlags.print_tlb_flags(log_tlb_flags))
 
         #TLB read
         if (id_string == "PRIV_TLB_READ_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
-            log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
-            log_tlb_physpage = (upper_data64 >> (44 if version == 1 else 12)) & 0xFFFFF
-            return ret_string + "actid: {:#x}, virt. page: {:#015x}, read phys. page: {:#07x}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage)
+            log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
+            log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
+            log_tlb_flags = (upper_data64 >> 32) & 0x7
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, TCUTLBFlags.print_tlb_flags(log_tlb_flags))
 
         #TLB invalidate page
         if (id_string == "PRIV_TLB_DEL_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
             log_tlb_virtpage = ((upper_data64 & (0xFFFFFFFFFFF if version == 1 else 0xFFF)) << 8) | (lower_data64 >> 56)
-            return ret_string + "actid: {:#x}, virt. page: {:#015x}".format(log_tlb_actid, log_tlb_virtpage)
+            return ret_string + "actid: {:#x}, virt. page: {:#016x}".format(log_tlb_actid, log_tlb_virtpage)
 
         #reg CUR_VPE has changed its value
         if (id_string == "PRIV_CUR_VPE_CHANGE"):
@@ -444,6 +445,62 @@ class TCUStatusReg(Enum):
     CTRL_FLIT_COUNT = 2
     BYP_FLIT_COUNT = 3
     DROP_FLIT_COUNT = 4
+
+class TCUTLBFlags():
+    READ = 1
+    WRITE = 2
+    FIXED = 4
+
+    def print_tlb_flags(flag_bits):
+        flag_str = ""
+        if flag_bits & TCUTLBFlags.FIXED:
+            flag_str += "F"
+        if flag_bits & TCUTLBFlags.WRITE:
+            flag_str += "W"
+        if flag_bits & TCUTLBFlags.READ:
+            flag_str += "R"
+        return flag_str
+
+class TCUError():
+    ERROR_CODES = [
+        "NONE",
+        "NO_MEP",
+        "NO_SEP",
+        "NO_REP",
+        "FOREIGN_EP",
+        "SEND_REPLY_EP",
+        "RECV_GONE",
+        "RECV_NO_SPACE",
+        "REPLIES_DISABLED",
+        "OUT_OF_BOUNDS",
+        "NO_CREDITS",
+        "NO_PERM",
+        "INV_MSG_OFF",
+        "TRANSLATION_FAULT",
+        "ABORT",
+        "UNKNOWN_CMD",
+        "RECV_OUT_OF_BOUNDS",
+        "RECV_INV_RPL_EPS",
+        "SEND_INV_CRD_EP",
+        "SEND_INV_MSG_SZ",
+        "TIMEOUT_MEM",
+        "TIMEOUT_NOC",
+        "PAGE_BOUNDARY",
+        "MSG_UNALIGNED",
+        "TLB_MISS",
+        "TLB_FULL",
+        "NONE",
+        "NONE",
+        "NONE",
+        "NONE",
+        "NONE",
+        "CRITICAL"]
+
+    def print_error(error_code):
+        if error_code < len(TCUError.ERROR_CODES):
+            return TCUError.ERROR_CODES[error_code]
+        else:
+            return "Unknown error code({})".format(error_code)
 
 class TCU():
     EP_COUNT = 128
