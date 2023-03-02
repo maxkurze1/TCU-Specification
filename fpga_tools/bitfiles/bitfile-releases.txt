@@ -1,0 +1,212 @@
+
+Bitfile version number comprises three numbers: vA.B.C
+
+Each number represents the following extensions/modifications:
+A: NoC topology
+    -> version 4: 2x2 star-mesh NoC with 8 tiles
+B: Feature set within tiles (e.g., core updates, new TCU features)
+C: bugfixes or little improvements within this feature set B
+
+
+bitfile releases (release date)
+-------------------------------
+
+fpga_top_v4.0.2 (06.01.2021)
+    - 2x2 star-mesh NoC with 8 Rocket cores
+    - JTAG debugging at first 4 Rocket cores (PM0-3)
+    - TCU: bit-wise regfile access to prevent race conditions, changes according to spec
+    - DDR-TCU-Bridge: bugfix (use separate read/write FIFOs)
+
+fpga_top_v4.0.3 (11.01.2021)
+    - TCU logs bugfix
+    - DDR4: ddr4_wrap uses real TCU top-level
+
+fpga_top_v4.0.4 (27.01.2021)
+    - Rocket core update, tracing added
+    - JTAG debugging with all 8 PMs
+
+fpga_top_v4.1.0 (09.02.2021)
+    - TCU:
+        -Timeouts added
+        -bugfix in NoC-Mux for outgoing packets
+
+fpga_top_v4.2.0 (18.02.2021)
+    - TCU: priv. interface in Rocket core activated
+
+fpga_top_v4.2.1 (22.02.2021)
+    - TCU: bugfixes in priv. interface
+
+fpga_top_v4.2.2 (19.03.2021)
+    - bugfix in AXI-Rocket-TCU bridge
+    - TCU:
+        -VM and CTXSW can be selected in FEATURES reg
+        -added PRINT functionality
+        -rebuilt priv. interface: page boundary handling not in HW, removed translation core request
+
+fpga_top_v4.2.3 (25.03.2021)
+    - Rocket core update: activate supervisor_ecall as delegelable exception
+    - TCU:
+        -debug PRINT: refine prio for access to regs and NoC
+        -bugfix in priv. interface
+        -config IF: use native memory IF, subtract config addr range offset already in TCU
+
+fpga_top_v4.2.4 (23.04.2021)
+    - TCU bugfix in RECV: alignment of receive buffer
+
+fpga_top_v4.2.5 (28.04.2021)
+    - TCU:
+        -minor fixes in FETCH, PMP, core request
+        -new logs for core requests
+
+fpga_top_v4.3.0 (03.05.2021)
+    - PMP in TCU of Rocket cores enabled
+    - Rocket core in PM0 connects to FPGA UART
+
+fpga_top_v4.3.1 (21.06.2021)
+    - NoC ARQ protocol integrated
+    - TCU: added ACK for WRITE command
+
+fpga_top_v4.3.2 (08.07.2021)
+    - TCU: fixed page boundary check
+
+fpga_top_v4.3.3 (16.07.2021)
+    - TCU: fix race condition when accessing CUR_VPE reg
+
+fpga_top_v4.3.4 (20.07.2021)
+    - TCU:
+        -additional fix of race condition when accessing CUR_VPE reg
+        -priv. command INV_TLB only clears non-fixed entries
+        -add more info to TCU log of unpriv. commands
+
+fpga_top_v4.3.5 (30.07.2021)
+    - TCU:
+        -increase to 128 EPs
+        -fix of race condition when accessing CUR_VPE reg and cur_crd in Send-EP
+        -randomize upper addr bits of msg
+        -add offset to TCU log of unpriv. commands
+        -wrap around in TCU log, shift time stamp for higher range
+
+fpga_top_v4.3.6 (02.08.2021)
+    - TCU:
+        -try to prevent race condition: reduce overlap of SEND and REPLY with RECV, stall XCHG_VPE command when other unpriv. commands are possibly updating CUR_VPE reg
+        -add TCU log when RECV has finished
+
+fpga_top_v4.3.7 (04.08.2021)
+    - TCU:
+        -PRINT now with highest priority for regfile and NoC-TX access
+        -address of PRINT NoC packet randomized except upper 4 bits
+        -added PRINT to TCU log
+    - NoC ARQ: added register to read status of TX and RX part
+
+fpga_top_v4.3.8 (08.09.2021)
+    - TCU: bugfix in RECEIVE when taking msg header
+    - replace Xilinx Temac and UDP/IP stack with open-source components
+
+fpga_top_v4.3.9 (11.10.2021)
+    - Ethernet UDP/IP stack: set host IP via magic flit (self test) or through regfile
+    - TCU: added log mask to skip selected entries in TCU log
+
+fpga_top_v4.3.10 (09.12.2021)
+    - TCU:
+        -fixed cur_time for odd clock frequencies
+        -priv. interface: stall xchg_vpe command also when other command will start immediately (to prevent potential races)
+        -fixed bug in PMP, added TCU log for denied accesses
+        -fixed bug in AXI bridge between core and TCU
+
+fpga_top_v4.4.0 (25.06.2021)
+    - PM5, PM6, and PM7: instead of Rocket, MediumBoom at 80 MHz
+
+fpga_top_v4.4.1 (30.06.2021)
+    - MediumBoom (80 MHz) at PM5, PM6, and PM7 as fpga_top_v4.4.0
+    - PM6 includes AXI Ethernet interface to FMC card
+    - TCU features and fixes as fpga_top_v4.3.5
+
+fpga_top_v4.4.2 (02.08.2021)
+    - cores from fpga_top_v4.4.1 and TCU features from fpga_top_v4.3.6
+
+fpga_top_v4.4.2.1 (02.08.2021)
+    - single MediumBoom (80 MHz) at PM0, 2x DRAM, no other PMs
+    - TCU features as fpga_top_v4.4.2
+
+fpga_top_v4.4.3 (03.08.2021)
+    - same cores as fpga_top_v4.4.2 but MediumBoom (80 MHz) at PM0
+
+fpga_top_v4.4.4 (05.08.2021)
+    - cores from fpga_top_v4.4.1 and TCU features from fpga_top_v4.3.7
+
+fpga_top_v4.4.5 (11.08.2021)
+    - cores from fpga_top_v4.4.1 and TCU features from fpga_top_v4.3.7
+    - NIC: Ethernet AXI-stream FIFO depth extended to 16k
+
+fpga_top_v4.4.6 (13.09.2021)
+    - cores from fpga_top_v4.4.1 and TCU features from fpga_top_v4.3.8
+    - replace Xilinx Temac and UDP/IP stack with open-source components
+    - NIC: Ethernet AXI-DMA implementation for FMC card at PM6
+        -DMA with scatter-gather mode
+        -MAC:
+            -checksum offloading, 32kB internal buffer each for RX and TX
+            -no AVB, no VLAN
+
+fpga_top_v4.4.7 (06.10.2021)
+    - cores from fpga_top_v4.4.1 and TCU features from fpga_top_v4.3.9
+    - Ethernet UDP/IP stack: set host IP via magic flit (self test) or through regfile
+    - TCU: added log mask to skip selected entries in TCU log
+
+fpga_top_v4.4.7.1 (19.11.2021)
+    - single MediumBoom (80 MHz) at PM0, 2x DRAM, no other PMs
+    - TCU:
+        -features as fpga_top_v4.4.7
+        -fixed cur_time for odd clock frequencies
+
+fpga_top_v4.4.8 (25.11.2021)
+    - UART now at PM6 to run Linux
+    - TCU:
+        -fixed cur_time for odd clock frequencies
+
+fpga_top_v4.4.9 (09.12.2021)
+    - TCU features as fpga_top_v4.3.10
+
+fpga_top_v4.4.9.1 (18.01.2022)
+    - same as fpga_top_v4.4.9 but all Rocket and BOOM cores only have 256kB L2 Cache
+
+fpga_top_v4.4.10.1_4xNIC (24.03.2022)
+    - same as fpga_top_v4.4.9 but PM3-PM7 each have a Rocket core and a NIC attached
+
+fpga_top_v4.4.10.2_4xNIC.bit (28.02.2023)
+    - TCU version of fpga_top_v4.4.10.1_4xNIC (no chipid support)
+    - with latest bugfixes as of fpga_top_v4.4.14.bit
+
+fpga_top_v4.4.11 (30.05.2022)
+    - same as fpga_top_v4.4.9
+    - Mem-AXI bridge: properly wait for last packet of AXI burst when TCU stops reading
+    - Ethernet: added constraints to add termination resistor on SGMII LVDS pins
+    - TCU:
+        -added log when timer has triggered
+        -fix unaligned read/write
+        -use SRAM in I/O FIFOs
+        -fix burst counter in I/O FIFOs
+        -properly abort NoC burst when timeout occurs
+
+fpga_top_v4.4.12 (15.12.2022)
+    - same top-level as fpga_top_v4.4.11
+    - TCU: added multi-chip support from branch 'chipid'
+
+fpga_top_v4.5.0 (10.02.2023)
+    - same top-level as fpga_top_v4.4.11
+    - bugfix in sync_fifo
+    - NoC ARQ: extended BVT by mode to better distinguish between flits of same modid and address
+    - TCU:
+        -added support for 64-bit virt. addresses
+        -added TCU version number to FEATURES register
+        -adapted TLB behavior according to specification
+
+fpga_top_v4.5.1 (23.02.2023)
+    - same top-level as fpga_top_v4.4.11
+    - TCU features as of fpga_top_v4.5.0
+    - bugfix in Mem-to-AXI bridge
+    - TCU: fix delay when writing to Rocket cache interface via Mem-to-AXI bridge
+
+fpga_top_v4.5.1.1_4xNIC.bit (02.03.2023)
+    - TCU features as fpga_top_v4.5.1
+    - PM4-7 with Rocket cores and NIC
+    - UART still attached to PM6
