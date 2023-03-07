@@ -1,8 +1,13 @@
 \chapter{External Interface}
 
-The external interface of the TCU allows remote tiles to manipulate its state. First of all, the
-available TCU features can be configured through the \texttt{FEATURES} register, which has the
-following format:
+The external interface of the TCU allows remote tiles to retrieve meta information about the tile
+and TCU and manipulate its state.
+
+\section{Meta Information}
+
+The first part of the external interface are meta information about the TCU or the tile it belongs
+to that can be retrieved and partially also be changed. The available TCU features can be configured
+through the \texttt{FEATURES} register, which has the following format:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
@@ -37,11 +42,47 @@ undefined if the associated extension is disabled.
 The version number is implementation defined and can be used to verify whether the software is
 compatible to the TCU implementation at hand. The version cannot be changed at runtime.
 
-Additionally, the TCU supports \emph{external commands}, which are triggered by writing to the
-\texttt{EXT\_CMD} register and feedback is given via this register as well. The \texttt{EXT\_CMD}
-register has the following format:
+Besides \texttt{FEATURES}, the TCU provides the register \texttt{TILE\_DESC} that contains a
+description of the tile. The description is set by the hardware and cannot be changed.
 
-\begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0008}}
+\begin{register}{H}{TILE\_DESC}{\texttt{0xF000\_0008}}
+  \regfieldb{memory}{36}{28}%
+  \regfieldb{attr}{17}{11}%
+  \regfieldb{isa}{5}{6}%
+  \regfieldb{type}{6}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[memory] the internal memory size in 4~KiB pages
+    \item[attr] additional attributes with the following bits:
+    \begin{itemize}
+      \item \texttt{BOOM} (1): the tile contains a BOOM core
+      \item \texttt{ROCKET} (2): the tile contains a Rocket core
+      \item \texttt{NIC} (4): a network interface card attached to the core
+      \item \texttt{SERIAL} (8): a serial interface attached to the core
+      \item \texttt{IMEM} (16): the tile has an internal memory
+    \end{itemize}
+    \item[isa] the instruction set architecture:
+    \begin{itemize}
+      \item \texttt{NONE} (0): dummy ISA for memory tiles
+      \item \texttt{RISCV} (1)
+    \end{itemize}
+    \item[type] the type of tile:
+    \begin{itemize}
+      \item \texttt{COMP} (0): contains a processor for computation
+      \item \texttt{MEM} (1): contains memory
+    \end{itemize}
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\noindent Note that other values and bits are currently not defined. The memory size is 0 if the
+attribute \texttt{IMEM} is not set and the size of the internal memory in 4~KiB pages otherwise.
+
+\section{External Commands}
+
+The TCU supports \emph{external commands}, which are triggered by writing to the \texttt{EXT\_CMD}
+register and feedback is given via this register as well. The \texttt{EXT\_CMD} register has the
+following format:
+
+\begin{register}{H}{EXT\_CMD}{\texttt{0xF000\_0010}}
   \regfieldb{arg}{55}{9}%
   \regfieldb{err}{5}{4}%
   \regfieldb{op}{4}{0}\regnewline%
@@ -51,8 +92,6 @@ register has the following format:
     \item[op] the operation to execute
   \end{reglist}\end{regdesc}
 \end{register}
-
-\section{Command List}
 
 The TCU supports the following external commands with the opcodes in parentheses. Other opcodes lead
 to an \texttt{UNKNOWN\_CMD} error.
