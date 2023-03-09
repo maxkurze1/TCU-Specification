@@ -5,7 +5,7 @@ thus only required if either of these features are desired. Thus, all non-highli
 is required if either extension is used, whereas the highlighted functionality is only required for
 one specific extension.
 
-The interface consists of multiple privileged registers, privileged commands, and \emph{core
+The interface consists of multiple privileged registers, privileged commands, and \emph{CU
 requests}, which are raised by the TCU and answered by the privileged software. To support the
 privileged software in the management of multiple activities or virtual memory, privileged commands are
 used, which can be performed by writing to \texttt{PRIV\_CMD}. The register is defined as follows:
@@ -198,25 +198,26 @@ flag.
     $PRIV\_CMD.op \gets 0$\;
     \caption{The TCU's \texttt{ABORT\_CMD} command.}
 \end{algorithm}
+\extend{}
 
-\section{Core Requests}
+\extstart{vmtilex}
+\section{CU Requests}
 
-With tile sharing, the TCU needs assistance of the CU if a message for another activity than the currently
-running activity (\texttt{CUR\_ACT}) is received. Since we assume in this case that the CU is a
-general-purpose core, these requests for assistance are called \emph{core requests}.
+In some cases, the TCU needs assistance of the CU or wants to notify the CU of an event. For
+example, if a message for another activity than the currently running activity (\texttt{CUR\_ACT})
+is received, the assistance of the CU is needed.
 
-Since multiple core requests might occur simultaneously, the TCU keeps a queue of pending core
-requests and handles them in FIFO order. To handle the first in the queue, the TCU writes to
-\texttt{CORE\_REQ} and injects an interrupt to inform the core about the request. After the handling
-of the core request, the core is expected to write to \texttt{CORE\_REQ} again to signal the
-completion of the request. Upon receiving this signal, as described in \rref{code:corereqfinish},
-the TCU starts the next core request, if there is any. New core requests, as described in
-\rref{code:corereqstart}, are appended to the queue via \texttt{queue\_foreign\_msg\_req()} and
-started, if possible.
+Since multiple CU requests might occur simultaneously, the TCU keeps a queue of pending CU requests
+and handles them in FIFO order. To handle the first in the queue, the TCU writes to \texttt{CU\_REQ}
+and injects an interrupt to inform the CU about the request. After the handling of the CU request,
+the CU is expected to write to \texttt{CU\_REQ} again to signal the completion of the request. Upon
+receiving this signal, as described in \rref{code:cureqfinish}, the TCU starts the next CU request,
+if there is any. New CU requests, as described in \rref{code:cureqstart}, are appended to the queue
+and started, if possible.
 
 \subsection{Pseudo Code}
 
-The following pseudo code describes the TCU's behavior regarding core requests in more detail.
+The following pseudo code describes the TCU's behavior regarding CU requests in more detail.
 
 \begin{algorithm}[H]
     \SetKwFunction{FMain}{queue\_foreign\_msg\_req}
@@ -228,56 +229,84 @@ The following pseudo code describes the TCU's behavior regarding core requests i
     \textbf{End Function}
     \BlankLine
 
+    \SetKwFunction{FMain}{queue\_pmp\_failure\_req}
+    \SetKwProg{Fn}{Function}{:}{}
+    \Fn{\FMain{$phys$, $write$, $error$}}{
+      $queue.enqueue(phys\ |\ write\ |\ error\ |\ 3)$\;
+      $try\_start\_req()$\;
+    }
+    \textbf{End Function}
+    \BlankLine
+
     \SetKwFunction{FMain}{try\_start\_req}
     \SetKwProg{Fn}{Function}{:}{}
     \Fn{\FMain{}}{
-      \uIf{CORE\_REQ.type == 0 and not queue.empty()}{
-        $CORE\_REQ \gets queue.front()$\;
+      \uIf{CU\_REQ.type == 0 and not queue.empty()}{
+        $CU\_REQ \gets queue.front()$\;
       }
     }
     \textbf{End Function}
-    \caption{Enqueuing and starting of core requests.}
-    \label{code:corereqstart}
+    \caption{Enqueuing and starting of CU requests.}
+    \label{code:cureqstart}
 \end{algorithm}
 
 \begin{algorithm}[H]
-    \uIf{CORE\_REQ.type == 1 and not queue.empty()}{
+    \uIf{CU\_REQ.type == 1 and not queue.empty()}{
       $cur = queue.dequeue()$\;
-      $CORE\_REQ \gets 0$\;
+      $CU\_REQ \gets 0$\;
       \BlankLine
       $try\_start\_req()$\;
     }
-    \caption{Dequeuing and finishing of core requests.}
-    \label{code:corereqfinish}
+    \caption{Dequeuing and finishing of CU requests.}
+    \label{code:cureqfinish}
 \end{algorithm}
 
 \subsection{Registers}
 
-\begin{register}{H}{CORE\_REQ}{\texttt{0xF000\_2000}}
+\begin{register}{H}{CU\_REQ}{\texttt{0xF000\_2000}}
   \regfieldb[gray!60]{}{62}{2}%
   \regfieldb{type}{2}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[type] the type (0 = idle, 1 = response, 2 = foreign message)
+    \item[type] the type (0 = idle, 1 = response, 2 = foreign message, 3 = PMP failure)
   \end{reglist}\end{regdesc}
 \end{register}
 
-\noindent As the \texttt{CORE\_REQ} register is used for different kinds of requests and responses,
+\noindent As the \texttt{CU\_REQ} register is used for different kinds of requests and responses,
 most of the bits depend on the type of request/response, defined in the following.
 
-\begin{register}{H}{CORE\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
+\begin{register}{H}{CU\_REQ for foreign message requests}{\texttt{0xF000\_2000}}
   \regfieldb{act}{16}{48}%
-  \regfieldb[gray!20]{reserved}{30}{18}%
-  \regfieldb{ep}{16}{2}%
-  \regfieldb{type}{2}{0}\regnewline%
+  \regfieldb[gray!20]{reserved}{29}{19}%
+  \regfieldb{ep}{16}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[ep] the receive EP which received a message
     \item[act] the activity that received the message
   \end{reglist}\end{regdesc}
 \end{register}
 
-\begin{register}{H}{CORE\_REQ for foreign message responses}{\texttt{0xF000\_2000}}
-  \regfieldb[gray!20]{reserved}{62}{2}%
-  \regfieldb{type}{2}{0}\regnewline%
+\begin{register}{H}{CU\_REQ for PMP failure requests}{\texttt{0xF000\_2000}}
+  \regfieldb{phys}{32}{32}%
+  \regfieldb[gray!20]{reserved}{23}{9}%
+  \regfieldb{error}{5}{4}%
+  \regfieldb{write}{1}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
+  \begin{regdesc}\begin{reglist}
+    \item[phys] the physical access for which the access failed
+    \item[error] the error code:
+    \begin{itemize}
+       \item \texttt{NO\_PMP\_EP}: the EP is greater or equal to the number of PMP EPs
+       \item \texttt{NO\_MEP}: the EP is no memory endpoint
+       \item \texttt{OUT\_OF\_BOUNDS}: the access refers outside of the memory EP's region
+       \item \texttt{NO\_PERM}: the memory EP does not have the required permission
+     \end{itemize}
+    \item[write] 1 for write accesses and 0 for read accesses
+  \end{reglist}\end{regdesc}
+\end{register}
+
+\begin{register}{H}{CU\_REQ for responses}{\texttt{0xF000\_2000}}
+  \regfieldb[gray!20]{reserved}{61}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
 \end{register}
 \extend{}
 
@@ -331,10 +360,12 @@ the NoC. The following pseudo code describes this process:\\[.2em]
       $addr \gets phys - 0x10000000$\;
       $epid \gets addr >> 30$\;
       $off \gets addr\ \&\ 0x3FFFFFFF$\;
+      \uIf{epid >= 4}{return and queue\_pmp\_failure\_req(phys, access == WRITE, NO\_PMP\_EP)}
+      \BlankLine
       $ep \gets$ read\_ep(epid)\;
-      \uIf{ep.type != MEMORY}{ignore access}
-      \uIf{ep.rw \& access == 0}{ignore access}
-      \uIf{off + size > ep.size}{ignore access}
+      \uIf{ep.type != MEMORY}{return and queue\_pmp\_failure\_req(phys, access == WRITE, NO\_MEP)}
+      \uIf{ep.rw \& access == 0}{return and queue\_pmp\_failure\_req(phys, access == WRITE, NO\_PERM)}
+      \uIf{off + size > ep.size}{return and queue\_pmp\_failure\_req(phys, access == WRITE, OUT\_OF\_BOUNDS)}
       \BlankLine
       \uIf{access == READ}{
         $read\_remote(ep.tile, ep.addr + off, size)$\;
@@ -354,4 +385,9 @@ physical address, the second parameter specifies the cache-line size, and the th
 specifies whether the access reads from memory or writes to memory. Note that the current
 implementation substracts \texttt{0x10000000} from the physical access, because the Rocket Core maps
 the DRAM to that address.
+
+If the access fails, a PMP-failure CU request is enqueued and the PMP access is ignored. This is
+because PMP accesses are triggered by last-level cache misses, but the code causing the access
+executed potentially a long time ago. Thus, the software has no chance to handle this case except
+for reporting an error.
 \extend{}

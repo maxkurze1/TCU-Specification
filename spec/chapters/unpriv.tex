@@ -78,8 +78,8 @@ several building blocks:
   stop the execution of the unprivileged command by setting the opcode in \texttt{COMMAND} to 0 and
   the error code to the given error.
   \item \texttt{queue\_foreign\_msg\_req(ep, act)}:\extstart{tilemux}\\
-  append a new foreign-message request to the queue of core requests (see
-  \rref{code:corereqstart} for more details).\extend{}
+  append a new foreign-message request to the queue of CU requests (see
+  \rref{code:cureqstart} for more details).\extend{}
   \item \texttt{lookup\_tlb(\colorbox{tilemux}{act, }virt, perm) -> (Phys, Error)}:\extstart{vm}\\
   lookup the given virtual address in the TLB \colorbox{tilemux}{for given activity} and return the
   physical address. On misses or missing permissions, the \texttt{TLB\_MISS} or \texttt{NO\_PERM}

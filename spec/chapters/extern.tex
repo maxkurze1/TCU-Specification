@@ -35,8 +35,8 @@ communication channels by writing to the endpoint registers within the MMIO regi
 
 The bits \texttt{FEATURES.ctxsw} and \texttt{FEATURES.vm} control whether the context-switching and
 virtual-memory extension is enabled, respectively. If the former is disabled, foreign message
-receptions do not raise a core request. If the latter is disabled, no address translation is
-performed and thus no translation core request is raised. The behavior of privileged commands is
+receptions do not raise a CU request. If the latter is disabled, no address translation is
+performed and thus no translation CU request is raised. The behavior of privileged commands is
 undefined if the associated extension is disabled.
 
 The version number is implementation defined and can be used to verify whether the software is

@@ -127,7 +127,7 @@ either extension as \extbox{vmtilex}.
       regtbl,fill=vmtilex,below right=0cm and .38cm of cmdregs.north east,minimum height=3cm
     ] (prvregs) {};
     \node[below=.1cm of prvregs.north] {PrivRegs};
-    \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CORE\_REQ}};
+    \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CU\_REQ}};
     \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CMD}};
     \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD\_ARG}};
     \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_ACT}};
@@ -211,7 +211,7 @@ as follows:
   \texttt{0xF000\_0740} & \texttt{PR31} & PrintRegs & Thirty-second print register \\
   \hline
   \hline
-  \texttt{0xF000\_2000} & \texttt{CORE\_REQ} & PrivRegs & TCU-core interactions \extstart{vmtilex} \\
+  \texttt{0xF000\_2000} & \texttt{CU\_REQ} & PrivRegs & TCU-CU interactions \extstart{vmtilex} \\
   \texttt{0xF000\_2008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
   \texttt{0xF000\_2010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
   \texttt{0xF000\_2018} & \texttt{CUR\_ACT} & PrivRegs & Currently running activity \extstart{tilemux} \extend{} \\
@@ -248,4 +248,5 @@ The TCU uses the following error codes to provide feedback to the software for f
   \item \texttt{MSG\_UNALIGNED} (23): message to send is not 16-byte aligned,
   \item \texttt{TLB\_MISS} (24): entry in TLB not found,
   \item \texttt{TLB\_FULL} (25): TLB contains only fixed entries.
+  \item \texttt{NO\_PMP\_EP} (26): no PMP endpoint,
 \end{itemize}
