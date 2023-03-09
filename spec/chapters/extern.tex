@@ -11,15 +11,18 @@ through the \texttt{FEATURES} register, which has the following format:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
-  \regfield[gray!20]{reserved}{24}{40}{{uninitialized}}%
-  \regfield{version}{8}{32}{?}%
+  \regfield{version\_patch}{8}{56}{?}%
+  \regfield{version\_minor}{8}{48}{?}%
+  \regfield{version\_major}{16}{32}{?}%
   \regfield[gray!20]{reserved}{29}{3}{{uninitialized}}%
   \regfield{ctxsw}{1}{2}{0}%
   \regfield{vm}{1}{1}{0}%
   \regfield{kernel}{1}{0}{1}%
   \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[version] the TCU version number
+    \item[version\_major] the TCU major version number
+    \item[version\_minor] the TCU minor version number
+    \item[version\_patch] the TCU patch version number
     \item[ctxsw] whether the context-switching extension is available
     \item[vm] whether the virtual-memory extension is available
     \item[kernel] whether the TCU belongs to a kernel tile
@@ -39,8 +42,13 @@ receptions do not raise a CU request. If the latter is disabled, no address tran
 performed and thus no translation CU request is raised. The behavior of privileged commands is
 undefined if the associated extension is disabled.
 
-The version number is implementation defined and can be used to verify whether the software is
-compatible to the TCU implementation at hand. The version cannot be changed at runtime.
+The TCU uses semantic versioning\footnote{\url{https://semver.org}} to keep track of changes. Thus,
+incompatible changes result in a new major version, compatible changes result in a new minor
+version, and bugfixes result in a new patch version. All three version numbers are implementation
+defined and can be used to verify whether the software is compatible to the TCU implementation at
+hand. The version cannot be changed at runtime. The major and minor version of the implementation
+should correspond to the major and minor version of the specification it implements, which is shown
+on the title page of this document.
 
 Besides \texttt{FEATURES}, the TCU provides the register \texttt{TILE\_DESC} that contains a
 description of the tile. The description is set by the hardware and cannot be changed.
