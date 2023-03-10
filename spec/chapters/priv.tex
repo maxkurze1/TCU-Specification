@@ -264,8 +264,8 @@ The following pseudo code describes the TCU's behavior regarding CU requests in 
 \subsection{Registers}
 
 \begin{register}{H}{CU\_REQ}{\texttt{0xF000\_2000}}
-  \regfieldb[gray!60]{}{62}{2}%
-  \regfieldb{type}{2}{0}\regnewline%
+  \regfieldb[gray!60]{}{61}{3}%
+  \regfieldb{type}{3}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
     \item[type] the type (0 = idle, 1 = response, 2 = foreign message, 3 = PMP failure)
   \end{reglist}\end{regdesc}
