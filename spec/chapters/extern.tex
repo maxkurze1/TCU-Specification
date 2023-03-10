@@ -11,18 +11,18 @@ through the \texttt{FEATURES} register, which has the following format:
 
 \setlength{\regWidth}{.95\textwidth}
 \begin{register}{H}{\texttt{FEATURES}}{0xF000\_0000}
-  \regfield{version\_patch}{8}{56}{?}%
-  \regfield{version\_minor}{8}{48}{?}%
-  \regfield{version\_major}{16}{32}{?}%
+  \regfield{vpatch}{8}{56}{?}%
+  \regfield{vminor}{8}{48}{?}%
+  \regfield{vmajor}{16}{32}{?}%
   \regfield[gray!20]{reserved}{29}{3}{{uninitialized}}%
   \regfield{ctxsw}{1}{2}{0}%
   \regfield{vm}{1}{1}{0}%
   \regfield{kernel}{1}{0}{1}%
   \reglabel{Reset}\regnewline%
   \begin{regdesc}\begin{reglist}
-    \item[version\_major] the TCU major version number
-    \item[version\_minor] the TCU minor version number
-    \item[version\_patch] the TCU patch version number
+    \item[vmajor] the TCU major version number
+    \item[vminor] the TCU minor version number
+    \item[vpatch] the TCU patch version number
     \item[ctxsw] whether the context-switching extension is available
     \item[vm] whether the virtual-memory extension is available
     \item[kernel] whether the TCU belongs to a kernel tile
