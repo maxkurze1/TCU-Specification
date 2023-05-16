@@ -45,7 +45,8 @@ class PM():
 
     def tcu_set_features(self, priv, vm, ctxsw):
         flags = ((ctxsw & 0x1) << 2) | ((vm & 0x1) << 1) | (priv & 0x1)
-        self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] = self.tcu.version << 32 | flags
+        #TCU version cannot be changed
+        self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] = flags
 
     def tcu_version(self):
         return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
