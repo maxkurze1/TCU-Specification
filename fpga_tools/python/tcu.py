@@ -12,6 +12,18 @@ class Flags():
     READ = 1
     WRITE = 2
     RDWR = 3
+    FIXED = 4
+
+    def flags_bits2str(flag_bits):
+        flag_str = ""
+        if flag_bits & Flags.FIXED:
+            flag_str += "F"
+        if flag_bits & Flags.WRITE:
+            flag_str += "W"
+        if flag_bits & Flags.READ:
+            flag_str += "R"
+        return flag_str
+
 
 class EP():
     INVALID = 0
@@ -74,7 +86,7 @@ class MemEP(EP):
         self.regs[2] = size
 
     def flags(self):
-        return (self.regs[0] >> 19) & 0xF
+        return Flags.flags_bits2str((self.regs[0] >> 19) & 0xF)
     def set_flags(self, flags):
         self.regs[0] &= ~(0xF << 19)
         self.regs[0] |= (flags & 0xF) << 19
@@ -431,7 +443,7 @@ class LOG():
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
             log_tlb_flags = (upper_data64 >> 32) & 0x7
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, TCUTLBFlags.print_tlb_flags(log_tlb_flags))
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, Flags.flags_bits2str(log_tlb_flags))
 
         #TLB read
         if (id_string == "PRIV_TLB_READ_ENTRY"):
@@ -439,7 +451,7 @@ class LOG():
             log_tlb_virtpage = ((upper_data64 & 0xFFF) << 8) | (lower_data64 >> 56)
             log_tlb_physpage = (upper_data64 >> 12) & 0xFFFFF
             log_tlb_flags = (upper_data64 >> 32) & 0x7
-            return ret_string + "actid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, TCUTLBFlags.print_tlb_flags(log_tlb_flags))
+            return ret_string + "actid: {:#x}, virt. page: {:#07x}, read phys. page: {:#07x}, flags: {}".format(log_tlb_actid, log_tlb_virtpage, log_tlb_physpage, Flags.flags_bits2str(log_tlb_flags))
 
         #TLB invalidate page
         if (id_string == "PRIV_TLB_DEL_ENTRY"):
@@ -481,21 +493,6 @@ class TCUStatusReg(Enum):
     CTRL_FLIT_COUNT = 2
     BYP_FLIT_COUNT = 3
     DROP_FLIT_COUNT = 4
-
-class TCUTLBFlags():
-    READ = 1
-    WRITE = 2
-    FIXED = 4
-
-    def print_tlb_flags(flag_bits):
-        flag_str = ""
-        if flag_bits & TCUTLBFlags.FIXED:
-            flag_str += "F"
-        if flag_bits & TCUTLBFlags.WRITE:
-            flag_str += "W"
-        if flag_bits & TCUTLBFlags.READ:
-            flag_str += "R"
-        return flag_str
 
 class TCUError():
     ERROR_CODES = [
