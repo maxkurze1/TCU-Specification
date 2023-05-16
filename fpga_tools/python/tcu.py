@@ -182,6 +182,42 @@ class RecvEP(EP):
             self.reply_eps(), self.rpos(), self.wpos()
         )
 
+class TileDesc():
+    TILE_TYPE = ["COMP", "MEM"]
+    TILE_ISA = ["NONE", "RISC-V"]
+    TILE_ATTR = ["BOOM", "ROCKET", "NIC", "SERIAL", "IMEM"]
+    def __init__(self, desc):
+        self.tile_type = desc & 0x2F
+        self.tile_isa = (desc >> 6) & 0x1F
+        self.tile_attr = (desc >> 11) & 0x1FFFF
+        self.tile_memsize = desc >> 28
+
+    def type(self):
+        return self.TILE_TYPE[self.tile_type]
+
+    def isa(self):
+        return self.TILE_ISA[self.tile_isa]
+
+    def attrs(self):
+        attr_str = ""
+        for attr_bit in range(0, len(self.TILE_ATTR)):
+            if (self.tile_attr >> attr_bit) & 0x1:
+                attr_str += "" if not attr_str else " "
+                attr_str += self.TILE_ATTR[attr_bit]
+
+        #'NONE' if it is neither mem nor core
+        if not attr_str:
+            attr_str = "NONE"
+        return attr_str
+
+    def memsize(self):
+        return (self.tile_memsize << 12)
+
+    def __repr__(self):
+        return "TileDesc: type={}, isa={}, attr={}, mem-size={:#x}".format(
+            self.type(), self.isa(), self.attrs(), self.memsize())
+
+
 class LOG():
     LOG_ID = ["NONE",
 
@@ -526,7 +562,7 @@ class TCU():
     def eps_addr(self):
         if self.version == 1:
             return TCU.BASE_ADDR + 0x0000_0040
-        return TCU.BASE_ADDR + 0x0000_0038
+        return TCU.BASE_ADDR + 0x0000_0048
 
     def ep_addr(self, ep):
         return self.eps_addr() + ep * (8 * 3)

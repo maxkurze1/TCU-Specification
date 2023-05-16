@@ -4,7 +4,7 @@ from time import sleep
 
 import noc
 import memory
-from tcu import TCUStatusReg
+from tcu import TCUStatusReg, TCUExtReg, TileDesc
 import modids
 
 
@@ -16,6 +16,10 @@ class EthernetRegfile(memory.Memory):
         self.name = "Ethernet Regfile"
         self.rf = memory.Memory(nocif, nocid)
         self.nocarq = noc.NoCARQRegfile(nocid)
+
+    def tcu_tile_desc(self):
+        tile_desc = self.rf[self.tcu.ext_reg_addr(TCUExtReg.TILE_DESC)]
+        return TileDesc(tile_desc)
 
     def tcu_status(self):
         status = self.rf[self.tcu.status_reg_addr(TCUStatusReg.STATUS)]

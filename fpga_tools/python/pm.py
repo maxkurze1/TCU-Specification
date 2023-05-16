@@ -1,7 +1,7 @@
 
 import noc
 import memory
-from tcu import TCUStatusReg, TCUExtReg, EP, LOG
+from tcu import TCUStatusReg, TCUExtReg, EP, LOG, TileDesc
 from fpga_utils import Progress
 
 
@@ -50,6 +50,10 @@ class PM():
 
     def tcu_version(self):
         return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
+
+    def tcu_tile_desc(self):
+        tile_desc = self.mem[self.tcu.ext_reg_addr(TCUExtReg.TILE_DESC)]
+        return TileDesc(tile_desc)
 
     def tcu_status(self):
         status = self.mem[self.tcu.status_reg_addr(TCUStatusReg.STATUS)]
