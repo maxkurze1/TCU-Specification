@@ -271,7 +271,8 @@ class LOG():
               "CMD_PRIV_ABORT",
               "CMD_PRIV_FINISH",
               "PRIV_CORE_REQ_FORMSG",
-              "PRIV_CORE_REQ_FORMSG_FINISH",
+              "PRIV_CORE_REQ_PMPFAIL",
+              "PRIV_CORE_REQ_FINISH",
               "PRIV_TLB_WRITE_ENTRY",
               "PRIV_TLB_READ_ENTRY",
               "PRIV_TLB_DEL_ENTRY",
@@ -437,6 +438,12 @@ class LOG():
             log_ep = ((upper_data64 & 0xFF) << 8) | (lower_data64 >> 56)
             return ret_string + "actid: {:#x}, ep: {:d}".format(log_actid, log_ep)
 
+        if (id_string == "PRIV_CORE_REQ_PMPFAIL"):
+            log_write = (lower_data64 >> 40) & 0x1
+            log_error = (lower_data64 >> 41) & 0x1F
+            log_addr = ((upper_data64 & 0x2FFF) << 18) | (lower_data64 >> 46)
+            return ret_string + "write: {}, error: {}, addr: {:#x}".format(log_write, TCUError.print_error(log_error), log_addr)
+
         #TLB write
         if (id_string == "PRIV_TLB_WRITE_ENTRY"):
             log_tlb_actid = (lower_data64 >> 40) & 0xFFFF
@@ -522,7 +529,7 @@ class TCUError():
         "MSG_UNALIGNED",
         "TLB_MISS",
         "TLB_FULL",
-        "NONE",
+        "NO_PMP_EP",
         "NONE",
         "NONE",
         "NONE",
