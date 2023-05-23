@@ -124,13 +124,14 @@ either extension as \extbox{vmtilex}.
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
 
     \node[
-      regtbl,fill=vmtilex,below right=0cm and .38cm of cmdregs.north east,minimum height=3cm
+      regtbl,fill=vmtilex,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
     ] (prvregs) {};
     \node[below=.1cm of prvregs.north] {PrivRegs};
     \node[tcureg,below=.7cm of prvregs.north] (prvreg0) {\texttt{CU\_REQ}};
-    \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CMD}};
-    \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD\_ARG}};
-    \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{CUR\_ACT}};
+    \node[tcureg,below=0cm of prvreg0]        (prvreg1) {\texttt{PRIV\_CTRL}};
+    \node[tcureg,below=0cm of prvreg1]        (prvreg2) {\texttt{PRIV\_CMD}};
+    \node[tcureg,below=0cm of prvreg2]        (prvreg3) {\texttt{PRIV\_CMD\_ARG}};
+    \node[tcureg,below=0cm of prvreg3]        (prvreg4) {\texttt{CUR\_ACT}};
 
     \path
       let \p1=(cu.east), \p2=(tcu.west) in
@@ -212,9 +213,10 @@ as follows:
   \hline
   \hline
   \texttt{0xF000\_2000} & \texttt{CU\_REQ} & PrivRegs & TCU-CU interactions \extstart{vmtilex} \\
-  \texttt{0xF000\_2008} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
-  \texttt{0xF000\_2010} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
-  \texttt{0xF000\_2018} & \texttt{CUR\_ACT} & PrivRegs & Currently running activity \extstart{tilemux} \extend{} \\
+  \texttt{0xF000\_2008} & \texttt{PRIV\_CTRL} & PrivRegs & Configures the privileged interface \\
+  \texttt{0xF000\_2010} & \texttt{PRIV\_CMD} & PrivRegs & Triggers privileged commands \\
+  \texttt{0xF000\_2018} & \texttt{PRIV\_CMD\_ARG} & PrivRegs & Argument for privileged commands \extend{} \\
+  \texttt{0xF000\_2020} & \texttt{CUR\_ACT} & PrivRegs & Currently running activity \extstart{tilemux} \extend{} \\
 \end{tabular}\\[1em]
 
 \section{Error List}
