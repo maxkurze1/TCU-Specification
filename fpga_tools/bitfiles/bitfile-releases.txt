@@ -211,9 +211,10 @@ fpga_top_v4.5.1.1_4xNIC.bit (02.03.2023)
     - PM4-7 with Rocket cores and NIC
     - UART still attached to PM6
 
-fpga_top_v4.6.0 (17.05.2023)
+fpga_top_v4.6.0 (24.05.2023)
     - same top-level as fpga_top_v4.4.11
     - TCU: v2.0.0
         -added tile description register
         -added TCU version number as semantic versioning to FEATURES register
         -added CU request when a PMP failure occurs
+        -added PRIV_CTRL reg
