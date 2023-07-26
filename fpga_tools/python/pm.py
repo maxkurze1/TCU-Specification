@@ -1,9 +1,19 @@
 
+from enum import Enum
+
 import noc
 import memory
 from tcu import TCUStatusReg, TCUExtReg, EP, LOG, TileDesc
 from fpga_utils import Progress
 
+class RocketConfigReg(Enum):
+    ENABLE = 0
+    INT0 = 1
+    TCU_AXI_BRIDGE_ERROR = 6
+    MEM_AXI_BRIDGE_ERROR = 7
+    TRACE_ENABLE = 8
+    TRACE_IDX = 9
+    TRACE_COUNT = 10
 
 class PM():
     #Rocket interrupt
@@ -24,13 +34,13 @@ class PM():
         return self.name
 
     def start(self):
-        self.mem[self.tcu.config_reg_addr(0)] = 1
+        self.mem[self.tcu.config_reg_addr(RocketConfigReg.ENABLE)] = 1
 
     def stop(self):
-        self.mem[self.tcu.config_reg_addr(0)] = 0
+        self.mem[self.tcu.config_reg_addr(RocketConfigReg.ENABLE)] = 0
 
     def getEnable(self):
-        return self.mem[self.tcu.config_reg_addr(0)]
+        return self.mem[self.tcu.config_reg_addr(RocketConfigReg.ENABLE)]
 
     def tcu_get_ep(self, ep_id):
         r0 = self.mem[self.tcu.ep_addr(ep_id) + 0]
@@ -145,13 +155,13 @@ class PM():
     #interrupt val
     def rocket_setInt(self, int_num, val):
         if (int_num < self.ROCKET_INT_COUNT):
-            self.mem[self.tcu.config_reg_addr(1 + int_num)] = val
+            self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0 + int_num)] = val
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
 
     def rocket_getInt(self, int_num):
         if (int_num < self.ROCKET_INT_COUNT):
-            return self.mem[self.tcu.config_reg_addr(1 + int_num)]
+            return self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0 + int_num)]
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
             return 0
@@ -161,16 +171,16 @@ class PM():
         self.rocket_setInt(0, 1)
 
     def rocket_getTCUAXIBridgeError(self):
-        return self.mem[self.tcu.config_reg_addr(6)]
+        return self.mem[self.tcu.config_reg_addr(RocketConfigReg.TCU_AXI_BRIDGE_ERROR)]
 
     def rocket_getAXIMemBridgeError(self):
-        return self.mem[self.tcu.config_reg_addr(7)]
+        return self.mem[self.tcu.config_reg_addr(RocketConfigReg.MEM_AXI_BRIDGE_ERROR)]
 
     def rocket_enableTrace(self):
-        self.mem[self.tcu.config_reg_addr(8)] = 1
+        self.mem[self.tcu.config_reg_addr(RocketConfigReg.TRACE_ENABLE)] = 1
 
     def rocket_disableTrace(self):
-        self.mem[self.tcu.config_reg_addr(8)] = 0
+        self.mem[self.tcu.config_reg_addr(RocketConfigReg.TRACE_ENABLE)] = 0
 
     def rocket_printTrace(self, filename, all=False):
         #make sure trace is stopped before reading it
@@ -180,7 +190,7 @@ class PM():
         fh = open(filename, 'w')
 
         #read trace count
-        trace_count = self.mem[self.tcu.config_reg_addr(10)]
+        trace_count = self.mem[self.tcu.config_reg_addr(RocketConfigReg.TRACE_COUNT)]
         if all:
             trace_count = self.ROCKET_TRACEMEM_SIZE
 
@@ -191,7 +201,7 @@ class PM():
             fh.write("columns: addr opcode priv.-level exception interrupt cause tval\n")
 
             #read current idx to calculate address of first trace
-            trace_current_idx = self.mem[self.tcu.config_reg_addr(9)]
+            trace_current_idx = self.mem[self.tcu.config_reg_addr(RocketConfigReg.TRACE_IDX)]
             if trace_current_idx >= trace_count:
                 trace_start_idx = trace_current_idx - trace_count
             else:

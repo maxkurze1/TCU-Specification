@@ -576,7 +576,7 @@ class TCU():
         return TCU.BASE_ADDR + TCU.STATUS_OFF + reg.value * 8
 
     def config_reg_addr(self, reg):
-        return TCU.BASE_ADDR + TCU.CONFIG_OFF + reg * 8
+        return TCU.BASE_ADDR + TCU.CONFIG_OFF + reg.value * 8
 
     def log_addr(self):
         return TCU.BASE_ADDR + TCU.LOG_OFF
