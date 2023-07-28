@@ -155,13 +155,13 @@ class PM():
     #interrupt val
     def rocket_setInt(self, int_num, val):
         if (int_num < self.ROCKET_INT_COUNT):
-            self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0 + int_num)] = val
+            self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0) + int_num*8] = val
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
 
     def rocket_getInt(self, int_num):
         if (int_num < self.ROCKET_INT_COUNT):
-            return self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0 + int_num)]
+            return self.mem[self.tcu.config_reg_addr(RocketConfigReg.INT0) + int_num*8]
         else:
             print("Interrupt %d not supported for Rocket core. Max = %d" % (int_num, self.ROCKET_INT_COUNT))
             return 0
