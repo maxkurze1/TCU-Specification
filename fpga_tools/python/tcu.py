@@ -1,10 +1,10 @@
 from enum import Enum
-import modids
+import bic1_modids
 
 
 def modid_to_tile(modid):
     try:
-        return modids.MODID_TO_TILE[modid]
+        return bic1_modids.MODID_TO_TILE[modid]
     except:
         return "Unknown({:#x})".format(modid)
 

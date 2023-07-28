@@ -1,12 +1,11 @@
 
+import bic1_modids
 import modids
 import noc
 import router
 import ethernet
 import dram
 import pm
-import uart
-import regfile
 from tcu import TCU
 
 import sys
@@ -36,7 +35,7 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
-    def __init__(self, version, fpga_sw=0, reset=0, use_uart=False):
+    def __init__(self, version, fpga_sw=0, reset=0, bic1_1_chipid=0, bic1_2_chipid=0):
         if fpga_sw >= 15:
             print("Invalid FPGA IP address selected! Only use 192.168.42.240-254")
             raise ValueError
@@ -47,33 +46,32 @@ class FPGA_TOP(fpga):
         if reset: print("FPGA Reset...")
         sys.stdout.flush()
 
-        #DIP switch determines Chip-ID
-        chipid = fpga_sw
-
-        #periphery
-        if use_uart:
-            self.uart = uart.UART('/dev/ttyUSB1')
+        #DIP switch determines Chip-ID of FPGA
+        fpga_chipid = fpga_sw
 
         tcu = TCU(version)
 
-        #NOC
-        self.nocif = noc.NoCethernet(tcu, (self.fpga_ip_addr, self.FPGA_PORT), chipid, reset)
-        self.eth_rf = ethernet.EthernetRegfile(tcu, self.nocif, (chipid, modids.MODID_ETH))
+        #FPGA NOC
+        self.nocif = noc.NoCethernet(tcu, (self.fpga_ip_addr, self.FPGA_PORT), fpga_chipid, reset)
+        self.eth_rf = ethernet.EthernetRegfile(tcu, self.nocif, (fpga_chipid, modids.MODID_ETH))
 
-        #regfile
-        #self.regfile = regfile.REGFILE(self.nocif, (chipid, modids.MODID_PM5))
-
-        #NoC router
+        #FPGA NoC router
         self.router_count = router.Router.ROUTER_CNT
-        self.router = [router.Router(self.nocif, (chipid, modids.MODID_ROUTER[x]), x) for x in range(self.router_count)]
+        self.router = [router.Router(self.nocif, (fpga_chipid, modids.MODID_ROUTER[x]), x) for x in range(self.router_count)]
 
-        #DRAM
-        self.dram1 = dram.DRAM(tcu, self.nocif, (chipid, modids.MODID_DRAM1))
-        self.dram2 = dram.DRAM(tcu, self.nocif, (chipid, modids.MODID_DRAM2))
+        #Bic1 NoC router
+        self.bic1_1_router_count = len(bic1_modids.MODID_ROUTER)
+        self.bic1_1_router = [router.Router(self.nocif, (bic1_1_chipid, bic1_modids.MODID_ROUTER[x]), x) for x in range(self.bic1_1_router_count)]
+        self.bic1_2_router_count = len(bic1_modids.MODID_ROUTER)
+        self.bic1_2_router = [router.Router(self.nocif, (bic1_2_chipid, bic1_modids.MODID_ROUTER[x]), x) for x in range(self.bic1_2_router_count)]
 
-        #PMs
-        self.pm_count = len(modids.MODID_PMS)
-        self.pms = [pm.PM(tcu, self.nocif, (chipid, modids.MODID_PMS[x]), x) for x in range(self.pm_count)]
+        #DRAM (on FPGA)
+        self.dram1 = dram.DRAM(tcu, self.nocif, (fpga_chipid, modids.MODID_DRAM1))
+        self.dram2 = dram.DRAM(tcu, self.nocif, (fpga_chipid, modids.MODID_DRAM2))
+
+        #Bic1 PMs
+        self.pm_count = 2*len(bic1_modids.MODID_PMS)
+        self.pms = [pm.PM(tcu, self.nocif, (bic1_1_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))] + [pm.PM(tcu, self.nocif, (bic1_2_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))]
 
 
     def tear(self):
