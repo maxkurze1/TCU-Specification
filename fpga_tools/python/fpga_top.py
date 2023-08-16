@@ -35,7 +35,7 @@ class FPGA_TOP(fpga):
     #dedicated addr range for FPGA: 192.168.42.240-254
     FPGA_IP = '192.168.42.240'
     FPGA_PORT = 1800
-    def __init__(self, version, fpga_sw=0, reset=0, bic1_1_chipid=0, bic1_2_chipid=0):
+    def __init__(self, version, fpga_sw=0, reset=0):
         if fpga_sw >= 15:
             print("Invalid FPGA IP address selected! Only use 192.168.42.240-254")
             raise ValueError
@@ -46,8 +46,14 @@ class FPGA_TOP(fpga):
         if reset: print("FPGA Reset...")
         sys.stdout.flush()
 
-        #DIP switch determines Chip-ID of FPGA
-        fpga_chipid = fpga_sw
+        #DIP switch determines Chip-ID of FPGA (z-coordinate of chip-is is unused)
+        fpga_chipid = fpga_sw << 2
+
+        #bic1_1 is south of FPGA (incr. y-coord)
+        bic1_1_chipid = fpga_chipid + 4
+
+        #bic1_2 is north of FPGA (decr. y-coord)
+        bic1_2_chipid = fpga_chipid - 4
 
         tcu = TCU(version)
 
@@ -73,7 +79,9 @@ class FPGA_TOP(fpga):
         self.pm_count = 2*len(bic1_modids.MODID_PMS)
         self.pms = [pm.PM(tcu, self.nocif, (bic1_1_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))] + [pm.PM(tcu, self.nocif, (bic1_2_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))]
 
+        self.bic1_1_pms = self.pms[0:len(bic1_modids.MODID_PMS)-1]
+        self.bic1_2_pms = self.pms[len(bic1_modids.MODID_PMS):self.pm_count-1]
+
 
     def tear(self):
         self.noccomm.tear()
-        self.uart.close()
