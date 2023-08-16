@@ -6,6 +6,7 @@ import router
 import ethernet
 import dram
 import pm
+import c2c
 from tcu import TCU
 
 import sys
@@ -70,6 +71,10 @@ class FPGA_TOP(fpga):
         self.bic1_1_router = [router.Router(self.nocif, (bic1_1_chipid, bic1_modids.MODID_ROUTER[x]), x) for x in range(self.bic1_1_router_count)]
         self.bic1_2_router_count = len(bic1_modids.MODID_ROUTER)
         self.bic1_2_router = [router.Router(self.nocif, (bic1_2_chipid, bic1_modids.MODID_ROUTER[x]), x) for x in range(self.bic1_2_router_count)]
+
+        #C2C links (on FPGA)
+        self.c2c_north = c2c.C2C(tcu, self.nocif, (fpga_chipid, modids.MODID_C2C_NORTH), "NORTH")
+        self.c2c_south = c2c.C2C(tcu, self.nocif, (fpga_chipid, modids.MODID_C2C_SOUTH), "SOUTH")
 
         #DRAM (on FPGA)
         self.dram1 = dram.DRAM(tcu, self.nocif, (fpga_chipid, modids.MODID_DRAM1))
