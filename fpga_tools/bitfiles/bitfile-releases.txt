@@ -218,3 +218,7 @@ fpga_top_v4.6.0 (24.05.2023)
         -added TCU version number as semantic versioning to FEATURES register
         -added CU request when a PMP failure occurs
         -added PRIV_CTRL reg
+
+fpga_top_v4.7.0_MMUbug (18.08.2023)
+    - same top-level and TCUs as fpga_top_v4.6.0
+    - MMU bug in BOOM of PM6: disabled r/w permission check of U-mode memory accesses
