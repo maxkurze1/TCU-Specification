@@ -566,7 +566,9 @@ class TCU():
     def eps_addr(self):
         if self.version == 1:
             return TCU.BASE_ADDR + 0x0000_0040
-        return TCU.BASE_ADDR + 0x0000_0048
+        if self.version == 2:
+            return TCU.BASE_ADDR + 0x0000_0048
+        return TCU.BASE_ADDR + 0x0000_0038
 
     def ep_addr(self, ep):
         return self.eps_addr() + ep * (8 * 3)
