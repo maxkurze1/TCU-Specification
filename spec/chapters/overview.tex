@@ -86,7 +86,7 @@ either extension as \extbox{vmtilex}.
       regtbl/.style={draw=black,fill=gray!30,minimum width=3cm}
     ]
 
-    \node[draw=black,minimum width=7cm,minimum height=7.6cm,anchor=north west] (tcu) at(4,0) {};
+    \node[draw=black,minimum width=7cm,minimum height=8.2cm,anchor=north west] (tcu) at(4,0) {};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=north west] (cu) at (0,0) {CU};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=south west] (mem) at (0,-7) {SPM/Cache};
 
@@ -100,7 +100,7 @@ either extension as \extbox{vmtilex}.
     \node[tcureg,below=0cm of extreg0]        (extreg1) {\texttt{EXT\_CMD}};
 
     \node[
-      regtbl,below=1cm of tcuregs.south,minimum height=3.6cm
+      regtbl,below=1.6cm of tcuregs.south,minimum height=3.6cm
     ] (cmdregs) {};
     \node[below=.1cm of cmdregs.north] {UnprivRegs};
     \node[tcureg,below=.7cm of cmdregs.north] (cmdreg0) {\texttt{COMMAND}};
@@ -110,18 +110,19 @@ either extension as \extbox{vmtilex}.
     \node[tcureg,below=0cm of cmdreg3]        (cmdreg4) {\texttt{CUR\_TIME}};
 
     \node[
-      regtbl,below left=1cm and .4cm of tcu.north east,minimum height=2.6cm
+      regtbl,below left=1cm and .4cm of tcu.north east,minimum height=3.2cm
     ] {};
     \node[
-      regtbl,below left=.9cm and .3cm of tcu.north east,minimum height=2.6cm
+      regtbl,below left=.9cm and .3cm of tcu.north east,minimum height=3.2cm
     ] {};
     \node[
-      regtbl,below left=.8cm and .2cm of tcu.north east,minimum height=2.6cm
+      regtbl,below left=.8cm and .2cm of tcu.north east,minimum height=3.2cm
     ] (epregs) {};
     \node[below=.1cm of epregs.north] {EpRegs};
     \node[tcureg,below=.7cm of epregs.north] (epreg0) {\texttt{EP$_0$}};
     \node[tcureg,below=0cm of epreg0]        (epreg1) {\texttt{EP$_1$}};
     \node[tcureg,below=0cm of epreg1]        (epreg2) {\texttt{EP$_2$}};
+    \node[tcureg,below=0cm of epreg2]        (epreg3) {\texttt{EP$_3$}};
 
     \node[
       regtbl,fill=vmtilex,below right=0cm and .38cm of cmdregs.north east,minimum height=3.6cm
@@ -207,10 +208,12 @@ as follows:
   \texttt{0xF000\_2000} & \texttt{EP0$_0$} & EpRegs & First register of EP0 \\
   \texttt{0xF000\_2008} & \texttt{EP0$_1$} & EpRegs & Second register of EP0 \\
   \texttt{0xF000\_2010} & \texttt{EP0$_2$} & EpRegs & Third register of EP0 \\
+  \texttt{0xF000\_2018} & \texttt{EP0$_3$} & EpRegs & Fourth register of EP0 \\
   \hline
-  \texttt{0xF000\_2018} & \texttt{EP1$_0$} & EpRegs & First register of EP1 \\
-  \texttt{0xF000\_2020} & \texttt{EP1$_1$} & EpRegs & Second register of EP1 \\
-  \texttt{0xF000\_2028} & \texttt{EP1$_2$} & EpRegs & Third register of EP1 \\
+  \texttt{0xF000\_2020} & \texttt{EP1$_0$} & EpRegs & First register of EP1 \\
+  \texttt{0xF000\_2028} & \texttt{EP1$_1$} & EpRegs & Second register of EP1 \\
+  \texttt{0xF000\_2030} & \texttt{EP1$_2$} & EpRegs & Third register of EP1 \\
+  \texttt{0xF000\_2038} & \texttt{EP1$_3$} & EpRegs & Fourth register of EP1 \\
   \hline
   \multicolumn{4}{c}{\dots} \\
   \hline
