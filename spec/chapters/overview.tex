@@ -86,21 +86,24 @@ either extension as \extbox{vmtilex}.
       regtbl/.style={draw=black,fill=gray!30,minimum width=3cm}
     ]
 
-    \node[draw=black,minimum width=7cm,minimum height=8.2cm,anchor=north west] (tcu) at(4,0) {};
+    \node[draw=black,minimum width=7cm,minimum height=8.4cm,anchor=north west] (tcu) at(4,0) {};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=north west] (cu) at (0,0) {CU};
     \node[draw=black,minimum width=3.4cm,minimum height=3.2cm,anchor=south west] (mem) at (0,-7) {SPM/Cache};
 
     \node[below right=.1cm and .1cm of tcu.north west] {TCU};
 
     \node[
-      regtbl,below right=.8cm and .2cm of tcu.north west,minimum height=2cm
+      regtbl,below right=.8cm and .2cm of tcu.north west,minimum height=3.6cm
     ] (tcuregs) {};
     \node[below=.1cm of tcuregs.north] {ExtRegs};
     \node[tcureg,below=.7cm of tcuregs.north] (extreg0) {\texttt{FEATURES}};
-    \node[tcureg,below=0cm of extreg0]        (extreg1) {\texttt{EXT\_CMD}};
+    \node[tcureg,below=0cm of extreg0]        (extreg1) {\texttt{TILE\_DESC}};
+    \node[tcureg,below=0cm of extreg1]        (extreg2) {\texttt{EXT\_CMD}};
+    \node[tcureg,below=0cm of extreg2]        (extreg3) {\texttt{EPS\_ADDR}};
+    \node[tcureg,below=0cm of extreg3]        (extreg4) {\texttt{EPS\_SIZE}};
 
     \node[
-      regtbl,below=1.6cm of tcuregs.south,minimum height=3.6cm
+      regtbl,below=.2cm of tcuregs.south,minimum height=3.6cm
     ] (cmdregs) {};
     \node[below=.1cm of cmdregs.north] {UnprivRegs};
     \node[tcureg,below=.7cm of cmdregs.north] (cmdreg0) {\texttt{COMMAND}};
@@ -182,20 +185,22 @@ as follows:
   \texttt{0xF000\_0000} & \texttt{FEATURES} & ExtRegs & Contains feature flags \\
   \texttt{0xF000\_0008} & \texttt{TILE\_DESC} & ExtRegs & Contains the tile description \\
   \texttt{0xF000\_0010} & \texttt{EXT\_CMD} & ExtRegs & Triggers external commands \\
+  \texttt{0xF000\_0018} & \texttt{EPS\_ADDR} & ExtRegs & Address of endpoints region \\
+  \texttt{0xF000\_0020} & \texttt{EPS\_SIZE} & ExtRegs & Size of endpoints region \\
   \hline
   \hline
-  \texttt{0xF000\_0018} & \texttt{COMMAND} & UnprivRegs & Triggers unprivileged commands \\
-  \texttt{0xF000\_0020} & \texttt{DATA\_ADDR} & UnprivRegs & Specifies the data address for commands \\
-  \texttt{0xF000\_0028} & \texttt{DATA\_SIZE} & UnprivRegs & Specifies the data size for commands \\
-  \texttt{0xF000\_0030} & \texttt{ARG$_1$} & UnprivRegs & Additional argument for commands \\
-  \texttt{0xF000\_0038} & \texttt{CUR\_TIME} & UnprivRegs & Yields the current time in nanoseconds \\
-  \texttt{0xF000\_0040} & \texttt{PRINT} & UnprivRegs & Triggers a debug print \\
+  \texttt{0xF000\_0028} & \texttt{COMMAND} & UnprivRegs & Triggers unprivileged commands \\
+  \texttt{0xF000\_0030} & \texttt{DATA\_ADDR} & UnprivRegs & Specifies the data address for commands \\
+  \texttt{0xF000\_0038} & \texttt{DATA\_SIZE} & UnprivRegs & Specifies the data size for commands \\
+  \texttt{0xF000\_0040} & \texttt{ARG$_1$} & UnprivRegs & Additional argument for commands \\
+  \texttt{0xF000\_0048} & \texttt{CUR\_TIME} & UnprivRegs & Yields the current time in nanoseconds \\
+  \texttt{0xF000\_0050} & \texttt{PRINT} & UnprivRegs & Triggers a debug print \\
   \hline
   \hline
-  \texttt{0xF000\_0048} & \texttt{PR0} & PrintRegs & First print register \\
-  \texttt{0xF000\_0050} & \texttt{PR1} & PrintRegs & Second print register \\
+  \texttt{0xF000\_0058} & \texttt{PR0} & PrintRegs & First print register \\
+  \texttt{0xF000\_0060} & \texttt{PR1} & PrintRegs & Second print register \\
   \multicolumn{4}{c}{\dots} \\
-  \texttt{0xF000\_0140} & \texttt{PR31} & PrintRegs & Thirty-second print register \\
+  \texttt{0xF000\_0150} & \texttt{PR31} & PrintRegs & Thirty-second print register \\
   \hline
   \hline
   \texttt{0xF000\_1000} & \texttt{CU\_REQ} & PrivRegs & TCU-CU interactions \extstart{vmtilex} \\
