@@ -222,3 +222,8 @@ fpga_top_v4.6.0 (24.05.2023)
 fpga_top_v4.7.0_MMUbug (18.08.2023)
     - same top-level and TCUs as fpga_top_v4.6.0
     - MMU bug in BOOM of PM6: disabled r/w permission check of U-mode memory accesses
+
+fpga_top_v4.6.1 (01.02.2024)
+    - same top-level as fpga_top_v4.6.0
+    - TCU: v2.0.1
+        -bugfix in receive command when receive buffer is full
