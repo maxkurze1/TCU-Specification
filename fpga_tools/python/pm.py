@@ -49,7 +49,11 @@ class PM():
         self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] = flags
 
     def tcu_version(self):
-        return self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
+        version = self.mem[self.tcu.ext_reg_addr(TCUExtReg.FEATURES)] >> 32
+        vmajor = version & 0xFFFF
+        vminor = (version >> 16) & 0xFF
+        vpatch = (version >> 24) & 0xFF
+        return (vmajor, vminor, vpatch)
 
     def tcu_tile_desc(self):
         tile_desc = self.mem[self.tcu.ext_reg_addr(TCUExtReg.TILE_DESC)]
