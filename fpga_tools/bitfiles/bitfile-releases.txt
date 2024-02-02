@@ -227,3 +227,7 @@ fpga_top_v4.6.1 (01.02.2024)
     - same top-level as fpga_top_v4.6.0
     - TCU: v2.0.1
         -bugfix in receive command when receive buffer is full
+
+fpga_top_v4.6.2 (02.02.2024)
+    - same top-level as fpga_top_v4.6.1
+    - Configurable chiplet latencies in interfaces between TCU and Rocket/BOOM cores
