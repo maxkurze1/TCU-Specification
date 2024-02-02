@@ -104,9 +104,11 @@ Both \texttt{EPS\_ADDR.offset} and \texttt{EPS\_SIZE} need to be 32-byte aligned
 endpoint). Note also that if the TCU caches external endpoints, the cache is invalidated upon reset.
 
 \begin{register}{H}{EPS\_ADDR}{\texttt{0xF000\_0018}}
-  \regfieldb{tile}{8}{56}%
-  \regfieldb{offset}{56}{0}\regnewline%
+  \regfieldb{chip}{6}{58}%
+  \regfieldb{tile}{8}{50}%
+  \regfieldb{offset}{50}{0}\regnewline%
   \begin{regdesc}\begin{reglist}
+    \item[chip] the chip id for the endpoint region
     \item[tile] the tile id for the endpoint region
     \item[offset] the offset of the endpoint region within the tile
   \end{reglist}\end{regdesc}
