@@ -211,6 +211,14 @@ fpga_top_v4.5.1.1_4xNIC.bit (02.03.2023)
     - PM4-7 with Rocket cores and NIC
     - UART still attached to PM6
 
+fpga_top_v4.7.0_MMUbug (18.08.2023)
+    - same top-level and TCUs as fpga_top_v4.6.0
+    - MMU bug in BOOM of PM6: disabled r/w permission check of U-mode memory accesses
+
+fpga_top_v4.7.1_MMUbug (02.04.2024)
+    - same top-level and TCUs as fpga_top_v4.7.0_MMUbug
+    - changed UART connection of Rocket cores: PM0: USB-UART, PM5: PMOD header J53 - PMOD1_2 (TX), PMOD1_3 (RX), PM6: PMOD header J53 - PMOD1_6 (TX), PMOD1_7 (RX)
+
 fpga_top_v4.6.0 (24.05.2023)
     - same top-level as fpga_top_v4.4.11
     - TCU: v2.0.0
