@@ -77,6 +77,15 @@ class FPGA_TOP(fpga):
         self.pm_count = len(modids.MODID_PMS)
         self.pmTiles = [tile.Tile(tcu, self.nocif, (chipid, modids.MODID_PMS[x]), x) for x in range(self.pm_count)]
 
+    def set_arq_enable(self, enabled):
+        val = 1 if enabled else 0
+        for pm in self.pmTiles:
+            pm.nocarq.set_arq_enable(val)
+            if enabled:
+                pm.nocarq.set_arq_timeout(200)  # reduce timeout
+        self.eth_rf.nocarq.set_arq_enable(val)
+        self.dram1.nocarq.set_arq_enable(val)
+        self.dram2.nocarq.set_arq_enable(val)
 
     def tear(self):
         self.noccomm.tear()
