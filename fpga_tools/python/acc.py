@@ -9,6 +9,10 @@ class AccConfigReg(Enum):
     PICO_EOI = 4
     PICO_STACKADDR = 5
 
+    ASM_TRACE_ENABLE = 10
+    ASM_TRACE_PTR = 11
+    ASM_TRACE_COUNT = 12
+
 class AESConfigReg(Enum):
     STATE_ADDR = 6
     KEY_ADDR = 7
@@ -29,6 +33,9 @@ class ACC():
     ACC_MEM_SIZE = 0x1000
 
     PICO_INT_COUNT = 32
+
+    ASM_TRACEMEM_BASE = 0x00100000
+    ASM_TRACEMEM_SIZE = 1024
 
 
     def __init__(self, tcu, mem, pm_num, name:string):
@@ -89,6 +96,57 @@ class ACC():
 
     def asm_getStackaddr(self):
         return self.mem[self.tcu.config_reg_addr(AccConfigReg.PICO_STACKADDR)]
+
+    def asm_enableTrace(self):
+        self.mem[self.tcu.config_reg_addr(AccConfigReg.ASM_TRACE_ENABLE)] = 1
+
+    def asm_disableTrace(self):
+        self.mem[self.tcu.config_reg_addr(AccConfigReg.ASM_TRACE_ENABLE)] = 0
+
+    def asm_printTrace(self, filename, all=False):
+        #make sure trace is stopped before reading it
+        self.asm_disableTrace()
+
+        #open file first (reads below might fail)
+        fh = open(filename, 'w')
+
+        #read trace count
+        trace_count = self.mem[self.tcu.config_reg_addr(AccConfigReg.ASM_TRACE_COUNT)]
+        if all:
+            trace_count = self.ASM_TRACEMEM_SIZE
+
+        print("%s: Number of PicoRV32 instruction traces: %d" % (self.name, trace_count))
+        fh.write("%s: Number of PicoRV32 instruction traces: %d\n" % (self.name, trace_count))
+
+        if trace_count > 0:
+            fh.write("columns: addr opcode priv.-level exception interrupt cause tval\n")
+
+            #read current idx to calculate address of first trace
+            trace_current_idx = self.mem[self.tcu.config_reg_addr(AccConfigReg.ASM_TRACE_PTR)]
+            if trace_current_idx >= trace_count:
+                trace_start_idx = trace_current_idx - trace_count
+            else:
+                trace_start_idx = self.ASM_TRACEMEM_SIZE + trace_current_idx - trace_count
+            trace_start_addr = self.ASM_TRACEMEM_BASE + 32*trace_start_idx
+
+            tmp_count = trace_count
+            #reduce tmp_count if traces wrap around
+            if (trace_start_idx+trace_count) > self.ASM_TRACEMEM_SIZE:
+                tmp_count = self.ASM_TRACEMEM_SIZE - trace_start_idx
+
+            #read traces, one trace occupies 8 byte
+            trace_data = self.mem.read_words(trace_start_addr, tmp_count)
+
+            #read the rest from start of trace memory
+            if tmp_count < trace_count:
+                trace_data_rest = self.mem.read_words(self.ASM_TRACEMEM_BASE, trace_count-tmp_count)
+                trace_data.extend(trace_data_rest)
+
+            #print to file
+            for i in range(trace_count):
+                fh.write("{:4d}: {:#010x}\n".format(i, trace_data))
+
+        fh.close()
 
 
     #----------------------------------------------
