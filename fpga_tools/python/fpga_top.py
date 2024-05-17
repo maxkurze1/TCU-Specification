@@ -80,6 +80,10 @@ class FPGA_TOP(fpga):
         self.dram1 = dram.DRAM(tcu, self.nocif, (fpga_chipid, modids.MODID_DRAM1))
         self.dram2 = dram.DRAM(tcu, self.nocif, (fpga_chipid, modids.MODID_DRAM2))
 
+        #Bic1 Periphery
+        self.bic1_1_peri = dram.DRAM(tcu, self.nocif, (bic1_1_chipid, bic1_modids.MODID_PERIPHERY))
+        self.bic1_2_peri = dram.DRAM(tcu, self.nocif, (bic1_2_chipid, bic1_modids.MODID_PERIPHERY))
+
         #Bic1 PMs
         self.pm_count = 2*len(bic1_modids.MODID_PMS)
         self.pms = [pm.PM(tcu, self.nocif, (bic1_1_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))] + [pm.PM(tcu, self.nocif, (bic1_2_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))]
