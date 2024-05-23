@@ -119,8 +119,6 @@ class ACC():
         fh.write("%s: Number of PicoRV32 instruction traces: %d\n" % (self.name, trace_count))
 
         if trace_count > 0:
-            fh.write("columns: addr opcode priv.-level exception interrupt cause tval\n")
-
             #read current idx to calculate address of first trace
             trace_current_idx = self.mem[self.tcu.config_reg_addr(AccConfigReg.ASM_TRACE_PTR)]
             if trace_current_idx >= trace_count:
@@ -144,7 +142,7 @@ class ACC():
 
             #print to file
             for i in range(trace_count):
-                fh.write("{:4d}: {:#010x}\n".format(i, trace_data))
+                fh.write("{:#011x}\n".format(trace_data[i]))
 
         fh.close()
 
