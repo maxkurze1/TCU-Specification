@@ -88,8 +88,8 @@ class FPGA_TOP(fpga):
         self.pm_count = 2*len(bic1_modids.MODID_PMS)
         self.pms = [pm.PM(tcu, self.nocif, (bic1_1_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))] + [pm.PM(tcu, self.nocif, (bic1_2_chipid, bic1_modids.MODID_PMS[x]), x) for x in range(len(bic1_modids.MODID_PMS))]
 
-        self.bic1_1_pms = self.pms[0:len(bic1_modids.MODID_PMS)-1]
-        self.bic1_2_pms = self.pms[len(bic1_modids.MODID_PMS):self.pm_count-1]
+        self.bic1_1_pms = self.pms[0:len(bic1_modids.MODID_PMS)]
+        self.bic1_2_pms = self.pms[len(bic1_modids.MODID_PMS):self.pm_count]
 
 
     def tear(self):
