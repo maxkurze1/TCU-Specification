@@ -125,7 +125,7 @@ class ACC():
                 trace_start_idx = trace_current_idx - trace_count
             else:
                 trace_start_idx = self.ASM_TRACEMEM_SIZE + trace_current_idx - trace_count
-            trace_start_addr = self.ASM_TRACEMEM_BASE + 32*trace_start_idx
+            trace_start_addr = self.ASM_TRACEMEM_BASE + 8*trace_start_idx
 
             tmp_count = trace_count
             #reduce tmp_count if traces wrap around
