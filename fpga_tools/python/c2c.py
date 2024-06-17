@@ -10,12 +10,19 @@ class C2CConfigReg(Enum):
     VERSION = 1
     ERROR = 2
     ENABLE = 3
+
+    #BI Serdes
     CLK_VERSION = 11
     CLK_USE_REF = 12
 
     #simulation only
     CLK_MULTI = 13
     CLK_ENABLE = 14
+
+    #Xilinx Serdes
+    SERDES_STATUS_RXCTRL = 10
+    SERDES_STATUS = 11
+
 
 
 class C2C():
@@ -49,6 +56,49 @@ class C2C():
 
     def getEnable(self):
         return self.mem[self.tcu.config_reg_addr(C2CConfigReg.ENABLE)]
+
+    """
+    serdesStatusVector = {
+        qpll1Lock_i,    //bit 14
+        qpll1Reset_o,
+        transRxDone,
+        transTxDone,
+        rxbufstatus,    //bits 10:8
+        rxbyteisaligned,
+        rybyterealign,
+        rxclkcorcnt,    //bits 5:4
+        rxcommadet,
+        rxpmaresetdone,
+        txpmaresetdone,
+        gtpowergood     //bit 0
+    }
+    serdesStatusVectorRxCtrl = {
+        rxctrl3,        //bits 23:16
+        rxctrl2,        //bits 15:8
+        rxctrl1[7:0]
+    }
+    """
+    def getSerdesStatus(self, do_print=False):
+        serdes_stat_rxctrl = self.mem[self.tcu.config_reg_addr(C2CConfigReg.SERDES_STATUS_RXCTRL)]
+        serdes_stat = self.mem[self.tcu.config_reg_addr(C2CConfigReg.SERDES_STATUS)]
+        if do_print:
+            print("Serdes Status Vector:")
+            print(" gtpowergood: {}".format(serdes_stat & 0x1))
+            print(" txpmaresetdone: {}".format((serdes_stat >> 1) & 0x1))
+            print(" rxpmaresetdone: {}".format((serdes_stat >> 2) & 0x1))
+            print(" rxcommadet: {}".format((serdes_stat >> 3) & 0x1))
+            print(" rxclkcorcnt: {:#x}".format((serdes_stat >> 4) & 0x3))
+            print(" rybyterealign: {}".format((serdes_stat >> 6) & 0x1))
+            print(" rxbyteisaligned: {}".format((serdes_stat >> 7) & 0x1))
+            print(" rxbufstatus: {:#x}".format((serdes_stat >> 8) & 0x7))
+            print(" transTxDone: {}".format((serdes_stat >> 11) & 0x1))
+            print(" transRxDone: {}".format((serdes_stat >> 12) & 0x1))
+            print(" qpll1Reset: {}".format((serdes_stat >> 13) & 0x1))
+            print(" qpll1Lock: {}".format((serdes_stat >> 14) & 0x1))
+            print(" rxctrl1 (byte has disparity error): {:#x}".format(serdes_stat_rxctrl & 0xFF))
+            print(" rxctrl2 (byte has comma char): {:#x}".format((serdes_stat_rxctrl >> 8) & 0xFF))
+            print(" rxctrl3 (byte has no valid char): {:#x}".format((serdes_stat_rxctrl >> 16) & 0xFF))
+        return (serdes_stat, serdes_stat_rxctrl)
 
 
     def tcu_version(self):
