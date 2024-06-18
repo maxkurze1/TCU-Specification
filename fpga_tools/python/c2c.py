@@ -10,6 +10,7 @@ class C2CConfigReg(Enum):
     VERSION = 1
     ERROR = 2
     ENABLE = 3
+    LOOPBACK = 4
 
     #BI Serdes
     CLK_VERSION = 11
@@ -99,6 +100,15 @@ class C2C():
             print(" rxctrl2 (byte has comma char): {:#x}".format((serdes_stat_rxctrl >> 8) & 0xFF))
             print(" rxctrl3 (byte has no valid char): {:#x}".format((serdes_stat_rxctrl >> 16) & 0xFF))
         return (serdes_stat, serdes_stat_rxctrl)
+
+    """
+    Reset chipid of incoming packets from c2c link to home-chipid to prevent infinite packets reflections.
+    """
+    def setLoopback(self, val):
+        self.mem[self.tcu.config_reg_addr(C2CConfigReg.LOOPBACK)] = val
+
+    def getLoopback(self):
+        return self.mem[self.tcu.config_reg_addr(C2CConfigReg.LOOPBACK)]
 
 
     def tcu_version(self):
